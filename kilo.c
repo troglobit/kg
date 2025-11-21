@@ -508,6 +508,172 @@ char *HTML_HL_keywords[] = {
     "width=|", "height=|", "type=|", "name=|", "value=|", "placeholder=|",
     NULL};
 
+/* React/JSX - extends JavaScript with React-specific features */
+char *REACT_HL_extensions[] = {".jsx", NULL};
+char *REACT_HL_keywords[] = {
+    /* All JavaScript keywords first */
+    "async", "await", "break", "case", "catch", "class", "const", "continue",
+    "debugger", "default", "delete", "do", "else", "export", "extends",
+    "finally", "for", "from", "function", "if", "import", "in",
+    "instanceof", "let", "new", "return", "static", "super", "switch",
+    "this", "throw", "try", "typeof", "var", "void", "while", "with", "yield",
+
+    /* React Hooks */
+    "useState|", "useEffect|", "useContext|", "useReducer|", "useCallback|",
+    "useMemo|", "useRef|", "useImperativeHandle|", "useLayoutEffect|",
+    "useDebugValue|", "useDeferredValue|", "useTransition|", "useId|",
+    "useSyncExternalStore|", "useInsertionEffect|",
+
+    /* React API */
+    "React|", "Component|", "PureComponent|", "Fragment|", "StrictMode|",
+    "Suspense|", "createElement|", "createContext|", "forwardRef|", "lazy|",
+    "memo|", "createRef|", "isValidElement|", "Children|", "cloneElement|",
+
+    /* Common JSX/React patterns */
+    "props|", "state|", "key|", "ref|", "defaultProps|", "propTypes|",
+    "className|", "onClick|", "onChange|", "onSubmit|", "useState|",
+
+    /* Common values */
+    "true|", "false|", "null|", "undefined|", "NaN|", "Infinity|",
+
+    /* Built-in objects */
+    "Array|", "Object|", "String|", "Number|", "Boolean|", "Date|", "Math|",
+    "JSON|", "Promise|", "Map|", "Set|", "WeakMap|", "WeakSet|",
+    "Symbol|", "BigInt|", "RegExp|", "Error|", "console|",
+    NULL};
+
+/* Vue.js - single file component syntax */
+char *VUE_HL_extensions[] = {".vue", NULL};
+char *VUE_HL_keywords[] = {
+    /* JavaScript keywords */
+    "async", "await", "break", "case", "catch", "class", "const", "continue",
+    "debugger", "default", "delete", "do", "else", "export", "extends",
+    "finally", "for", "from", "function", "if", "import", "in",
+    "instanceof", "let", "new", "return", "static", "super", "switch",
+    "this", "throw", "try", "typeof", "var", "void", "while", "with", "yield",
+
+    /* Vue Composition API */
+    "ref|", "reactive|", "computed|", "watch|", "watchEffect|", "onMounted|",
+    "onUpdated|", "onUnmounted|", "onBeforeMount|", "onBeforeUpdate|",
+    "onBeforeUnmount|", "onActivated|", "onDeactivated|", "onErrorCaptured|",
+    "provide|", "inject|", "defineProps|", "defineEmits|", "defineExpose|",
+    "useSlots|", "useAttrs|", "toRef|", "toRefs|", "isRef|", "unref|",
+    "shallowRef|", "triggerRef|", "customRef|", "shallowReactive|",
+    "readonly|", "shallowReadonly|", "toRaw|", "markRaw|",
+
+    /* Vue Options API */
+    "data|", "props|", "methods|", "computed|", "watch|", "emits|",
+    "components|", "directives|", "mixins|", "extends|", "setup|",
+    "beforeCreate|", "created|", "beforeMount|", "mounted|",
+    "beforeUpdate|", "updated|", "beforeUnmount|", "unmounted|",
+
+    /* Vue Directives */
+    "v-if|", "v-else|", "v-else-if|", "v-for|", "v-show|", "v-bind|",
+    "v-on|", "v-model|", "v-slot|", "v-pre|", "v-once|", "v-memo|",
+    "v-cloak|", "v-html|", "v-text|",
+
+    /* Vue Special Attributes */
+    "key|", "ref|", "is|",
+
+    /* Common values */
+    "true|", "false|", "null|", "undefined|", "NaN|", "Infinity|",
+
+    /* Built-in objects */
+    "Array|", "Object|", "String|", "Number|", "Boolean|", "Date|", "Math|",
+    "JSON|", "Promise|", "Map|", "Set|", "console|",
+
+    /* Vue template tags */
+    "<template>", "</template>", "<script>", "</script>", "<style>", "</style>",
+    NULL};
+
+/* Angular - TypeScript with Angular decorators and directives */
+char *ANGULAR_HL_extensions[] = {".component.ts", ".service.ts", ".module.ts",
+                                  ".directive.ts", ".pipe.ts", ".guard.ts", NULL};
+char *ANGULAR_HL_keywords[] = {
+    /* TypeScript/JavaScript keywords */
+    "abstract", "async", "await", "break", "case", "catch", "class", "const",
+    "continue", "debugger", "default", "delete", "do", "else", "enum",
+    "export", "extends", "finally", "for", "from", "function", "if",
+    "implements", "import", "in", "instanceof", "interface", "let", "new",
+    "private", "protected", "public", "readonly", "return", "static",
+    "super", "switch", "this", "throw", "try", "type", "typeof", "var",
+    "void", "while", "with", "yield",
+
+    /* Angular Decorators */
+    "@Component|", "@NgModule|", "@Injectable|", "@Directive|", "@Pipe|",
+    "@Input|", "@Output|", "@ViewChild|", "@ViewChildren|", "@ContentChild|",
+    "@ContentChildren|", "@HostBinding|", "@HostListener|",
+
+    /* Angular Core */
+    "OnInit|", "OnDestroy|", "OnChanges|", "DoCheck|", "AfterContentInit|",
+    "AfterContentChecked|", "AfterViewInit|", "AfterViewChecked|",
+    "ChangeDetectorRef|", "ElementRef|", "Renderer2|", "ViewContainerRef|",
+    "TemplateRef|", "EventEmitter|", "Injector|", "ComponentFactoryResolver|",
+
+    /* Angular Common */
+    "ngFor|", "ngIf|", "ngSwitch|", "ngClass|", "ngStyle|", "ngModel|",
+    "FormControl|", "FormGroup|", "FormBuilder|", "Validators|",
+    "HttpClient|", "HttpHeaders|", "Observable|", "Subject|", "BehaviorSubject|",
+    "Router|", "ActivatedRoute|", "RouterModule|", "Routes|",
+
+    /* Common values */
+    "true|", "false|", "null|", "undefined|", "NaN|", "Infinity|",
+
+    /* Built-in types */
+    "string|", "number|", "boolean|", "any|", "void|", "never|", "unknown|",
+    "Array|", "Object|", "Promise|", "Map|", "Set|",
+    NULL};
+
+/* Svelte - single file component with reactive syntax */
+char *SVELTE_HL_extensions[] = {".svelte", NULL};
+char *SVELTE_HL_keywords[] = {
+    /* JavaScript keywords */
+    "async", "await", "break", "case", "catch", "class", "const", "continue",
+    "debugger", "default", "delete", "do", "else", "export", "extends",
+    "finally", "for", "from", "function", "if", "import", "in",
+    "instanceof", "let", "new", "return", "static", "super", "switch",
+    "this", "throw", "try", "typeof", "var", "void", "while", "with", "yield",
+
+    /* Svelte Lifecycle */
+    "onMount|", "onDestroy|", "beforeUpdate|", "afterUpdate|", "tick|",
+    "setContext|", "getContext|", "hasContext|", "getAllContexts|",
+
+    /* Svelte Stores */
+    "writable|", "readable|", "derived|", "get|",
+
+    /* Svelte Motion */
+    "tweened|", "spring|",
+
+    /* Svelte Transitions */
+    "fade|", "blur|", "fly|", "slide|", "scale|", "draw|", "crossfade|",
+
+    /* Svelte Actions */
+    "use|",
+
+    /* Svelte Bindings */
+    "bind|", "on|", "class|",
+
+    /* Svelte Special Elements */
+    "svelte:component|", "svelte:window|", "svelte:body|", "svelte:head|",
+    "svelte:options|", "svelte:fragment|", "svelte:self|",
+
+    /* Svelte Blocks */
+    "{#if", "{:else", "{:else if", "{/if}",
+    "{#each", "{/each}",
+    "{#await", "{:then", "{:catch", "{/await}",
+    "{#key", "{/key}",
+
+    /* Common values */
+    "true|", "false|", "null|", "undefined|", "NaN|", "Infinity|",
+
+    /* Built-in objects */
+    "Array|", "Object|", "String|", "Number|", "Boolean|", "Date|", "Math|",
+    "JSON|", "Promise|", "Map|", "Set|", "console|",
+
+    /* Svelte template tags */
+    "<script>", "</script>", "<style>", "</style>",
+    NULL};
+
 /* Here we define an array of syntax highlights by extensions, keywords,
  * comments delimiters and flags. */
 struct editorSyntax HLDB[] = {
@@ -607,6 +773,34 @@ struct editorSyntax HLDB[] = {
         HTML_HL_extensions,
         HTML_HL_keywords,
         "<!--", "", "-->",
+        HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
+    },
+    {
+        /* React/JSX */
+        REACT_HL_extensions,
+        REACT_HL_keywords,
+        "//", "/*", "*/",
+        HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
+    },
+    {
+        /* Vue.js */
+        VUE_HL_extensions,
+        VUE_HL_keywords,
+        "//", "/*", "*/",
+        HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
+    },
+    {
+        /* Angular */
+        ANGULAR_HL_extensions,
+        ANGULAR_HL_keywords,
+        "//", "/*", "*/",
+        HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
+    },
+    {
+        /* Svelte */
+        SVELTE_HL_extensions,
+        SVELTE_HL_keywords,
+        "//", "/*", "*/",
         HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
     }
 };
