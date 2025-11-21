@@ -1,7 +1,7 @@
-all: kilo
+all: kg
 
-kilo: kilo.c
-	$(CC) -o kilo kilo.c -Wall -W -pedantic -std=c99
+kg: kilo.c
+	$(CC) -o kg kilo.c -Wall -W -pedantic -std=c99
 
 clean:
-	rm kilo
+	rm -f kg
