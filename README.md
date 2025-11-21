@@ -78,6 +78,15 @@ current line with the next line (standard Emacs behavior).
 then use C-w to cut or M-w to copy. Use C-y to paste. C-k also saves killed
 text to the kill ring, and consecutive C-k commands append to the same entry.
 
+### Undo
+
+| Key       | Action                               |
+|-----------|--------------------------------------|
+| C-_ / C-/ | Undo last change                     |
+
+**Note**: Undo maintains a stack of up to 1000 operations. Each character
+insertion, deletion, line split, and line join is recorded separately.
+
 ### Search
 
 | Key       | Action                    |

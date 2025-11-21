@@ -6,7 +6,7 @@ TARGET = kg
 
 # Source files
 SRCS = main.c tty.c syntax.c autocomplete.c buffer.c fileio.c \
-       display.c search.c basic.c word.c kbd.c yank.c
+       display.c search.c basic.c word.c kbd.c yank.c undo.c
 
 # Object files
 OBJS = $(SRCS:.c=.o)

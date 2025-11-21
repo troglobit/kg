@@ -36,6 +36,7 @@
 
 struct editorConfig E;
 int running = 1;
+int suppress_undo = 0;
 
 int editorFileWasModified(void) {
     return E.dirty;
@@ -58,6 +59,7 @@ void initEditor(void) {
     E.mark_col = 0;
     gettimeofday(&E.last_char_time, NULL);
     killRingInit();
+    undoInit();
     updateWindowSize();
     signal(SIGWINCH, handleSigWinCh);
 }

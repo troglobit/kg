@@ -109,6 +109,9 @@ void editorProcessKeypress(int fd) {
     case CTRL_Y:        /* Yank (paste) */
         editorYank();
         break;
+    case CTRL_UNDERSCORE: /* Undo (C-_ or C-/) */
+        editorUndo();
+        break;
     case BACKSPACE:     /* Backspace */
     case CTRL_H:        /* Ctrl-h */
     case DEL_KEY:

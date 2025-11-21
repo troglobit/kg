@@ -163,6 +163,10 @@ void editorInsertChar(int c) {
             editorInsertRow(E.numrows,"",0);
     }
     row = &E.row[filerow];
+
+    /* Record undo operation */
+    undoPush(UNDO_INSERT_CHAR, filerow, filecol, c, NULL, 0);
+
     editorRowInsertChar(row,filecol,c);
     if (E.cx == E.screencols-1)
         E.coloff++;
@@ -189,9 +193,12 @@ void editorInsertNewline(void) {
      * think it's just over the last character. */
     if (filecol >= row->size) filecol = row->size;
     if (filecol == 0) {
+        undoPush(UNDO_INSERT_LINE, filerow, 0, 0, NULL, 0);
         editorInsertRow(filerow,"",0);
     } else {
         /* We are in the middle of a line. Split it between two rows. */
+        /* Record undo: save the part that will move to new line */
+        undoPush(UNDO_SPLIT_LINE, filerow, filecol, 0, row->chars+filecol, row->size-filecol);
         editorInsertRow(filerow+1,row->chars+filecol,row->size-filecol);
         row = &E.row[filerow];
         row->chars[filecol] = '\0';
@@ -218,6 +225,8 @@ void editorDelChar(void) {
     if (filecol == 0) {
         /* Handle the case of column 0, we need to move the current line
          * on the right of the previous one. */
+        /* Record undo: save the line that will be joined */
+        undoPush(UNDO_JOIN_LINE, filerow-1, E.row[filerow-1].size, 0, row->chars, row->size);
         filecol = E.row[filerow-1].size;
         editorRowAppendString(&E.row[filerow-1],row->chars,row->size);
         editorDelRow(filerow);
@@ -233,6 +242,8 @@ void editorDelChar(void) {
             E.coloff += shift;
         }
     } else {
+        /* Record undo: save the character being deleted */
+        undoPush(UNDO_DELETE_CHAR, filerow, filecol-1, row->chars[filecol-1], NULL, 0);
         editorRowDelChar(row,filecol-1);
         if (E.cx == 0 && E.coloff)
             E.coloff--;
@@ -256,6 +267,8 @@ void editorKillLine(void) {
         if (filerow+1 < E.numrows) {
             /* Save newline to kill ring */
             killRingAppend("\n", 1);
+            /* Record undo: save the line that will be joined */
+            undoPush(UNDO_KILL_TEXT, filerow, filecol, 0, E.row[filerow+1].chars, E.row[filerow+1].size);
             editorRowAppendString(row, E.row[filerow+1].chars, E.row[filerow+1].size);
             editorDelRow(filerow+1);
         }
@@ -264,6 +277,8 @@ void editorKillLine(void) {
         int kill_len = row->size - filecol;
         if (kill_len > 0) {
             killRingAppend(row->chars + filecol, kill_len);
+            /* Record undo operation */
+            undoPush(UNDO_KILL_TEXT, filerow, filecol, 0, row->chars + filecol, kill_len);
         }
         row->chars[filecol] = '\0';
         row->size = filecol;

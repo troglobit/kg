@@ -33,6 +33,7 @@ int editorOpen(char *filename) {
     free(line);
     fclose(fp);
     E.dirty = 0;
+    undoMarkClean();  /* Mark initial file state as clean */
     return 0;
 }
 
@@ -51,6 +52,7 @@ int editorSave(void) {
     close(fd);
     free(buf);
     E.dirty = 0;
+    undoMarkClean();  /* Mark this state as clean for undo tracking */
     editorSetStatusMessage("Wrote %s (%d bytes)", E.filename, len);
     return 0;
 

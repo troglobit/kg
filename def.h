@@ -98,6 +98,7 @@ enum KEY_ACTION {
 	CTRL_X = 24,        /* Ctrl-x */
 	CTRL_Y = 25,        /* Ctrl-y */
 	ESC = 27,           /* Escape */
+	CTRL_UNDERSCORE = 31, /* Ctrl-_ or Ctrl-/ (undo) */
 	BACKSPACE =  127,   /* Backspace */
 	/* The following are just soft codes, not really reported by the
 	 * terminal directly. */
@@ -184,10 +185,43 @@ struct killRing {
 	int len;            /* Length of text */
 };
 
+/* Undo operation types */
+enum undoType {
+	UNDO_INSERT_CHAR,
+	UNDO_DELETE_CHAR,
+	UNDO_INSERT_LINE,
+	UNDO_DELETE_LINE,
+	UNDO_SPLIT_LINE,
+	UNDO_JOIN_LINE,
+	UNDO_KILL_TEXT,  /* Kill line or region */
+	UNDO_YANK_TEXT   /* Yank (paste) */
+};
+
+/* Single undo operation */
+struct undoOp {
+	enum undoType type;
+	int row;            /* Row where operation occurred */
+	int col;            /* Column where operation occurred */
+	int c;              /* Character (for char operations) */
+	char *text;         /* Line text (for line operations) */
+	int len;            /* Length of text */
+	struct undoOp *next;
+};
+
+/* Undo stack */
+struct undoStack {
+	struct undoOp *head;
+	int size;
+	int max_size;
+	int clean_size;  /* Stack size at last save (-1 if never saved clean) */
+};
+
 /* Global editor state */
 extern struct editorConfig E;
 extern int running;
+extern int suppress_undo;
 extern struct killRing killring;
+extern struct undoStack undostack;
 
 /* autocomplete.c */
 int editorFindCloseChar(int open_char);
@@ -261,6 +295,13 @@ void editorSetMark(void);
 void editorKillRegion(void);
 void editorCopyRegion(void);
 void editorYank(void);
+
+/* undo.c */
+void undoInit(void);
+void undoFree(void);
+void undoPush(enum undoType type, int row, int col, int c, char *text, int len);
+void editorUndo(void);
+void undoMarkClean(void);
 
 /* main.c */
 void initEditor(void);
