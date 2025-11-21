@@ -72,9 +72,9 @@
 struct editorSyntax {
     char **filematch;
     char **keywords;
-    char singleline_comment_start[2];
-    char multiline_comment_start[3];
-    char multiline_comment_end[3];
+    char singleline_comment_start[5];
+    char multiline_comment_start[5];
+    char multiline_comment_end[5];
     int flags;
 };
 
@@ -456,6 +456,58 @@ char *DART_HL_keywords[] = {
     "Comparable|", "Duration|", "DateTime|", "Uri|", "RegExp|", "StringBuffer|",
     "Symbol|", "Type|", "Function|", "Null|", NULL};
 
+/* HTML */
+char *HTML_HL_extensions[] = {".html", ".htm", ".xhtml", NULL};
+char *HTML_HL_keywords[] = {
+    /* Opening tags */
+    "<a>", "<abbr>", "<address>", "<article>", "<aside>", "<audio>",
+    "<b>", "<bdi>", "<bdo>", "<blockquote>", "<body>", "<br>", "<button>",
+    "<canvas>", "<caption>", "<cite>", "<code>", "<colgroup>",
+    "<datalist>", "<dd>", "<del>", "<details>", "<dfn>", "<dialog>",
+    "<div>", "<dl>", "<dt>", "<em>", "<embed>",
+    "<fieldset>", "<figcaption>", "<figure>", "<footer>", "<form>",
+    "<h1>", "<h2>", "<h3>", "<h4>", "<h5>", "<h6>", "<head>", "<header>", "<hr>", "<html>",
+    "<i>", "<iframe>", "<img>", "<input>", "<ins>",
+    "<kbd>", "<label>", "<legend>", "<li>", "<link>",
+    "<main>", "<map>", "<mark>", "<meta>", "<meter>",
+    "<nav>", "<noscript>",
+    "<object>", "<ol>", "<optgroup>", "<option>", "<output>",
+    "<p>", "<picture>", "<pre>", "<progress>",
+    "<q>",
+    "<s>", "<samp>", "<script>", "<section>", "<select>", "<small>", "<source>",
+    "<span>", "<strong>", "<style>", "<sub>", "<summary>", "<sup>", "<svg>",
+    "<table>", "<tbody>", "<td>", "<template>", "<textarea>", "<tfoot>", "<th>", "<thead>",
+    "<time>", "<title>", "<tr>", "<track>",
+    "<u>", "<ul>",
+    "<var>", "<video>",
+
+    /* Closing tags */
+    "</a>", "</abbr>", "</address>", "</article>", "</aside>", "</audio>",
+    "</b>", "</bdi>", "</bdo>", "</blockquote>", "</body>", "</button>",
+    "</canvas>", "</caption>", "</cite>", "</code>", "</colgroup>",
+    "</datalist>", "</dd>", "</del>", "</details>", "</dfn>", "</dialog>",
+    "</div>", "</dl>", "</dt>", "</em>",
+    "</fieldset>", "</figcaption>", "</figure>", "</footer>", "</form>",
+    "</h1>", "</h2>", "</h3>", "</h4>", "</h5>", "</h6>", "</head>", "</header>", "</html>",
+    "</i>", "</iframe>", "</ins>",
+    "</kbd>", "</label>", "</legend>", "</li>",
+    "</main>", "</map>", "</mark>", "</meter>",
+    "</nav>", "</noscript>",
+    "</object>", "</ol>", "</optgroup>", "</option>", "</output>",
+    "</p>", "</picture>", "</pre>", "</progress>",
+    "</q>",
+    "</s>", "</samp>", "</script>", "</section>", "</select>", "</small>",
+    "</span>", "</strong>", "</style>", "</sub>", "</summary>", "</sup>", "</svg>",
+    "</table>", "</tbody>", "</td>", "</template>", "</textarea>", "</tfoot>", "</th>", "</thead>",
+    "</time>", "</title>", "</tr>",
+    "</u>", "</ul>",
+    "</var>", "</video>",
+
+    /* Common attributes */
+    "class=|", "id=|", "style=|", "src=|", "href=|", "alt=|", "title=|",
+    "width=|", "height=|", "type=|", "name=|", "value=|", "placeholder=|",
+    NULL};
+
 /* Here we define an array of syntax highlights by extensions, keywords,
  * comments delimiters and flags. */
 struct editorSyntax HLDB[] = {
@@ -548,6 +600,13 @@ struct editorSyntax HLDB[] = {
         DART_HL_extensions,
         DART_HL_keywords,
         "//", "/*", "*/",
+        HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
+    },
+    {
+        /* HTML */
+        HTML_HL_extensions,
+        HTML_HL_keywords,
+        "<!--", "", "-->",
         HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
     }
 };
