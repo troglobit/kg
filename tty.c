@@ -77,6 +77,7 @@ int editorReadKey(int fd) {
 			if (seq[0] == 'f') return ALT_F;
 			if (seq[0] == 'b') return ALT_B;
 			if (seq[0] == 'v') return ALT_V;
+			if (seq[0] == 'w') return ALT_W;
 
 			if (read(fd, seq+1, 1) == 0) return ESC;
 

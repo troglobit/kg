@@ -94,7 +94,9 @@ enum KEY_ACTION {
 	CTRL_S = 19,        /* Ctrl-s */
 	CTRL_U = 21,        /* Ctrl-u */
 	CTRL_V = 22,        /* Ctrl-v */
+	CTRL_W = 23,        /* Ctrl-w */
 	CTRL_X = 24,        /* Ctrl-x */
+	CTRL_Y = 25,        /* Ctrl-y */
 	ESC = 27,           /* Escape */
 	BACKSPACE =  127,   /* Backspace */
 	/* The following are just soft codes, not really reported by the
@@ -116,7 +118,8 @@ enum KEY_ACTION {
 	CTRL_END,
 	ALT_F,
 	ALT_B,
-	ALT_V
+	ALT_V,
+	ALT_W
 };
 
 /* Syntax highlight definition */
@@ -164,6 +167,9 @@ struct editorConfig {
 	int cx_prefix;      /* Set to 1 when C-x was pressed, waiting for next key. */
 	int paste_mode;     /* If 1, we're in paste mode - disable autocomplete */
 	struct timeval last_char_time; /* Time of last character for paste detection */
+	int mark_set;       /* Is mark set for region selection? */
+	int mark_row;       /* Mark row position */
+	int mark_col;       /* Mark column position */
 };
 
 /* Append buffer for efficient screen rendering */
@@ -172,9 +178,16 @@ struct abuf {
 	int len;
 };
 
+/* Kill ring (yank buffer) for copy/paste operations */
+struct killRing {
+	char *text;         /* Killed/copied text */
+	int len;            /* Length of text */
+};
+
 /* Global editor state */
 extern struct editorConfig E;
 extern int running;
+extern struct killRing killring;
 
 /* autocomplete.c */
 int editorFindCloseChar(int open_char);
@@ -237,6 +250,17 @@ void editorMoveWordForward(void);
 void editorMoveWordBackward(void);
 void editorMoveParagraphForward(void);
 void editorMoveParagraphBackward(void);
+
+/* yank.c */
+void killRingInit(void);
+void killRingFree(void);
+void killRingSet(char *text, int len);
+void killRingAppend(char *text, int len);
+char *killRingGet(void);
+void editorSetMark(void);
+void editorKillRegion(void);
+void editorCopyRegion(void);
+void editorYank(void);
 
 /* main.c */
 void initEditor(void);

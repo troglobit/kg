@@ -65,6 +65,19 @@ Arrow keys (↑ ↓ ← →) also work for navigation.
 **C-k behavior**: When pressed at the end of a line, it joins the
 current line with the next line (standard Emacs behavior).
 
+### Copy/Paste (Kill Ring)
+
+| Key       | Action                               |
+|-----------|--------------------------------------|
+| C-Space   | Set mark (start selection)           |
+| C-w       | Kill region (cut selection)          |
+| M-w       | Copy region (copy selection)         |
+| C-y       | Yank (paste from kill ring)          |
+
+**Usage**: Press C-Space to set the mark, move the cursor to select text,
+then use C-w to cut or M-w to copy. Use C-y to paste. C-k also saves killed
+text to the kill ring, and consecutive C-k commands append to the same entry.
+
 ### Search
 
 | Key       | Action                    |

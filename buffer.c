@@ -254,11 +254,17 @@ void editorKillLine(void) {
     if (filecol >= row->size) {
         /* At end of line, join with next line like C-k in Emacs. */
         if (filerow+1 < E.numrows) {
+            /* Save newline to kill ring */
+            killRingAppend("\n", 1);
             editorRowAppendString(row, E.row[filerow+1].chars, E.row[filerow+1].size);
             editorDelRow(filerow+1);
         }
     } else {
-        /* Delete from cursor to end of line. */
+        /* Delete from cursor to end of line and save to kill ring. */
+        int kill_len = row->size - filecol;
+        if (kill_len > 0) {
+            killRingAppend(row->chars + filecol, kill_len);
+        }
         row->chars[filecol] = '\0';
         row->size = filecol;
         editorUpdateRow(row);

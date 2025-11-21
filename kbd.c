@@ -51,6 +51,9 @@ void editorProcessKeypress(int fd) {
 
     /* Regular key processing */
     switch(c) {
+    case KEY_NULL:      /* Ctrl+Space - set mark */
+        editorSetMark();
+        break;
     case ENTER:         /* Enter */
         editorInsertNewline();
         break;
@@ -96,10 +99,16 @@ void editorProcessKeypress(int fd) {
             editorMoveCursor(ARROW_DOWN);
         }
         break;
+    case CTRL_W:        /* Kill region (cut) */
+        editorKillRegion();
+        break;
     case CTRL_X:        /* C-x prefix */
         E.cx_prefix = 1;
         editorSetStatusMessage("C-x-");
         return;
+    case CTRL_Y:        /* Yank (paste) */
+        editorYank();
+        break;
     case BACKSPACE:     /* Backspace */
     case CTRL_H:        /* Ctrl-h */
     case DEL_KEY:
@@ -155,6 +164,9 @@ void editorProcessKeypress(int fd) {
         while(times--)
             editorMoveCursor(ARROW_UP);
         }
+        break;
+    case ALT_W:         /* Copy region */
+        editorCopyRegion();
         break;
     case CTRL_L: /* ctrl+l, clear screen */
         /* Just refresh the line as side effect. */

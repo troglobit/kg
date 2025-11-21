@@ -53,7 +53,11 @@ void initEditor(void) {
     E.syntax = NULL;
     E.cx_prefix = 0;
     E.paste_mode = 0;
+    E.mark_set = 0;
+    E.mark_row = 0;
+    E.mark_col = 0;
     gettimeofday(&E.last_char_time, NULL);
+    killRingInit();
     updateWindowSize();
     signal(SIGWINCH, handleSigWinCh);
 }
