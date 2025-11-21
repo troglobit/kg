@@ -163,7 +163,19 @@ void editorProcessKeypress(int fd) {
         /* Nothing to do for ESC in this mode. */
         break;
     default:
-        editorInsertCharAutoComplete(c);
+        /* Filter out control characters and non-printable characters.
+         * Only allow printable ASCII (32-126) and TAB/ENTER.
+         * This prevents weird characters from appearing when pressing
+         * unhandled key combinations. In the future, we can add a compose
+         * key for UTF-8 input. */
+        if (c == TAB || c == ENTER) {
+            /* Allow TAB and ENTER */
+            editorInsertCharAutoComplete(c);
+        } else if (c >= 32 && c < 127) {
+            /* Printable ASCII characters */
+            editorInsertCharAutoComplete(c);
+        }
+        /* Silently ignore all other control/non-printable characters */
         break;
     }
 }
