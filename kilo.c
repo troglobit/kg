@@ -1549,13 +1549,15 @@ int editorSave(void) {
     close(fd);
     free(buf);
     E.dirty = 0;
-    editorSetStatusMessage("%d bytes written on disk", len);
+    editorSetStatusMessage("Wrote %s (%d bytes)", E.filename, len);
     return 0;
 
 writeerr:
     free(buf);
-    if (fd != -1) close(fd);
-    editorSetStatusMessage("Can't save! I/O error: %s",strerror(errno));
+    if (fd != -1)
+	    close(fd);
+
+    editorSetStatusMessage("Error writing %s: %s", E.filename, strerror(errno));
     return 1;
 }
 
@@ -1740,8 +1742,7 @@ void editorFind(int fd) {
     int saved_coloff = E.coloff, saved_rowoff = E.rowoff;
 
     while(1) {
-        editorSetStatusMessage(
-            "Search: %s (Use ESC/Arrows/Enter)", query);
+        editorSetStatusMessage("I-search: %s", query);
         editorRefreshScreen();
 
         int c = editorReadKey(fd);
@@ -2039,7 +2040,7 @@ void updateWindowSize(void) {
     }
 
     /* If all attempts failed, keep current dimensions and warn user */
-    editorSetStatusMessage("Warning: Could not update window size");
+    editorSetStatusMessage("Warning: failed updating window size");
 }
 
 void handleSigWinCh(int unused __attribute__((unused))) {
