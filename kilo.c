@@ -149,7 +149,11 @@ enum KEY_ACTION{
         HOME_KEY,
         END_KEY,
         PAGE_UP,
-        PAGE_DOWN
+        PAGE_DOWN,
+        CTRL_ARROW_LEFT,
+        CTRL_ARROW_RIGHT,
+        ALT_F,
+        ALT_B
 };
 
 void editorSetStatusMessage(const char *fmt, ...);
@@ -888,7 +892,7 @@ fatal:
  * escape sequences. */
 int editorReadKey(int fd) {
     int nread;
-    char c, seq[3];
+    char c, seq[6];
 
     while ((nread = read(fd,&c,1)) == 0);
     if (nread == -1) {
@@ -901,6 +905,11 @@ int editorReadKey(int fd) {
         case ESC:    /* escape sequence */
             /* If this is just an ESC, we'll timeout here. */
             if (read(fd,seq,1) == 0) return ESC;
+
+            /* Alt+key sequences (ESC followed by a character). */
+            if (seq[0] == 'f') return ALT_F;
+            if (seq[0] == 'b') return ALT_B;
+
             if (read(fd,seq+1,1) == 0) return ESC;
 
             /* ESC [ sequences. */
@@ -913,6 +922,17 @@ int editorReadKey(int fd) {
                         case '3': return DEL_KEY;
                         case '5': return PAGE_UP;
                         case '6': return PAGE_DOWN;
+                        }
+                    } else if (seq[2] == ';') {
+                        /* ESC [ 1 ; modifier key sequences (Ctrl+Arrow keys) */
+                        if (read(fd,seq+3,1) == 0) return ESC;
+                        if (read(fd,seq+4,1) == 0) return ESC;
+                        if (seq[1] == '1' && seq[3] == '5') {
+                            /* Ctrl modifier */
+                            switch(seq[4]) {
+                            case 'C': return CTRL_ARROW_RIGHT;
+                            case 'D': return CTRL_ARROW_LEFT;
+                            }
                         }
                     }
                 } else {
@@ -1892,6 +1912,63 @@ void editorMoveCursor(int key) {
     }
 }
 
+/* Move cursor forward by one word */
+void editorMoveWordForward(void) {
+    int filerow = E.rowoff + E.cy;
+    int filecol = E.coloff + E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    if (!row) return;
+
+    /* Skip current word (alphanumeric or punctuation) */
+    while (filecol < row->size && !isspace(row->chars[filecol])) {
+        editorMoveCursor(ARROW_RIGHT);
+        filecol = E.coloff + E.cx;
+    }
+
+    /* Skip whitespace */
+    while (filecol < row->size && isspace(row->chars[filecol])) {
+        editorMoveCursor(ARROW_RIGHT);
+        filecol = E.coloff + E.cx;
+    }
+}
+
+/* Move cursor backward by one word */
+void editorMoveWordBackward(void) {
+    int filerow = E.rowoff + E.cy;
+    int filecol = E.coloff + E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    if (!row) return;
+    if (filecol == 0) {
+        /* Move to end of previous line */
+        if (filerow > 0) {
+            editorMoveCursor(ARROW_LEFT);
+        }
+        return;
+    }
+
+    /* Move back one position to check current position */
+    editorMoveCursor(ARROW_LEFT);
+    filerow = E.rowoff + E.cy;
+    filecol = E.coloff + E.cx;
+    row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    if (!row) return;
+
+    /* Skip whitespace */
+    while (filecol > 0 && isspace(row->chars[filecol])) {
+        editorMoveCursor(ARROW_LEFT);
+        filecol = E.coloff + E.cx;
+    }
+
+    /* Skip word characters */
+    while (filecol > 0 && !isspace(row->chars[filecol - 1])) {
+        editorMoveCursor(ARROW_LEFT);
+        filecol = E.coloff + E.cx;
+    }
+}
+
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
 void editorProcessKeypress(int fd) {
@@ -2005,6 +2082,14 @@ void editorProcessKeypress(int fd) {
     case ARROW_LEFT:
     case ARROW_RIGHT:
         editorMoveCursor(c);
+        break;
+    case CTRL_ARROW_LEFT:
+    case ALT_B:
+        editorMoveWordBackward();
+        break;
+    case CTRL_ARROW_RIGHT:
+    case ALT_F:
+        editorMoveWordForward();
         break;
     case CTRL_L: /* ctrl+l, clear screen */
         /* Just refresh the line as side effect. */
