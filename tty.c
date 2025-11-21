@@ -76,6 +76,7 @@ int editorReadKey(int fd) {
 			/* Alt+key sequences (ESC followed by a character). */
 			if (seq[0] == 'f') return ALT_F;
 			if (seq[0] == 'b') return ALT_B;
+			if (seq[0] == 'v') return ALT_V;
 
 			if (read(fd, seq+1, 1) == 0) return ESC;
 
@@ -91,14 +92,18 @@ int editorReadKey(int fd) {
 						case '6': return PAGE_DOWN;
 						}
 					} else if (seq[2] == ';') {
-						/* ESC [ 1 ; modifier key sequences (Ctrl+Arrow keys) */
+						/* ESC [ 1 ; modifier key sequences (Ctrl+Arrow/Home/End) */
 						if (read(fd, seq+3, 1) == 0) return ESC;
 						if (read(fd, seq+4, 1) == 0) return ESC;
 						if (seq[1] == '1' && seq[3] == '5') {
 							/* Ctrl modifier */
 							switch (seq[4]) {
+							case 'A': return CTRL_ARROW_UP;
+							case 'B': return CTRL_ARROW_DOWN;
 							case 'C': return CTRL_ARROW_RIGHT;
 							case 'D': return CTRL_ARROW_LEFT;
+							case 'H': return CTRL_HOME;
+							case 'F': return CTRL_END;
 							}
 						}
 					}

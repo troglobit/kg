@@ -93,6 +93,7 @@ enum KEY_ACTION {
 	CTRL_R = 18,        /* Ctrl-r */
 	CTRL_S = 19,        /* Ctrl-s */
 	CTRL_U = 21,        /* Ctrl-u */
+	CTRL_V = 22,        /* Ctrl-v */
 	CTRL_X = 24,        /* Ctrl-x */
 	ESC = 27,           /* Escape */
 	BACKSPACE =  127,   /* Backspace */
@@ -109,8 +110,13 @@ enum KEY_ACTION {
 	PAGE_DOWN,
 	CTRL_ARROW_LEFT,
 	CTRL_ARROW_RIGHT,
+	CTRL_ARROW_UP,
+	CTRL_ARROW_DOWN,
+	CTRL_HOME,
+	CTRL_END,
 	ALT_F,
-	ALT_B
+	ALT_B,
+	ALT_V
 };
 
 /* Syntax highlight definition */
@@ -176,6 +182,8 @@ void editorInsertCharAutoComplete(int c);
 
 /* basic.c */
 void editorMoveCursor(int key);
+void editorMoveToBeginning(void);
+void editorMoveToEnd(void);
 
 /* buffer.c */
 void editorUpdateRow(erow *row);
@@ -227,6 +235,8 @@ void handleSigWinCh(int unused);
 /* word.c */
 void editorMoveWordForward(void);
 void editorMoveWordBackward(void);
+void editorMoveParagraphForward(void);
+void editorMoveParagraphBackward(void);
 
 /* main.c */
 void initEditor(void);

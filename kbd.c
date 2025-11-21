@@ -87,6 +87,15 @@ void editorProcessKeypress(int fd) {
     case CTRL_R:        /* Incremental search */
         editorFind(fd);
         break;
+    case CTRL_V:        /* Page down */
+        if (E.cy != E.screenrows-1)
+            E.cy = E.screenrows-1;
+        {
+        int times = E.screenrows;
+        while(times--)
+            editorMoveCursor(ARROW_DOWN);
+        }
+        break;
     case CTRL_X:        /* C-x prefix */
         E.cx_prefix = 1;
         editorSetStatusMessage("C-x-");
@@ -114,7 +123,15 @@ void editorProcessKeypress(int fd) {
     case ARROW_DOWN:
     case ARROW_LEFT:
     case ARROW_RIGHT:
+    case HOME_KEY:
+    case END_KEY:
         editorMoveCursor(c);
+        break;
+    case CTRL_HOME:
+        editorMoveToBeginning();
+        break;
+    case CTRL_END:
+        editorMoveToEnd();
         break;
     case CTRL_ARROW_LEFT:
     case ALT_B:
@@ -123,6 +140,21 @@ void editorProcessKeypress(int fd) {
     case CTRL_ARROW_RIGHT:
     case ALT_F:
         editorMoveWordForward();
+        break;
+    case CTRL_ARROW_UP:
+        editorMoveParagraphBackward();
+        break;
+    case CTRL_ARROW_DOWN:
+        editorMoveParagraphForward();
+        break;
+    case ALT_V:         /* Page up */
+        if (E.cy != 0)
+            E.cy = 0;
+        {
+        int times = E.screenrows;
+        while(times--)
+            editorMoveCursor(ARROW_UP);
+        }
         break;
     case CTRL_L: /* ctrl+l, clear screen */
         /* Just refresh the line as side effect. */

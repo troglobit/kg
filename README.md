@@ -31,15 +31,23 @@ kg <filename>
 
 ### Navigation
 
-| Key       | Action                    |
-|-----------|---------------------------|
-| C-f       | Forward character         |
-| C-b       | Backward character        |
-| C-n       | Next line                 |
-| C-p       | Previous line             |
-| C-a       | Beginning of line         |
-| C-e       | End of line               |
-| PgUp/PgDn | Scroll by page            |
+| Key             | Action                    |
+|-----------------|---------------------------|
+| C-f             | Forward character         |
+| C-b             | Backward character        |
+| C-n             | Next line                 |
+| C-p             | Previous line             |
+| C-a / Home      | Beginning of line         |
+| C-e / End       | End of line               |
+| C-v             | Page down                 |
+| M-v             | Page up                   |
+| PgUp/PgDn       | Scroll by page            |
+| M-f / C-Right   | Forward word              |
+| M-b / C-Left    | Backward word             |
+| C-Up            | Previous paragraph        |
+| C-Down          | Next paragraph            |
+| C-Home          | Beginning of document     |
+| C-End           | End of document           |
 
 Arrow keys (↑ ↓ ← →) also work for navigation.
 

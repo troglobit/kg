@@ -10,6 +10,21 @@ void editorMoveCursor(int key) {
     erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
 
     switch(key) {
+    case HOME_KEY:
+        E.cx = 0;
+        E.coloff = 0;
+        break;
+    case END_KEY:
+        if (row) {
+            if (row->size > E.screencols - 1) {
+                E.coloff = row->size - E.screencols + 1;
+                E.cx = E.screencols - 1;
+            } else {
+                E.cx = row->size;
+                E.coloff = 0;
+            }
+        }
+        break;
     case ARROW_LEFT:
         if (E.cx == 0) {
             if (E.coloff) {
@@ -73,5 +88,38 @@ void editorMoveCursor(int key) {
             E.coloff += E.cx;
             E.cx = 0;
         }
+    }
+}
+
+/* Move to the beginning of the document */
+void editorMoveToBeginning(void) {
+    E.cx = 0;
+    E.cy = 0;
+    E.rowoff = 0;
+    E.coloff = 0;
+}
+
+/* Move to the end of the document */
+void editorMoveToEnd(void) {
+    if (E.numrows == 0) return;
+
+    int filerow = E.numrows - 1;
+
+    /* Update cursor position */
+    if (filerow >= E.rowoff + E.screenrows) {
+        E.rowoff = filerow - E.screenrows + 1;
+        E.cy = E.screenrows - 1;
+    } else {
+        E.cy = filerow - E.rowoff;
+    }
+
+    /* Move to end of last line */
+    erow *row = &E.row[filerow];
+    if (row->size > E.screencols - 1) {
+        E.coloff = row->size - E.screencols + 1;
+        E.cx = E.screencols - 1;
+    } else {
+        E.cx = row->size;
+        E.coloff = 0;
     }
 }
