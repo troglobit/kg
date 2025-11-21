@@ -2,16 +2,17 @@ kg - A Small Text Editor with Emacs Keybindings
 ===============================================
 
 kg is a minimal text editor inspired by Mg with Emacs keybindings and is
-based on [kilo][0].
+based on [kilo][0] and its descendants.
 
 ## Features
 
 - Pure Emacs-style keybindings
-- Syntax highlighting for C/C++
+- Syntax highlighting for many programming languages
 - Incremental search
 - No dependencies (not even curses)
 - Uses standard VT100 escape sequences
 - Single-file implementation
+- Graceful terminal resize handling
 
 ## Usage
 
@@ -86,6 +87,27 @@ After pressing C-x, the editor waits for a second key:
 - **C-x C-g**: Cancel the C-x prefix
 
 Any other key after C-x will display an "undefined" message.
+
+## Language Support
+
+kg provides syntax highlighting for 13 programming languages with
+automatic detection based on file extension:
+
+| Language   | Extensions                            | Features                             |
+|------------|---------------------------------------|--------------------------------------|
+| C/C++      | `.c`, `.h`, `.cpp`, `.hpp`, `.cc`     | Keywords, types, comments            |
+| Python     | `.py`, `.pyw`, `.pyi`, `.pyx`         | Keywords, built-ins (len, map, etc.) |
+| Shell      | `.sh`, `.bash`, `.zsh`, profile files | Keywords, commands, variables        |
+| JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs`         | ES6+, async/await, built-ins         |
+| Rust       | `.rs`, `.rlib`                        | Keywords, std types, traits          |
+| Java       | `.java`, `.class`                     | Keywords, common classes             |
+| TypeScript | `.ts`, `.tsx`, `.d.ts`                | JS + TS types, interfaces            |
+| C#         | `.cs`, `.csx`                         | Keywords, .NET types                 |
+| PHP        | `.php`, `.phtml`, `.php3-5`           | Keywords, superglobals               |
+| Ruby       | `.rb`, `.rbw`, `.rake`, `.gemspec`    | Keywords, built-in methods           |
+| Swift      | `.swift`                              | Keywords, Foundation types           |
+| SQL        | `.sql`, `.ddl`, `.dml`                | SQL keywords, functions              |
+| Dart       | `.dart`                               | Keywords, Flutter types              |
 
 ## Origin & References
 
