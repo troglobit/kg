@@ -1216,12 +1216,7 @@ void editorMoveCursor(int key) {
 
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
-#define KILO_QUIT_TIMES 3
 void editorProcessKeypress(int fd) {
-    /* When the file is modified, requires Ctrl-x Ctrl-c to be pressed N times
-     * before actually quitting. */
-    static int quit_times = KILO_QUIT_TIMES;
-
     int c = editorReadKey(fd);
 
     /* Handle C-x prefix commands */
@@ -1229,11 +1224,14 @@ void editorProcessKeypress(int fd) {
         E.cx_prefix = 0;
         switch(c) {
         case CTRL_C:    /* C-x C-c: Quit */
-            if (E.dirty && quit_times) {
-                editorSetStatusMessage("WARNING!!! File has unsaved changes. "
-                    "Press C-x C-c %d more times to quit.", quit_times);
-                quit_times--;
-                return;
+            if (E.dirty) {
+                editorSetStatusMessage("Modified buffer, really quit? (y/n) ");
+                editorRefreshScreen();
+                int answer = editorReadKey(fd);
+                if (answer != 'y' && answer != 'Y') {
+                    editorSetStatusMessage("");
+                    return;
+                }
             }
             exit(0);
             break;
@@ -1247,7 +1245,6 @@ void editorProcessKeypress(int fd) {
             editorSetStatusMessage("C-x %c is undefined", c);
             break;
         }
-        quit_times = KILO_QUIT_TIMES;
         return;
     }
 
@@ -1325,8 +1322,6 @@ void editorProcessKeypress(int fd) {
         editorInsertChar(c);
         break;
     }
-
-    quit_times = KILO_QUIT_TIMES; /* Reset it to the original value. */
 }
 
 int editorFileWasModified(void) {
