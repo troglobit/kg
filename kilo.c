@@ -133,6 +133,7 @@ enum KEY_ACTION{
         CTRL_N = 14,        /* Ctrl-n */
         CTRL_P = 16,        /* Ctrl-p */
         CTRL_Q = 17,        /* Ctrl-q */
+        CTRL_R = 18,        /* Ctrl-r */
         CTRL_S = 19,        /* Ctrl-s */
         CTRL_U = 21,        /* Ctrl-u */
         CTRL_X = 24,        /* Ctrl-x */
@@ -1749,7 +1750,7 @@ void editorFind(int fd) {
         if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
             if (qlen != 0) query[--qlen] = '\0';
             last_match = -1;
-        } else if (c == ESC || c == ENTER) {
+        } else if (c == ESC || c == ENTER || c == CTRL_G) {
             if (c == ESC) {
                 E.cx = saved_cx; E.cy = saved_cy;
                 E.coloff = saved_coloff; E.rowoff = saved_rowoff;
@@ -1757,9 +1758,9 @@ void editorFind(int fd) {
             FIND_RESTORE_HL;
             editorSetStatusMessage("");
             return;
-        } else if (c == ARROW_RIGHT || c == ARROW_DOWN) {
+        } else if (c == ARROW_RIGHT || c == ARROW_DOWN || c == CTRL_S) {
             find_next = 1;
-        } else if (c == ARROW_LEFT || c == ARROW_UP) {
+        } else if (c == ARROW_LEFT || c == ARROW_UP || c == CTRL_R) {
             find_next = -1;
         } else if (isprint(c)) {
             if (qlen < KILO_QUERY_LEN) {
@@ -1971,6 +1972,9 @@ void editorProcessKeypress(int fd) {
         editorMoveCursor(ARROW_UP);
         break;
     case CTRL_S:        /* Incremental search */
+        editorFind(fd);
+        break;
+    case CTRL_R:        /* Incremental search */
         editorFind(fd);
         break;
     case CTRL_X:        /* C-x prefix */
