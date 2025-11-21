@@ -32,7 +32,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define KILO_VERSION "0.0.1"
+#define KILO_VERSION "0.1.0"
 
 #ifdef __linux__
 #define _POSIX_C_SOURCE 200809L
@@ -107,22 +107,31 @@ struct editorConfig {
     char statusmsg[80];
     time_t statusmsg_time;
     struct editorSyntax *syntax;    /* Current syntax highlight, or NULL. */
+    int cx_prefix;  /* Set to 1 when C-x was pressed, waiting for next key. */
 };
 
 static struct editorConfig E;
 
 enum KEY_ACTION{
         KEY_NULL = 0,       /* NULL */
+        CTRL_A = 1,         /* Ctrl-a */
+        CTRL_B = 2,         /* Ctrl-b */
         CTRL_C = 3,         /* Ctrl-c */
         CTRL_D = 4,         /* Ctrl-d */
+        CTRL_E = 5,         /* Ctrl-e */
         CTRL_F = 6,         /* Ctrl-f */
+        CTRL_G = 7,         /* Ctrl-g */
         CTRL_H = 8,         /* Ctrl-h */
         TAB = 9,            /* Tab */
+        CTRL_K = 11,        /* Ctrl-k */
         CTRL_L = 12,        /* Ctrl+l */
         ENTER = 13,         /* Enter */
+        CTRL_N = 14,        /* Ctrl-n */
+        CTRL_P = 16,        /* Ctrl-p */
         CTRL_Q = 17,        /* Ctrl-q */
         CTRL_S = 19,        /* Ctrl-s */
         CTRL_U = 21,        /* Ctrl-u */
+        CTRL_X = 24,        /* Ctrl-x */
         ESC = 27,           /* Escape */
         BACKSPACE =  127,   /* Backspace */
         /* The following are just soft codes, not really reported by the
@@ -792,6 +801,29 @@ void editorDelChar(void) {
     E.dirty++;
 }
 
+/* Kill (delete) from cursor to end of line (C-k). */
+void editorKillLine(void) {
+    int filerow = E.rowoff+E.cy;
+    int filecol = E.coloff+E.cx;
+    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+    if (!row) return;
+
+    if (filecol >= row->size) {
+        /* At end of line, join with next line like C-k in Emacs. */
+        if (filerow+1 < E.numrows) {
+            editorRowAppendString(row, E.row[filerow+1].chars, E.row[filerow+1].size);
+            editorDelRow(filerow+1);
+        }
+    } else {
+        /* Delete from cursor to end of line. */
+        row->chars[filecol] = '\0';
+        row->size = filecol;
+        editorUpdateRow(row);
+        E.dirty++;
+    }
+}
+
 /* Load the specified program in the editor memory and returns 0 on success
  * or 1 on error. */
 int editorOpen(char *filename) {
@@ -894,7 +926,7 @@ void editorRefreshScreen(void) {
             if (E.numrows == 0 && y == E.screenrows/3) {
                 char welcome[80];
                 int welcomelen = snprintf(welcome,sizeof(welcome),
-                    "Kilo editor -- verison %s\x1b[0K\r\n", KILO_VERSION);
+                    "kg editor -- version %s (Emacs keybindings)\x1b[0K\r\n", KILO_VERSION);
                 int padding = (E.screencols-welcomelen)/2;
                 if (padding) {
                     abAppend(&ab,"~",1);
@@ -1186,35 +1218,78 @@ void editorMoveCursor(int key) {
  * is typing stuff on the terminal. */
 #define KILO_QUIT_TIMES 3
 void editorProcessKeypress(int fd) {
-    /* When the file is modified, requires Ctrl-q to be pressed N times
+    /* When the file is modified, requires Ctrl-x Ctrl-c to be pressed N times
      * before actually quitting. */
     static int quit_times = KILO_QUIT_TIMES;
 
     int c = editorReadKey(fd);
+
+    /* Handle C-x prefix commands */
+    if (E.cx_prefix) {
+        E.cx_prefix = 0;
+        switch(c) {
+        case CTRL_C:    /* C-x C-c: Quit */
+            if (E.dirty && quit_times) {
+                editorSetStatusMessage("WARNING!!! File has unsaved changes. "
+                    "Press C-x C-c %d more times to quit.", quit_times);
+                quit_times--;
+                return;
+            }
+            exit(0);
+            break;
+        case CTRL_S:    /* C-x C-s: Save */
+            editorSave();
+            break;
+        case CTRL_G:    /* C-x C-g: Cancel C-x prefix */
+            editorSetStatusMessage("");
+            break;
+        default:
+            editorSetStatusMessage("C-x %c is undefined", c);
+            break;
+        }
+        quit_times = KILO_QUIT_TIMES;
+        return;
+    }
+
+    /* Regular key processing */
     switch(c) {
     case ENTER:         /* Enter */
         editorInsertNewline();
         break;
-    case CTRL_C:        /* Ctrl-c */
-        /* We ignore ctrl-c, it can't be so simple to lose the changes
-         * to the edited file. */
+    case CTRL_A:        /* Beginning of line */
+        editorMoveCursor(HOME_KEY);
         break;
-    case CTRL_Q:        /* Ctrl-q */
-        /* Quit if the file was already saved. */
-        if (E.dirty && quit_times) {
-            editorSetStatusMessage("WARNING!!! File has unsaved changes. "
-                "Press Ctrl-Q %d more times to quit.", quit_times);
-            quit_times--;
-            return;
-        }
-        exit(0);
+    case CTRL_B:        /* Backward char */
+        editorMoveCursor(ARROW_LEFT);
         break;
-    case CTRL_S:        /* Ctrl-s */
-        editorSave();
+    case CTRL_D:        /* Delete char */
+        editorDelChar();
         break;
-    case CTRL_F:
+    case CTRL_E:        /* End of line */
+        editorMoveCursor(END_KEY);
+        break;
+    case CTRL_F:        /* Forward char */
+        editorMoveCursor(ARROW_RIGHT);
+        break;
+    case CTRL_G:        /* Keyboard quit / cancel */
+        editorSetStatusMessage("");
+        break;
+    case CTRL_K:        /* Kill line */
+        editorKillLine();
+        break;
+    case CTRL_N:        /* Next line */
+        editorMoveCursor(ARROW_DOWN);
+        break;
+    case CTRL_P:        /* Previous line */
+        editorMoveCursor(ARROW_UP);
+        break;
+    case CTRL_S:        /* Incremental search */
         editorFind(fd);
         break;
+    case CTRL_X:        /* C-x prefix */
+        E.cx_prefix = 1;
+        editorSetStatusMessage("C-x-");
+        return;
     case BACKSPACE:     /* Backspace */
     case CTRL_H:        /* Ctrl-h */
     case DEL_KEY:
@@ -1241,7 +1316,7 @@ void editorProcessKeypress(int fd) {
         editorMoveCursor(c);
         break;
     case CTRL_L: /* ctrl+l, clear screen */
-        /* Just refresht the line as side effect. */
+        /* Just refresh the line as side effect. */
         break;
     case ESC:
         /* Nothing to do for ESC in this mode. */
@@ -1284,6 +1359,7 @@ void initEditor(void) {
     E.dirty = 0;
     E.filename = NULL;
     E.syntax = NULL;
+    E.cx_prefix = 0;
     updateWindowSize();
     signal(SIGWINCH, handleSigWinCh);
 }
@@ -1299,7 +1375,7 @@ int main(int argc, char **argv) {
     editorOpen(argv[1]);
     enableRawMode(STDIN_FILENO);
     editorSetStatusMessage(
-        "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
+        "HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line");
     while(1) {
         editorRefreshScreen();
         editorProcessKeypress(STDIN_FILENO);
