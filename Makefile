@@ -1,7 +1,28 @@
-all: kg
+# Makefile for kg editor
 
-kg: kilo.c
-	$(CC) -o kg kilo.c -Wall -W -pedantic -std=c99
+CC = gcc
+CFLAGS = -Wall -W -pedantic -std=c99
+TARGET = kg
+
+# Source files
+SRCS = main.c tty.c syntax.c autocomplete.c buffer.c fileio.c \
+       display.c search.c basic.c word.c kbd.c
+
+# Object files
+OBJS = $(SRCS:.c=.o)
+
+# Header files
+HDRS = def.h
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+
+%.o: %.c $(HDRS)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f kg
+	rm -f $(TARGET) $(OBJS)
+
+.PHONY: all clean
