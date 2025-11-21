@@ -111,6 +111,7 @@ struct editorConfig {
 };
 
 static struct editorConfig E;
+static int running = 1;
 
 enum KEY_ACTION{
         KEY_NULL = 0,       /* NULL */
@@ -220,6 +221,10 @@ void disableRawMode(int fd) {
 
 /* Called at exit to avoid remaining in raw mode. */
 void editorAtExit(void) {
+    /* Clear screen and reset cursor position before exiting. */
+    write(STDOUT_FILENO, "\x1b[2J", 4);  /* Clear entire screen */
+    write(STDOUT_FILENO, "\x1b[H", 3);   /* Move cursor to top-left */
+
     disableRawMode(STDIN_FILENO);
 }
 
@@ -262,8 +267,12 @@ fatal:
 int editorReadKey(int fd) {
     int nread;
     char c, seq[3];
+
     while ((nread = read(fd,&c,1)) == 0);
-    if (nread == -1) exit(1);
+    if (nread == -1) {
+        running = 0;
+        return 0;
+    }
 
     while(1) {
         switch(c) {
@@ -331,6 +340,7 @@ int getCursorPosition(int ifd, int ofd, int *rows, int *cols) {
     /* Parse it. */
     if (buf[0] != ESC || buf[1] != '[') return -1;
     if (sscanf(buf+2,"%d;%d",rows,cols) != 2) return -1;
+
     return 0;
 }
 
@@ -575,8 +585,9 @@ void editorUpdateRow(erow *row) {
     unsigned long long allocsize =
         (unsigned long long) row->size + tabs*8 + nonprint*9 + 1;
     if (allocsize > UINT32_MAX) {
-        printf("Some line of the edited file is too long for kilo\n");
-        exit(1);
+        editorSetStatusMessage("Line too long for editor");
+        running = 0;
+        return;
     }
 
     row->render = malloc(row->size + tabs*8 + nonprint*9 + 1);
@@ -1233,7 +1244,7 @@ void editorProcessKeypress(int fd) {
                     return;
                 }
             }
-            exit(0);
+            running = 0;
             break;
         case CTRL_S:    /* C-x C-s: Save */
             editorSave();
@@ -1332,7 +1343,8 @@ void updateWindowSize(void) {
     if (getWindowSize(STDIN_FILENO,STDOUT_FILENO,
                       &E.screenrows,&E.screencols) == -1) {
         perror("Unable to query the screen for size (columns / rows)");
-        exit(1);
+        running = 0;
+        return;
     }
     E.screenrows -= 2; /* Get room for status bar. */
 }
@@ -1371,7 +1383,7 @@ int main(int argc, char **argv) {
     enableRawMode(STDIN_FILENO);
     editorSetStatusMessage(
         "HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line");
-    while(1) {
+    while(running) {
         editorRefreshScreen();
         editorProcessKeypress(STDIN_FILENO);
     }
