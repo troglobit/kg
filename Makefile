@@ -1,7 +1,7 @@
 # Makefile for kg editor
 
 CC = gcc
-CFLAGS = -Wall -W -pedantic -std=c99
+CFLAGS = -Wall -W -pedantic -std=c99 -Os
 TARGET = kg
 
 # Source files
