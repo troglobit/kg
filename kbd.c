@@ -33,7 +33,17 @@ void editorProcessKeypress(int fd)
 		E.cx_prefix = 0;
 		switch (c) {
 		case CTRL_C:    /* C-x C-c: Quit */
-			if (E.dirty) {
+			if (buf_count > 1) {
+				int answer;
+				editorSetStatusMessage("%d buffers open, really quit? (y/n) ",
+					buf_count);
+				editorRefreshScreen();
+				answer = editorReadKey(fd);
+				if (answer != 'y' && answer != 'Y') {
+					editorSetStatusMessage("");
+					return;
+				}
+			} else if (E.dirty) {
 				int answer;
 				editorSetStatusMessage("Modified buffer, really quit? (y/n) ");
 				editorRefreshScreen();
@@ -47,6 +57,18 @@ void editorProcessKeypress(int fd)
 			break;
 		case CTRL_S:    /* C-x C-s: Save */
 			editorSave();
+			break;
+		case CTRL_F:    /* C-x C-f: Open file in new buffer */
+			bufOpenFile(fd);
+			break;
+		case 'b':       /* C-x b: Cycle to next buffer */
+			bufCycleNext();
+			break;
+		case 'k':       /* C-x k: Kill current buffer */
+			bufKill(fd);
+			break;
+		case CTRL_B:    /* C-x C-b: List buffers */
+			bufListMessage();
 			break;
 		case CTRL_G:    /* C-x C-g: Cancel C-x prefix */
 			editorSetStatusMessage("");

@@ -218,12 +218,38 @@ struct undoStack {
 	int clean_size;  /* Stack size at last save (-1 if never saved clean) */
 };
 
+/* Per-buffer state saved when switching away from a buffer. */
+#define MAX_BUFFERS 20
+struct editorBuffer {
+	int cx, cy;
+	int rowoff, coloff;
+	int numrows;
+	erow *row;
+	int dirty;
+	char *filename;
+	struct editorSyntax *syntax;
+	int mark_set;
+	int mark_row, mark_col;
+	struct undoStack undostack; /* per-buffer undo chain */
+	int active;                 /* 1 if this slot is in use */
+};
+
 /* Global editor state */
 extern struct editorConfig E;
 extern int running;
 extern int suppress_undo;
 extern struct killRing killring;
 extern struct undoStack undostack;
+extern struct editorBuffer buflist[MAX_BUFFERS];
+extern int buf_current; /* index into buflist[] of the active buffer */
+extern int buf_count;   /* number of active buffers */
+
+/* bufmgr.c */
+void bufLoadArgs(int nfiles, char **filenames);
+void bufCycleNext(void);
+void bufOpenFile(int fd);
+void bufKill(int fd);
+void bufListMessage(void);
 
 /* autocomplete.c */
 int editorFindCloseChar(int open_char);
@@ -312,6 +338,5 @@ void undoMarkClean(void);
 
 /* main.c */
 void initEditor(void);
-int editorFileWasModified(void);
 
 #endif /* DEF_H */

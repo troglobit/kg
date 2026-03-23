@@ -38,11 +38,6 @@ struct editorConfig E;
 int running = 1;
 int suppress_undo = 0;
 
-int editorFileWasModified(void)
-{
-	return E.dirty;
-}
-
 void initEditor(void)
 {
 	E.cx = 0;
@@ -68,14 +63,13 @@ void initEditor(void)
 
 int main(int argc, char **argv)
 {
-	if (argc != 2) {
-		fprintf(stderr, "Usage: kilo <filename>\n");
+	if (argc < 2) {
+		fprintf(stderr, "Usage: kg <filename> [filename ...]\n");
 		exit(1);
 	}
 
 	initEditor();
-	editorSelectSyntaxHighlight(argv[1]);
-	editorOpen(argv[1]);
+	bufLoadArgs(argc-1, argv+1);
 	enableRawMode(STDIN_FILENO);
 	editorSetStatusMessage(
 		"HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line | C-h = help");

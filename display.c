@@ -104,8 +104,15 @@ statusbar:
 	/* Create a two rows status. First row: */
 	abAppend(&ab, "\x1b[0K", 4);
 	abAppend(&ab, "\x1b[7m", 4);
-	len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-		E.filename, E.numrows, E.dirty ? "(modified)" : "");
+	if (buf_count > 1)
+		len = snprintf(status, sizeof(status), "[%d/%d] %.20s - %d lines %s",
+			buf_current+1, buf_count,
+			E.filename ? E.filename : "[new]",
+			E.numrows, E.dirty ? "(modified)" : "");
+	else
+		len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
+			E.filename ? E.filename : "[new]",
+			E.numrows, E.dirty ? "(modified)" : "");
 	rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.rowoff+E.cy+1, E.numrows);
 	if (len > E.screencols) len = E.screencols;
 	abAppend(&ab, status, len);

@@ -8,17 +8,21 @@ based on [kilo][0] and its descendants.
 
 - Pure Emacs-style keybindings
 - Syntax highlighting for many programming languages
+- Multiple buffers with shared kill ring
 - Incremental search
+- Auto-indent
+- Built-in help screen (C-h)
 - No dependencies (not even curses)
 - Uses standard VT100 escape sequences
-- Single-file implementation
 - Graceful terminal resize handling
 
 ## Usage
 
 ```bash
-kg <filename>
+kg <filename> [filename ...]
 ```
+
+Multiple files can be opened at once, each in its own buffer.
 
 ## Keybindings
 
@@ -28,6 +32,18 @@ kg <filename>
 |-----------|---------------------------|
 | C-x C-s   | Save file                 |
 | C-x C-c   | Quit editor               |
+
+### Buffers
+
+| Key       | Action                              |
+|-----------|-------------------------------------|
+| C-x C-f   | Open file in new buffer             |
+| C-x b     | Cycle to next buffer                |
+| C-x k     | Kill (close) current buffer         |
+| C-x C-b   | List open buffers in status bar     |
+
+The kill ring is shared across all buffers, so text killed in one buffer
+can be yanked in another.
 
 ### Navigation
 
@@ -57,10 +73,9 @@ Arrow keys (↑ ↓ ← →) also work for navigation.
 |-----------|--------------------------------------|
 | C-k       | Kill line (from cursor to end)       |
 | C-d       | Delete character at cursor           |
-| C-h       | Delete character before cursor       |
 | Backspace | Delete character before cursor       |
 | Delete    | Delete character at cursor           |
-| Enter     | Insert newline                       |
+| Enter     | Insert newline (with auto-indent)    |
 
 **C-k behavior**: When pressed at the end of a line, it joins the
 current line with the next line (standard Emacs behavior).
@@ -84,23 +99,23 @@ text to the kill ring, and consecutive C-k commands append to the same entry.
 |-----------|--------------------------------------|
 | C-_ / C-/ | Undo last change                     |
 
-**Note**: Undo maintains a stack of up to 1000 operations. Each character
-insertion, deletion, line split, and line join is recorded separately.
+Undo history is per-buffer. Each buffer maintains up to 1000 operations.
 
 ### Search
 
 | Key       | Action                    |
 |-----------|---------------------------|
 | C-s       | Incremental search        |
+| C-r       | Incremental reverse search|
 
 In search mode:
 
 - Type to add to search query
 - C-s or → or ↓ to find next occurrence
-- ← or ↑ to find previous occurrence
+- C-r or ← or ↑ to find previous occurrence
 - Enter to accept and stay at match
 - ESC to cancel and return to original position
-- Backspace/C-h to remove from query
+- Backspace to remove from query
 
 ### Utility
 
@@ -108,36 +123,48 @@ In search mode:
 |-----------|---------------------------|
 | C-g       | Keyboard quit / Cancel    |
 | C-l       | Refresh screen            |
+| C-h       | Toggle help screen        |
 
 ### C-x Prefix Commands
 
 After pressing C-x, the editor waits for a second key:
-- **C-x C-s**: Save file
-- **C-x C-c**: Quit (requires 3 presses if file has unsaved changes)
-- **C-x C-g**: Cancel the C-x prefix
 
-Any other key after C-x will display an "undefined" message.
+| Key       | Action                              |
+|-----------|-------------------------------------|
+| C-x C-s   | Save file                           |
+| C-x C-c   | Quit                                |
+| C-x C-f   | Open file in new buffer             |
+| C-x b     | Cycle to next buffer                |
+| C-x k     | Kill current buffer                 |
+| C-x C-b   | List buffers                        |
+| C-x C-g   | Cancel the C-x prefix               |
 
 ## Language Support
 
-kg provides syntax highlighting for 13 programming languages with
-automatic detection based on file extension:
+kg provides syntax highlighting for 19 languages with automatic detection
+based on file extension:
 
 | Language   | Extensions                            | Features                             |
 |------------|---------------------------------------|--------------------------------------|
 | C/C++      | `.c`, `.h`, `.cpp`, `.hpp`, `.cc`     | Keywords, types, comments            |
-| Python     | `.py`, `.pyw`, `.pyi`, `.pyx`         | Keywords, built-ins (len, map, etc.) |
+| Python     | `.py`, `.pyw`, `.pyi`, `.pyx`         | Keywords, built-ins                  |
 | Shell      | `.sh`, `.bash`, `.zsh`, profile files | Keywords, commands, variables        |
-| JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs`         | ES6+, async/await, built-ins         |
-| Rust       | `.rs`, `.rlib`                        | Keywords, std types, traits          |
-| Java       | `.java`, `.class`                     | Keywords, common classes             |
+| JavaScript | `.js`, `.mjs`, `.cjs`                 | ES6+, async/await, built-ins         |
 | TypeScript | `.ts`, `.tsx`, `.d.ts`                | JS + TS types, interfaces            |
+| Rust       | `.rs`, `.rlib`                        | Keywords, std types, traits          |
+| Java       | `.java`                               | Keywords, common classes             |
 | C#         | `.cs`, `.csx`                         | Keywords, .NET types                 |
-| PHP        | `.php`, `.phtml`, `.php3-5`           | Keywords, superglobals               |
-| Ruby       | `.rb`, `.rbw`, `.rake`, `.gemspec`    | Keywords, built-in methods           |
+| PHP        | `.php`, `.phtml`                      | Keywords, superglobals               |
+| Ruby       | `.rb`, `.rbw`, `.rake`                | Keywords, built-in methods           |
 | Swift      | `.swift`                              | Keywords, Foundation types           |
 | SQL        | `.sql`, `.ddl`, `.dml`                | SQL keywords, functions              |
 | Dart       | `.dart`                               | Keywords, Flutter types              |
+| HTML       | `.html`, `.htm`, `.xhtml`             | Tags, common attributes              |
+| React/JSX  | `.jsx`                                | JS + React hooks and API             |
+| Vue        | `.vue`                                | JS + Composition/Options API         |
+| Angular    | `.component.ts`, `.service.ts`, …    | TS + decorators, directives          |
+| Svelte     | `.svelte`                             | JS + Svelte lifecycle/stores         |
+| Markdown   | `.md`, `.markdown`, `.mkd`            | Headings, code, bold, links          |
 
 ## Origin & References
 
