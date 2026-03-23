@@ -674,10 +674,6 @@ int editorRowHasOpenComment(erow *row)
  * to the right syntax highlight type (HL_* defines). */
 void editorUpdateSyntax(erow *row)
 {
-	char **keywords = E.syntax ? E.syntax->keywords : NULL;
-	char *mcs = E.syntax ? E.syntax->multiline_comment_start : NULL;
-	char *mce = E.syntax ? E.syntax->multiline_comment_end : NULL;
-	char *scs = E.syntax ? E.syntax->singleline_comment_start : NULL;
 	int in_string = 0; /* Are we inside "" or '' ? */
 	int in_comment = 0; /* Are we inside multi-line comment? */
 	int prev_sep = 1; /* Tell the parser if 'i' points to start of word. */
@@ -688,6 +684,11 @@ void editorUpdateSyntax(erow *row)
 	memset(row->hl, HL_NORMAL, row->rsize);
 
 	if (E.syntax == NULL) return; /* No syntax, everything is HL_NORMAL. */
+
+	char **keywords = E.syntax->keywords;
+	char *mcs = E.syntax->multiline_comment_start;
+	char *mce = E.syntax->multiline_comment_end;
+	char *scs = E.syntax->singleline_comment_start;
 
 	/* Point to the first non-space char. */
 	while (*p && isspace(*p)) {
@@ -821,6 +822,97 @@ int editorSyntaxToColor(int hl)
 	}
 }
 
+/* Map a shebang interpreter name to a file extension for syntax lookup.
+ * Supports versioned names (python3, python3.11) since shebangs often
+ * pin specific versions.
+ * Returns a dot-prefixed extension string, or NULL if unknown. */
+static const char *shebanInterpToExt(const char *interp)
+{
+	static const struct { const char *name; const char *ext; } table[] = {
+		{"sh",     ".sh"},
+		{"bash",   ".bash"},
+		{"zsh",    ".zsh"},
+		{"ksh",    ".ksh"},
+		{"csh",    ".csh"},
+		{"tcsh",   ".tcsh"},
+		{"dash",   ".sh"},
+		{"python", ".py"},
+		{"pypy",   ".py"},
+		{"ruby",   ".rb"},
+		{"node",   ".js"},
+		{"nodejs", ".js"},
+		{"perl",   ".pl"},
+		{NULL,     NULL},
+	};
+	int i;
+
+	for (i = 0; table[i].name; i++) {
+		size_t len = strlen(table[i].name);
+		if (strncmp(interp, table[i].name, len) == 0 &&
+		    (interp[len] == '\0' || isdigit((unsigned char)interp[len]) ||
+		     interp[len] == '.'))
+			return table[i].ext;
+	}
+	return NULL;
+}
+
+/* Try to select syntax by reading a hash-bang (#!) on the first line of
+ * filename, falling back to extension matching via shebanInterpToExt(). */
+static void selectSyntaxByShebang(const char *filename)
+{
+	char line[256];
+	char *interp, *slash, *end;
+	const char *ext;
+	unsigned int j, i;
+	FILE *fp;
+
+	fp = fopen(filename, "r");
+	if (!fp) return;
+	if (!fgets(line, sizeof(line), fp)) {
+		fclose(fp);
+		return;
+	}
+	fclose(fp);
+
+	if (line[0] != '#' || line[1] != '!') return;
+
+	/* Strip leading spaces after #! */
+	interp = line + 2;
+	while (*interp == ' ') interp++;
+
+	/* Take the last path component: "/usr/bin/bash" → "bash" */
+	slash = strrchr(interp, '/');
+	if (slash) interp = slash + 1;
+
+	/* If the component is "env", the real interpreter is the next word.
+	 * Handles "#!/usr/bin/env python3" and "#!env bash". */
+	if (strncmp(interp, "env", 3) == 0 &&
+	    (interp[3] == '\0' || isspace((unsigned char)interp[3]))) {
+		interp += 3;
+		while (*interp == ' ') interp++;
+	}
+
+	/* Trim at whitespace (strips newline and any arguments) */
+	end = interp;
+	while (*end && !isspace((unsigned char)*end)) end++;
+	*end = '\0';
+
+	if (*interp == '\0') return;
+
+	ext = shebanInterpToExt(interp);
+	if (!ext) return;
+
+	for (j = 0; j < HLDB_ENTRIES; j++) {
+		struct editorSyntax *s = HLDB + j;
+		for (i = 0; s->filematch[i]; i++) {
+			if (strcmp(s->filematch[i], ext) == 0) {
+				E.syntax = s;
+				return;
+			}
+		}
+	}
+}
+
 /* Select the syntax highlight scheme depending on the filename,
  * setting it in the global state E.syntax. */
 void editorSelectSyntaxHighlight(char *filename)
@@ -842,4 +934,7 @@ void editorSelectSyntaxHighlight(char *filename)
 			i++;
 		}
 	}
+
+	/* No extension match — try hash-bang on first line of file */
+	selectSyntaxByShebang(filename);
 }
