@@ -70,6 +70,21 @@ void editorProcessKeypress(int fd)
 		case CTRL_B:    /* C-x C-b: List buffers */
 			bufListMessage();
 			break;
+		case '2':       /* C-x 2: Split window horizontally */
+			winSplitHorizontal();
+			break;
+		case '3':       /* C-x 3: Split window vertically */
+			winSplitVertical();
+			break;
+		case 'o':       /* C-x o: Other window */
+			winCycleNext();
+			break;
+		case '0':       /* C-x 0: Delete current window */
+			winDeleteCurrent();
+			break;
+		case '1':       /* C-x 1: Delete other windows */
+			winDeleteOthers();
+			break;
 		case CTRL_G:    /* C-x C-g: Cancel C-x prefix */
 			editorSetStatusMessage("");
 			break;

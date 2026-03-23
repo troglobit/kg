@@ -19,138 +19,265 @@ void abFree(struct abuf *ab)
 	free(ab->b);
 }
 
-/* This function writes the whole screen using VT100 escape characters
- * starting from the logical state of the editor in the global state 'E'. */
-void editorRefreshScreen(void)
+/* Append a VT100 "move to absolute position" escape (1-based). */
+static void abMoveTo(struct abuf *ab, int row, int col)
 {
-	char status[80], rstatus[80];
-	struct abuf ab = ABUF_INIT;
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
 	char buf[32];
-	int msglen, rlen, len;
-	int current_color;
-	int cx = 1;
+	int len = snprintf(buf, sizeof(buf), "\x1b[%d;%dH", row, col);
+	abAppend(ab, buf, len);
+}
+
+/* Append n space characters to ab in bulk. */
+static void abAppendSpaces(struct abuf *ab, int n)
+{
+	char spaces[256];
+	while (n > 0) {
+		int chunk = n < (int)sizeof(spaces) ? n : (int)sizeof(spaces);
+		memset(spaces, ' ', chunk);
+		abAppend(ab, spaces, chunk);
+		n -= chunk;
+	}
+}
+
+/* Render the text rows of one window into ab.
+ * win_y, win_x, win_h, win_w describe the window's position/size.
+ * rowoff/coloff/numrows/rows describe the buffer viewport.
+ * is_full_width: if true we can use \x1b[0K (erase to EOL) to clear the
+ * rest of each row; if false (vertical split) we must space-pad to stay
+ * within the window's column range. */
+static void drawWindowRows(struct abuf *ab,
+	int win_y, int win_x, int win_h, int win_w,
+	int rowoff, int coloff, int numrows, erow *rows,
+	int is_full_width)
+{
 	int y, j;
 
-	abAppend(&ab, "\x1b[?25l", 6); /* Hide cursor. */
-	abAppend(&ab, "\x1b[H", 3); /* Go home. */
-	if (E.show_help) {
-		editorDrawHelp(&ab, E.screenrows);
-		goto statusbar;
-	}
-	for (y = 0; y < E.screenrows; y++) {
-		int fr = E.rowoff + y;
+	for (y = 0; y < win_h; y++) {
+		int fr = rowoff + y;
+		int current_color = -1;
+		int len;
 
-		if (fr >= E.numrows) {
-			if (E.numrows == 0 && y == E.screenrows/3) {
+		abMoveTo(ab, win_y + y, win_x);
+
+		if (fr >= numrows) {
+			int filled;
+			if (numrows == 0 && y == win_h/3) {
 				char welcome[80];
-				int welcomelen = snprintf(welcome, sizeof(welcome),
-					"kg editor -- version %s\x1b[0K\r\n", KG_VERSION);
-				int padding = (E.screencols - welcomelen) / 2;
-				if (padding) {
-					abAppend(&ab, "~", 1);
+				int wlen = snprintf(welcome, sizeof(welcome),
+					"kg editor -- version %s", KG_VERSION);
+				int padding = (win_w - wlen) / 2;
+				if (padding > 0) {
+					abAppend(ab, "~", 1);
 					padding--;
 				}
-				while (padding--) abAppend(&ab, " ", 1);
-				abAppend(&ab, welcome, welcomelen);
+				while (padding-- > 0) abAppend(ab, " ", 1);
+				if (wlen > win_w) wlen = win_w;
+				abAppend(ab, welcome, wlen);
+				filled = win_w; /* welcome block fills the window */
 			} else {
-				abAppend(&ab, "~\x1b[0K\r\n", 7);
+				abAppend(ab, "~", 1);
+				filled = 1;
 			}
+			if (is_full_width)
+				abAppend(ab, "\x1b[0K", 4);
+			else
+				abAppendSpaces(ab, win_w - filled);
 			continue;
 		}
 
-		erow *r = &E.row[fr];
+		{
+			erow *r = &rows[fr];
+			char *c;
+			unsigned char *hl;
 
-		len = r->rsize - E.coloff;
-		current_color = -1;
-		if (len > 0) {
-			if (len > E.screencols) len = E.screencols;
-			char *c = r->render + E.coloff;
-			unsigned char *hl = r->hl + E.coloff;
+			len = r->rsize - coloff;
+			if (len < 0) len = 0;
+			if (len > win_w) len = win_w;
+
+			c  = r->render + coloff;
+			hl = r->hl    + coloff;
+
 			for (j = 0; j < len; j++) {
 				if (hl[j] == HL_NONPRINT) {
 					char sym;
-					abAppend(&ab, "\x1b[7m", 4);
-					if (c[j] <= 26)
-						sym = '@' + c[j];
-					else
-						sym = '?';
-					abAppend(&ab, &sym, 1);
-					abAppend(&ab, "\x1b[0m", 4);
+					abAppend(ab, "\x1b[7m", 4);
+					sym = (c[j] <= 26) ? ('@' + c[j]) : '?';
+					abAppend(ab, &sym, 1);
+					abAppend(ab, "\x1b[0m", 4);
 				} else if (hl[j] == HL_NORMAL) {
 					if (current_color != -1) {
-						abAppend(&ab, "\x1b[39m", 5);
+						abAppend(ab, "\x1b[39m", 5);
 						current_color = -1;
 					}
-					abAppend(&ab, c+j, 1);
+					abAppend(ab, c+j, 1);
 				} else {
 					int color = editorSyntaxToColor(hl[j]);
 					if (color != current_color) {
 						char cbuf[16];
 						int clen = snprintf(cbuf, sizeof(cbuf), "\x1b[%dm", color);
 						current_color = color;
-						abAppend(&ab, cbuf, clen);
+						abAppend(ab, cbuf, clen);
 					}
-					abAppend(&ab, c+j, 1);
+					abAppend(ab, c+j, 1);
 				}
 			}
 		}
-		abAppend(&ab, "\x1b[39m", 5);
-		abAppend(&ab, "\x1b[0K", 4);
-		abAppend(&ab, "\r\n", 2);
-	}
-
-statusbar:
-	/* Create a two rows status. First row: */
-	abAppend(&ab, "\x1b[0K", 4);
-	abAppend(&ab, "\x1b[7m", 4);
-	if (buf_count > 1)
-		len = snprintf(status, sizeof(status), "[%d/%d] %.20s - %d lines %s",
-			buf_current+1, buf_count,
-			E.filename ? E.filename : "[new]",
-			E.numrows, E.dirty ? "(modified)" : "");
-	else
-		len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-			E.filename ? E.filename : "[new]",
-			E.numrows, E.dirty ? "(modified)" : "");
-	rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.rowoff+E.cy+1, E.numrows);
-	if (len > E.screencols) len = E.screencols;
-	abAppend(&ab, status, len);
-	while (len < E.screencols) {
-		if (E.screencols - len == rlen) {
-			abAppend(&ab, rstatus, rlen);
-			break;
+		abAppend(ab, "\x1b[39m", 5);
+		if (is_full_width) {
+			abAppend(ab, "\x1b[0K", 4);
 		} else {
-			abAppend(&ab, " ", 1);
-			len++;
+			int used = rows[fr].rsize - coloff;
+			if (used < 0) used = 0;
+			if (used > win_w) used = win_w;
+			abAppendSpaces(ab, win_w - used);
 		}
 	}
-	abAppend(&ab, "\x1b[0m\r\n", 6);
+}
 
-	/* Second row depends on E.statusmsg and the status message update time. */
+/* Render the mode line for one window at terminal row ml_row, starting at
+ * terminal column win_x (1-based).  Needed for vertical splits where two mode
+ * lines share the same terminal row. */
+static void drawModeLine(struct abuf *ab, int ml_row, int win_x, int win_w,
+	int bufidx, int is_active, int cur_row, int total_rows)
+{
+	char status[80], rstatus[32];
+	int len, rlen, spaces;
+	struct editorBuffer *b = &buflist[bufidx];
+	const char *fname = b->filename ? b->filename : "[new]";
+	int dirty = is_active ? E.dirty : b->dirty;
+
+	abMoveTo(ab, ml_row, win_x);
+	abAppend(ab, "\x1b[7m", 4); /* reverse video */
+
+	if (buf_count > 1)
+		len = snprintf(status, sizeof(status), "%s[%d/%d] %.20s - %d lines %s",
+			is_active ? "-**-" : "----",
+			buf_current+1, buf_count, fname,
+			total_rows, dirty ? "(modified)" : "");
+	else
+		len = snprintf(status, sizeof(status), "%s%.20s - %d lines %s",
+			is_active ? "-**-" : "----",
+			fname, total_rows, dirty ? "(modified)" : "");
+
+	rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", cur_row, total_rows);
+
+	if (len > win_w) len = win_w;
+	abAppend(ab, status, len);
+
+	spaces = win_w - len - rlen;
+	if (spaces >= 0) {
+		abAppendSpaces(ab, spaces);
+		abAppend(ab, rstatus, rlen);
+	} else {
+		abAppendSpaces(ab, win_w - len);
+	}
+	abAppend(ab, "\x1b[0m", 4);
+}
+
+/* This function writes the whole screen using VT100 escape characters. */
+void editorRefreshScreen(void)
+{
+	struct abuf ab = ABUF_INIT;
+	int i, cx, j;
+	int msglen;
+
+	abAppend(&ab, "\x1b[?25l", 6); /* Hide cursor. */
+
+	if (E.show_help) {
+		abAppend(&ab, "\x1b[H", 3);
+		editorDrawHelp(&ab, E.screenrows);
+		abAppend(&ab, "\x1b[0K", 4);
+		abAppend(&ab, "\x1b[7m", 4);
+		abAppendSpaces(&ab, E.screencols);
+		abAppend(&ab, "\x1b[0m\r\n", 6);
+		abAppend(&ab, "\x1b[0K", 4);
+		abAppend(&ab, "\x1b[H", 3);
+		abAppend(&ab, "\x1b[?25h", 6);
+		write(STDOUT_FILENO, ab.b, ab.len);
+		abFree(&ab);
+		return;
+	}
+
+	/* ---- Render each window ---- */
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		struct editorWindow *w = &winlist[i];
+		int bidx, numrows, rowoff, coloff;
+		erow *rows;
+		int is_active = (i == win_current);
+		int is_full_width = (w->w == win_total_cols);
+		int ml_row;
+		struct editorBuffer *b;
+
+		if (!w->active) continue;
+
+		bidx = w->bufidx;
+		b    = &buflist[bidx];
+
+		if (is_active) {
+			numrows = E.numrows;
+			rows    = E.row;
+			rowoff  = E.rowoff;
+			coloff  = E.coloff;
+		} else {
+			numrows = b->numrows;
+			rows    = b->row;
+			rowoff  = b->rowoff;
+			coloff  = b->coloff;
+		}
+
+		drawWindowRows(&ab, w->y, w->x, w->h, w->w,
+			rowoff, coloff, numrows, rows, is_full_width);
+
+		ml_row = w->y + w->h;
+		{
+			int cur_row    = is_active ? (E.rowoff + E.cy + 1) : (b->rowoff + b->cy + 1);
+			int total_rows = is_active ? E.numrows : b->numrows;
+			drawModeLine(&ab, ml_row, w->x, w->w, bidx, is_active, cur_row, total_rows);
+		}
+
+		/* Draw vertical separator to the right of non-rightmost windows. */
+		if (w->x + w->w < win_total_cols) {
+			int sep_col = w->x + w->w;
+			int row;
+			for (row = w->y; row < ml_row; row++) {
+				abMoveTo(&ab, row, sep_col);
+				abAppend(&ab, "\xe2\x94\x82", 3); /* │ */
+			}
+			/* Mode line row: invert to blend with the mode line. */
+			abMoveTo(&ab, ml_row, sep_col);
+			abAppend(&ab, "\x1b[7m\xe2\x94\x82\x1b[0m", 11);
+		}
+	}
+
+	/* ---- Echo area (one row at the very bottom) ---- */
+	abMoveTo(&ab, win_total_rows, 1);
 	abAppend(&ab, "\x1b[0K", 4);
 	msglen = strlen(E.statusmsg);
 	if (msglen && time(NULL) - E.statusmsg_time < 5)
-		abAppend(&ab, E.statusmsg, msglen <= E.screencols ? msglen : E.screencols);
+		abAppend(&ab, E.statusmsg,
+			msglen <= win_total_cols ? msglen : win_total_cols);
 
-	/* Put cursor at its current position. Note that the horizontal position
-	 * at which the cursor is displayed may be different compared to 'E.cx'
-	 * because of TABs. */
-	if (row) {
-		for (j = E.coloff; j < (E.cx + E.coloff); j++) {
-			if (j < row->size && row->chars[j] == TAB) cx += 7 - ((cx) % 8);
-			cx++;
+	/* ---- Place cursor in active window ---- */
+	{
+		struct editorWindow *w = &winlist[win_current];
+		erow *row = (E.rowoff + E.cy < E.numrows) ? &E.row[E.rowoff + E.cy] : NULL;
+
+		cx = 1;
+		if (row) {
+			for (j = E.coloff; j < (E.cx + E.coloff) && j < row->size; j++) {
+				if (row->chars[j] == TAB) cx += 7 - ((cx) % 8);
+				cx++;
+			}
 		}
+		abMoveTo(&ab, w->y + E.cy, w->x + cx - 1);
 	}
-	snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy+1, cx);
-	abAppend(&ab, buf, strlen(buf));
+
 	abAppend(&ab, "\x1b[?25h", 6); /* Show cursor. */
 	write(STDOUT_FILENO, ab.b, ab.len);
 	abFree(&ab);
 }
 
-/* Set an editor status message for the second line of the status, at the
- * end of the screen. */
+/* Set an editor status message for the echo area at the bottom. */
 void editorSetStatusMessage(const char *fmt, ...)
 {
 	va_list ap;

@@ -58,6 +58,7 @@ void initEditor(void)
 	killRingInit();
 	undoInit();
 	updateWindowSize();
+	winInit();
 	signal(SIGWINCH, handleSigWinCh);
 }
 

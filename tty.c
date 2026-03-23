@@ -211,9 +211,15 @@ void updateWindowSize(void)
 	/* Try to get window size with retry logic */
 	while (attempts < max_attempts) {
 		if (getWindowSize(STDIN_FILENO, STDOUT_FILENO, &new_rows, &new_cols) == 0) {
-			/* Success - update the screen dimensions */
-			E.screenrows = new_rows - 2; /* Get room for status bar. */
-			E.screencols = new_cols;
+			win_total_rows = new_rows;
+			win_total_cols = new_cols;
+			if (win_count > 0)
+				winReflow();
+			else {
+				/* winInit() not yet called; set a sensible default. */
+				E.screenrows = new_rows - 2;
+				E.screencols = new_cols;
+			}
 			return;
 		}
 
@@ -230,25 +236,6 @@ void updateWindowSize(void)
 
 void handleSigWinCh(int unused __attribute__((unused)))
 {
-	updateWindowSize();
-
-	/* Ensure cursor position is within new screen bounds */
-	if (E.cy >= E.screenrows)
-		E.cy = E.screenrows - 1;
-	if (E.cx >= E.screencols)
-		E.cx = E.screencols - 1;
-
-	/* Adjust offsets if necessary */
-	if (E.rowoff + E.cy >= E.numrows) {
-		E.rowoff = E.numrows - E.cy - 1;
-		if (E.rowoff < 0)
-			E.rowoff = 0;
-	}
-
-	if (E.coloff + E.cx >= E.screencols) {
-		E.coloff = 0;
-		E.cx = E.screencols - 1;
-	}
-
+	updateWindowSize(); /* calls winReflow() which clamps cursors */
 	editorRefreshScreen();
 }

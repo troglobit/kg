@@ -8,13 +8,17 @@ static const char *help_lines[] = {
 	"",
 	" MOVEMENT              EDITING               FILE             BUFFERS",
 	" C-f/C-b   fwd/back    BS        backspace   C-x C-s  save    C-x C-f  open",
-	" C-n/C-p   down/up     DEL/C-d   del fwd     C-x C-c  quit    C-x b    next",
-	" C-a/C-e   bol/eol     C-k       kill line   C-s/C-r  search  C-x k    kill",
-	" C-v/M-v   pgdn/pgup   C-y       yank        C-_      undo    C-x C-b  list",
+	" C-n/C-p   down/up     DEL/C-d   del fwd     C-x C-c  quit    C-x b    next buf",
+	" C-a/C-e   bol/eol     C-k       kill line   C-s/C-r  search  C-x k    kill buf",
+	" C-v/M-v   pgdn/pgup   C-y       yank        C-_      undo    C-x C-b  list buf",
 	" M-f/M-b   word fw/bk  C-w       kill region C-l      redraw  C-h      help",
 	" C-HOME    beg file    M-w       copy region",
 	" C-END     end file    C-SPC     set mark",
 	" C-up/dn   paragraph",
+	"",
+	" WINDOWS",
+	" C-x 2     split horiz C-x 3     split vert  C-x o    other win",
+	" C-x 0     del window  C-x 1     del others",
 	NULL
 };
 

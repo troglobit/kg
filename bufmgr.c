@@ -42,6 +42,9 @@ static void bufRestoreFromSlot(int idx)
 	E.mark_row = b->mark_row;   E.mark_col = b->mark_col;
 	undostack = b->undostack;   /* struct copy */
 	buf_current = idx;
+	/* Keep the active window pointing at the newly-restored buffer. */
+	if (win_count > 0)
+		winlist[win_current].bufidx = idx;
 }
 
 /* Reset E to a clean empty state and initialise a fresh undo stack.
@@ -122,6 +125,7 @@ void bufCycleNext(void)
 		if (buflist[idx].active) { next = idx; break; }
 	}
 	if (next < 0) return;
+	winSaveActiveView();
 	bufSaveToSlot(buf_current);
 	bufRestoreFromSlot(next);
 	editorSetStatusMessage("[%d/%d] %s", buf_current+1, buf_count,
@@ -142,6 +146,7 @@ void bufOpenFile(int fd)
 	for (i = 0; i < MAX_BUFFERS; i++) {
 		if (buflist[i].active && buflist[i].filename &&
 		    strcmp(buflist[i].filename, query) == 0) {
+			winSaveActiveView();
 			bufSaveToSlot(buf_current);
 			bufRestoreFromSlot(i);
 			editorSetStatusMessage("[%d/%d] %s", buf_current+1, buf_count,
@@ -162,6 +167,7 @@ void bufOpenFile(int fd)
 	}
 	if (slot < 0) return; /* should not happen given buf_count check above */
 
+	winSaveActiveView();
 	bufSaveToSlot(buf_current);
 	bufResetE();
 	editorSelectSyntaxHighlight(query);

@@ -45,6 +45,19 @@ Multiple files can be opened at once, each in its own buffer.
 The kill ring is shared across all buffers, so text killed in one buffer
 can be yanked in another.
 
+### Windows
+
+| Key       | Action                              |
+|-----------|-------------------------------------|
+| C-x 2     | Split window horizontally           |
+| C-x 3     | Split window vertically             |
+| C-x o     | Switch to other window              |
+| C-x 0     | Delete current window               |
+| C-x 1     | Delete all other windows            |
+
+Multiple windows can show different buffers (or the same buffer at
+different positions). The kill ring is shared across all windows.
+
 ### Navigation
 
 | Key             | Action                    |
@@ -137,6 +150,11 @@ After pressing C-x, the editor waits for a second key:
 | C-x b     | Cycle to next buffer                |
 | C-x k     | Kill current buffer                 |
 | C-x C-b   | List buffers                        |
+| C-x 2     | Split window horizontally           |
+| C-x 3     | Split window vertically             |
+| C-x o     | Switch to other window              |
+| C-x 0     | Delete current window               |
+| C-x 1     | Delete all other windows            |
 | C-x C-g   | Cancel the C-x prefix               |
 
 ## Language Support

@@ -218,6 +218,19 @@ struct undoStack {
 	int clean_size;  /* Stack size at last save (-1 if never saved clean) */
 };
 
+/* Per-window viewport state. */
+#define MAX_WINDOWS 8
+struct editorWindow {
+	int bufidx;         /* Which buffer this window shows */
+	int cx, cy;         /* Cursor position within window */
+	int rowoff, coloff; /* Scroll offsets */
+	int y, x;           /* Top-left corner on terminal (1-based) */
+	int h, w;           /* Height (text rows) and width (cols) of this window */
+	int active;         /* 1 if this slot is in use */
+	int col_group;      /* Column group: windows with same value stack vertically;
+	                       different values sit side-by-side */
+};
+
 /* Per-buffer state saved when switching away from a buffer. */
 #define MAX_BUFFERS 20
 struct editorBuffer {
@@ -244,12 +257,29 @@ extern struct editorBuffer buflist[MAX_BUFFERS];
 extern int buf_current; /* index into buflist[] of the active buffer */
 extern int buf_count;   /* number of active buffers */
 
+extern struct editorWindow winlist[MAX_WINDOWS];
+extern int win_current;     /* index into winlist[] of the active window */
+extern int win_count;       /* number of active windows */
+extern int win_total_rows;  /* terminal rows (set by updateWindowSize) */
+extern int win_total_cols;  /* terminal cols (set by updateWindowSize) */
+
 /* bufmgr.c */
 void bufLoadArgs(int nfiles, char **filenames);
 void bufCycleNext(void);
 void bufOpenFile(int fd);
 void bufKill(int fd);
 void bufListMessage(void);
+
+/* winmgr.c */
+void winInit(void);
+void winReflow(void);
+void winSaveActiveView(void);
+void winRestoreActiveView(void);
+void winSplitHorizontal(void);
+void winSplitVertical(void);
+void winCycleNext(void);
+void winDeleteCurrent(void);
+void winDeleteOthers(void);
 
 /* autocomplete.c */
 int editorFindCloseChar(int open_char);
