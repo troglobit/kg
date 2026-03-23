@@ -1,10 +1,18 @@
-IMPORTANT
-===
+# TODO In Priority Order
 
-* Testing and stability to reach "usable" level.
+## IMPORTANT
 
-MAYBE
-===
+- [x] Refactor code to Linux style, variable decl. at top of context sorted
+      in reverse chrismas tree style, lines can be up to 110 chars long
+- [ ] Add hash-bang fallback for detection of syntax highlighting, e.g., #!/bin/sh
+- [ ] Fix delete key
+- [ ] Add auto-indent à la Mg
+- [ ] Add built-in help
+- [ ] Testing and stability to reach "usable" level
 
-* Send alternate screen sequences if TERM=xterm: "\033[?1049h" and "\033[?1049l"
-* Improve internals to be more understandable.
+## MAYBE
+
+- [ ] Send alternate screen sequences if TERM=xterm: "\033[?1049h" and "\033[?1049l"
+- [ ] Improve internals to be more understandable (see Linux style, above)
+- [ ] Add modes maybe?  E.g., c-mode, sh-mode, yaml-mode
+- [ ] Add markdown-mode with syntax highlighting
