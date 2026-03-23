@@ -38,47 +38,50 @@ struct editorConfig E;
 int running = 1;
 int suppress_undo = 0;
 
-int editorFileWasModified(void) {
-    return E.dirty;
+int editorFileWasModified(void)
+{
+	return E.dirty;
 }
 
-void initEditor(void) {
-    E.cx = 0;
-    E.cy = 0;
-    E.rowoff = 0;
-    E.coloff = 0;
-    E.numrows = 0;
-    E.row = NULL;
-    E.dirty = 0;
-    E.filename = NULL;
-    E.syntax = NULL;
-    E.cx_prefix = 0;
-    E.paste_mode = 0;
-    E.mark_set = 0;
-    E.mark_row = 0;
-    E.mark_col = 0;
-    gettimeofday(&E.last_char_time, NULL);
-    killRingInit();
-    undoInit();
-    updateWindowSize();
-    signal(SIGWINCH, handleSigWinCh);
+void initEditor(void)
+{
+	E.cx = 0;
+	E.cy = 0;
+	E.rowoff = 0;
+	E.coloff = 0;
+	E.numrows = 0;
+	E.row = NULL;
+	E.dirty = 0;
+	E.filename = NULL;
+	E.syntax = NULL;
+	E.cx_prefix = 0;
+	E.paste_mode = 0;
+	E.mark_set = 0;
+	E.mark_row = 0;
+	E.mark_col = 0;
+	gettimeofday(&E.last_char_time, NULL);
+	killRingInit();
+	undoInit();
+	updateWindowSize();
+	signal(SIGWINCH, handleSigWinCh);
 }
 
-int main(int argc, char **argv) {
-    if (argc != 2) {
-        fprintf(stderr,"Usage: kilo <filename>\n");
-        exit(1);
-    }
+int main(int argc, char **argv)
+{
+	if (argc != 2) {
+		fprintf(stderr, "Usage: kilo <filename>\n");
+		exit(1);
+	}
 
-    initEditor();
-    editorSelectSyntaxHighlight(argv[1]);
-    editorOpen(argv[1]);
-    enableRawMode(STDIN_FILENO);
-    editorSetStatusMessage(
-        "HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line");
-    while(running) {
-        editorRefreshScreen();
-        editorProcessKeypress(STDIN_FILENO);
-    }
-    return 0;
+	initEditor();
+	editorSelectSyntaxHighlight(argv[1]);
+	editorOpen(argv[1]);
+	enableRawMode(STDIN_FILENO);
+	editorSetStatusMessage(
+		"HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line");
+	while (running) {
+		editorRefreshScreen();
+		editorProcessKeypress(STDIN_FILENO);
+	}
+	return 0;
 }

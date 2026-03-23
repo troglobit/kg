@@ -4,7 +4,8 @@
 
 static struct termios orig_termios; /* In order to restore at exit.*/
 
-void disableRawMode(int fd) {
+void disableRawMode(int fd)
+{
 	/* Don't even check the return value as it's too late. */
 	if (E.rawmode) {
 		tcsetattr(fd, TCSAFLUSH, &orig_termios);
@@ -13,7 +14,8 @@ void disableRawMode(int fd) {
 }
 
 /* Called at exit to avoid remaining in raw mode. */
-void editorAtExit(void) {
+void editorAtExit(void)
+{
 	/* Clear screen and reset cursor position before exiting. */
 	write(STDOUT_FILENO, "\x1b[2J", 4);  /* Clear entire screen */
 	write(STDOUT_FILENO, "\x1b[H", 3);   /* Move cursor to top-left */
@@ -22,7 +24,8 @@ void editorAtExit(void) {
 }
 
 /* Raw mode: 1960 magic shit. */
-int enableRawMode(int fd) {
+int enableRawMode(int fd)
+{
 	struct termios raw;
 
 	if (E.rawmode) return 0; /* Already enabled. */
@@ -57,9 +60,11 @@ fatal:
 
 /* Read a key from the terminal put in raw mode, trying to handle
  * escape sequences. */
-int editorReadKey(int fd) {
+int editorReadKey(int fd)
+{
+	char seq[6];
+	char c;
 	int nread;
-	char c, seq[6];
 
 	while ((nread = read(fd, &c, 1)) == 0);
 	if (nread == -1) {
@@ -137,9 +142,10 @@ int editorReadKey(int fd) {
 /* Use the ESC [6n escape sequence to query the horizontal cursor position
  * and return it. On error -1 is returned, on success the position of the
  * cursor is stored at *rows and *cols and 0 is returned. */
-int getCursorPosition(int ifd, int ofd, int *rows, int *cols) {
-	char buf[32];
+int getCursorPosition(int ifd, int ofd, int *rows, int *cols)
+{
 	unsigned int i = 0;
+	char buf[32];
 
 	/* Report cursor location */
 	if (write(ofd, "\x1b[6n", 4) != 4) return -1;
@@ -162,7 +168,8 @@ int getCursorPosition(int ifd, int ofd, int *rows, int *cols) {
 /* Try to get the number of columns in the current terminal. If the ioctl()
  * call fails the function will try to query the terminal itself.
  * Returns 0 on success, -1 on error. */
-int getWindowSize(int ifd, int ofd, int *rows, int *cols) {
+int getWindowSize(int ifd, int ofd, int *rows, int *cols)
+{
 	struct winsize ws;
 
 	if (ioctl(1, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
@@ -195,10 +202,11 @@ failed:
 	return -1;
 }
 
-void updateWindowSize(void) {
+void updateWindowSize(void)
+{
+	const int max_attempts = 3;
 	int new_rows, new_cols;
 	int attempts = 0;
-	const int max_attempts = 3;
 
 	/* Try to get window size with retry logic */
 	while (attempts < max_attempts) {
@@ -220,7 +228,8 @@ void updateWindowSize(void) {
 	editorSetStatusMessage("Warning: failed updating window size");
 }
 
-void handleSigWinCh(int unused __attribute__((unused))) {
+void handleSigWinCh(int unused __attribute__((unused)))
+{
 	updateWindowSize();
 
 	/* Ensure cursor position is within new screen bounds */
