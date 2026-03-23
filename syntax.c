@@ -526,139 +526,25 @@ char *MD_HL_keywords[]   = {NULL};
 /* Here we define an array of syntax highlights by extensions, keywords,
  * comments delimiters and flags. */
 struct editorSyntax HLDB[] = {
-	{
-		/* C / C++ */
-		C_HL_extensions,
-		C_HL_keywords,
-		"//","/*","*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Python */
-		PYTHON_HL_extensions,
-		PYTHON_HL_keywords,
-		"#", "", "",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Shell */
-		SHELL_HL_extensions,
-		SHELL_HL_keywords,
-		"#", "", "",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* JavaScript */
-		JS_HL_extensions,
-		JS_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Rust */
-		RUST_HL_extensions,
-		RUST_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Java */
-		JAVA_HL_extensions,
-		JAVA_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* TypeScript */
-		TS_HL_extensions,
-		TS_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* C# */
-		CSHARP_HL_extensions,
-		CSHARP_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* PHP */
-		PHP_HL_extensions,
-		PHP_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Ruby */
-		RUBY_HL_extensions,
-		RUBY_HL_keywords,
-		"#", "", "",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Swift */
-		SWIFT_HL_extensions,
-		SWIFT_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* SQL */
-		SQL_HL_extensions,
-		SQL_HL_keywords,
-		"--", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Dart */
-		DART_HL_extensions,
-		DART_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* HTML */
-		HTML_HL_extensions,
-		HTML_HL_keywords,
-		"<!--", "", "-->",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* React/JSX */
-		REACT_HL_extensions,
-		REACT_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Vue.js */
-		VUE_HL_extensions,
-		VUE_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Angular */
-		ANGULAR_HL_extensions,
-		ANGULAR_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Svelte */
-		SVELTE_HL_extensions,
-		SVELTE_HL_keywords,
-		"//", "/*", "*/",
-		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
-	},
-	{
-		/* Markdown */
-		MD_HL_extensions,
-		MD_HL_keywords,
-		"", "", "",
-		SHL_MARKDOWN
-	}
+	{ "C",          C_HL_extensions,       C_HL_keywords,       "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Python",     PYTHON_HL_extensions,  PYTHON_HL_keywords,  "#","","",      HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Shell",      SHELL_HL_extensions,   SHELL_HL_keywords,   "#","","",      HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "JavaScript", JS_HL_extensions,      JS_HL_keywords,      "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Rust",       RUST_HL_extensions,    RUST_HL_keywords,    "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Java",       JAVA_HL_extensions,    JAVA_HL_keywords,    "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "TypeScript", TS_HL_extensions,      TS_HL_keywords,      "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "C#",         CSHARP_HL_extensions,  CSHARP_HL_keywords,  "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "PHP",        PHP_HL_extensions,     PHP_HL_keywords,     "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Ruby",       RUBY_HL_extensions,    RUBY_HL_keywords,    "#","","",      HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Swift",      SWIFT_HL_extensions,   SWIFT_HL_keywords,   "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "SQL",        SQL_HL_extensions,     SQL_HL_keywords,     "--","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Dart",       DART_HL_extensions,    DART_HL_keywords,    "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "HTML",       HTML_HL_extensions,    HTML_HL_keywords,    "<!--","","-->",HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "React",      REACT_HL_extensions,   REACT_HL_keywords,   "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Vue",        VUE_HL_extensions,     VUE_HL_keywords,     "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Angular",    ANGULAR_HL_extensions, ANGULAR_HL_keywords, "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Svelte",     SVELTE_HL_extensions,  SVELTE_HL_keywords,  "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Markdown",   MD_HL_extensions,      MD_HL_keywords,      "","","",       SHL_MARKDOWN },
 };
 
 #define HLDB_ENTRIES (sizeof(HLDB)/sizeof(HLDB[0]))

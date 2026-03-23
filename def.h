@@ -126,6 +126,7 @@ enum KEY_ACTION {
 
 /* Syntax highlight definition */
 struct editorSyntax {
+	char *name;         /* Display name shown in mode line, e.g. "C", "Python" */
 	char **filematch;
 	char **keywords;
 	char singleline_comment_start[5];

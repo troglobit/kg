@@ -27,17 +27,19 @@ static void abMoveTo(struct abuf *ab, int row, int col)
 	abAppend(ab, buf, len);
 }
 
-/* Append n space characters to ab in bulk. */
-static void abAppendSpaces(struct abuf *ab, int n)
+/* Append n copies of character c to ab in bulk. */
+static void abFill(struct abuf *ab, char c, int n)
 {
-	char spaces[256];
+	char buf[256];
 	while (n > 0) {
-		int chunk = n < (int)sizeof(spaces) ? n : (int)sizeof(spaces);
-		memset(spaces, ' ', chunk);
-		abAppend(ab, spaces, chunk);
+		int chunk = n < (int)sizeof(buf) ? n : (int)sizeof(buf);
+		memset(buf, c, chunk);
+		abAppend(ab, buf, chunk);
 		n -= chunk;
 	}
 }
+
+static void abAppendSpaces(struct abuf *ab, int n) { abFill(ab, ' ', n); }
 
 /* Render the text rows of one window into ab.
  * win_y, win_x, win_h, win_w describe the window's position/size.
@@ -138,39 +140,43 @@ static void drawWindowRows(struct abuf *ab,
  * terminal column win_x (1-based).  Needed for vertical splits where two mode
  * lines share the same terminal row. */
 static void drawModeLine(struct abuf *ab, int ml_row, int win_x, int win_w,
-	int bufidx, int is_active, int cur_row, int total_rows)
+	int bufidx, int is_active, int cur_row, int total_rows, int rowoff, int win_h)
 {
-	char status[80], rstatus[32];
-	int len, rlen, spaces;
+	char status[120];
+	int len;
 	struct editorBuffer *b = &buflist[bufidx];
-	const char *fname = b->filename ? b->filename : "[new]";
+	const char *fname    = b->filename ? b->filename : "[new]";
+	const char *modename = b->syntax   ? b->syntax->name : "Fundamental";
 	int dirty = is_active ? E.dirty : b->dirty;
+	int cur_col = is_active ? E.cx + 1 : b->cx + 1;
+	char pos[8];
+
+	/* Emacs-style position indicator. */
+	if (total_rows <= win_h)
+		snprintf(pos, sizeof(pos), "All");
+	else if (rowoff == 0)
+		snprintf(pos, sizeof(pos), "Top");
+	else if (rowoff + win_h >= total_rows)
+		snprintf(pos, sizeof(pos), "Bot");
+	else
+		snprintf(pos, sizeof(pos), "%d%%", rowoff * 100 / total_rows);
 
 	abMoveTo(ab, ml_row, win_x);
 	abAppend(ab, is_active ? "\x1b[7m" : "\x1b[2m", 4); /* active: reverse; inactive: dim */
 
 	if (buf_count > 1)
-		len = snprintf(status, sizeof(status), "%s[%d/%d] %.20s - %d lines %s",
-			is_active ? "-**-" : "----",
+		len = snprintf(status, sizeof(status), "%s  [%d/%d] %.30s  %s (%d,%d)  (%s)",
+			dirty ? "-**-" : "----",
 			buf_current+1, buf_count, fname,
-			total_rows, dirty ? "(modified)" : "");
+			pos, cur_row, cur_col, modename);
 	else
-		len = snprintf(status, sizeof(status), "%s%.20s - %d lines %s",
-			is_active ? "-**-" : "----",
-			fname, total_rows, dirty ? "(modified)" : "");
-
-	rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", cur_row, total_rows);
+		len = snprintf(status, sizeof(status), "%s  %.30s  %s (%d,%d)  (%s)",
+			dirty ? "-**-" : "----", fname,
+			pos, cur_row, cur_col, modename);
 
 	if (len > win_w) len = win_w;
 	abAppend(ab, status, len);
-
-	spaces = win_w - len - rlen;
-	if (spaces >= 0) {
-		abAppendSpaces(ab, spaces);
-		abAppend(ab, rstatus, rlen);
-	} else {
-		abAppendSpaces(ab, win_w - len);
-	}
+	abAppendSpaces(ab, win_w - len);
 	abAppend(ab, "\x1b[0m", 4);
 }
 
@@ -230,9 +236,11 @@ void editorRefreshScreen(void)
 
 		ml_row = w->y + w->h;
 		{
+			int wrowoff    = is_active ? E.rowoff    : b->rowoff;
 			int cur_row    = is_active ? (E.rowoff + E.cy + 1) : (b->rowoff + b->cy + 1);
-			int total_rows = is_active ? E.numrows : b->numrows;
-			drawModeLine(&ab, ml_row, w->x, w->w, bidx, is_active, cur_row, total_rows);
+			int total_rows = is_active ? E.numrows   : b->numrows;
+			drawModeLine(&ab, ml_row, w->x, w->w, bidx, is_active,
+				cur_row, total_rows, wrowoff, w->h);
 		}
 
 		/* Draw vertical separator to the right of non-rightmost windows. */
