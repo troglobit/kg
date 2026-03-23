@@ -117,8 +117,10 @@ void editorProcessKeypress(int fd)
 		break;
 	case BACKSPACE:     /* Backspace */
 	case CTRL_H:        /* Ctrl-h */
-	case DEL_KEY:
 		editorDelChar();
+		break;
+	case DEL_KEY:       /* Forward delete */
+		editorDelForwardChar();
 		break;
 	case PAGE_UP:
 	case PAGE_DOWN:

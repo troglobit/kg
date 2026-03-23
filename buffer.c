@@ -264,6 +264,29 @@ void editorDelChar(void)
 	E.dirty++;
 }
 
+/* Forward-delete the char at the current cursor position (DEL key).
+ * At end of line, joins with the next line. */
+void editorDelForwardChar(void)
+{
+	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
+	int filerow = E.rowoff + E.cy;
+	int filecol = E.coloff + E.cx;
+
+	if (!row) return;
+
+	if (filecol == row->size) {
+		if (filerow + 1 >= E.numrows) return;
+		undoPush(UNDO_JOIN_LINE, filerow, filecol, 0,
+			 E.row[filerow+1].chars, E.row[filerow+1].size);
+		editorRowAppendString(row, E.row[filerow+1].chars, E.row[filerow+1].size);
+		editorDelRow(filerow + 1);
+	} else {
+		undoPush(UNDO_DELETE_CHAR, filerow, filecol, row->chars[filecol], NULL, 0);
+		editorRowDelChar(row, filecol);
+	}
+	E.dirty++;
+}
+
 /* Kill (delete) from cursor to end of line (C-k). */
 void editorKillLine(void)
 {

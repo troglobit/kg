@@ -244,6 +244,7 @@ void editorRowDelChar(erow *row, int at);
 void editorInsertChar(int c);
 void editorInsertNewline(void);
 void editorDelChar(void);
+void editorDelForwardChar(void);
 void editorKillLine(void);
 
 /* display.c */
