@@ -71,6 +71,7 @@
 
 #define HL_HIGHLIGHT_STRINGS (1<<0)
 #define HL_HIGHLIGHT_NUMBERS (1<<1)
+#define SHL_MARKDOWN         (1<<2) /* Use markdown-specific highlighter. */
 
 /* Key action codes */
 enum KEY_ACTION {

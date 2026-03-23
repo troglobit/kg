@@ -519,6 +519,10 @@ char *SVELTE_HL_keywords[] = {
 	"<script>", "</script>", "<style>", "</style>",
 	NULL};
 
+/* Markdown */
+char *MD_HL_extensions[] = {".md", ".markdown", ".mkd", NULL};
+char *MD_HL_keywords[]   = {NULL};
+
 /* Here we define an array of syntax highlights by extensions, keywords,
  * comments delimiters and flags. */
 struct editorSyntax HLDB[] = {
@@ -647,12 +651,34 @@ struct editorSyntax HLDB[] = {
 		SVELTE_HL_keywords,
 		"//", "/*", "*/",
 		HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS
+	},
+	{
+		/* Markdown */
+		MD_HL_extensions,
+		MD_HL_keywords,
+		"", "", "",
+		SHL_MARKDOWN
 	}
 };
 
 #define HLDB_ENTRIES (sizeof(HLDB)/sizeof(HLDB[0]))
 
 /* ====================== Syntax highlight color scheme  ==================== */
+
+/* Return 1 if every character in p is '=' or every character is '-' (and
+ * len > 0).  Used to detect setext heading underlines. */
+static int isSetextLine(const char *p, int len)
+{
+	int all_eq = 1, all_dash = 1, i;
+
+	if (len == 0) return 0;
+	for (i = 0; i < len; i++) {
+		if (p[i] != '=') all_eq = 0;
+		if (p[i] != '-') all_dash = 0;
+		if (!all_eq && !all_dash) return 0;
+	}
+	return 1;
+}
 
 int is_separator(int c)
 {
@@ -670,6 +696,86 @@ int editorRowHasOpenComment(erow *row)
 	return 0;
 }
 
+/* Markdown syntax highlighter.  Uses hl_oc to track fenced code block state
+ * across rows (1 = inside a fenced block). */
+static void markdownSyntax(erow *row)
+{
+	char *p = row->render;
+	int len = row->rsize, i, j, oc;
+	int in_block = (row->idx > 0 && E.row[row->idx-1].hl_oc);
+
+	/* Fenced code block fence line (```). */
+	if (len >= 3 && p[0] == '`' && p[1] == '`' && p[2] == '`') {
+		memset(row->hl, HL_STRING, len);
+		oc = in_block ? 0 : 1;
+		goto done;
+	}
+
+	/* Body of a fenced code block. */
+	if (in_block) {
+		memset(row->hl, HL_STRING, len);
+		oc = 1;
+		goto done;
+	}
+
+	oc = 0;
+
+	/* Setext heading underline (===== or -----).
+	 * Re-trigger the row above so it gets heading colour too. */
+	if (isSetextLine(p, len)) {
+		memset(row->hl, HL_KEYWORD1, len);
+		if (row->idx > 0)
+			editorUpdateSyntax(&E.row[row->idx-1]);
+		goto done;
+	}
+
+	/* Setext heading text: next row is the underline. */
+	if (len > 0 && row->idx+1 < E.numrows &&
+	    isSetextLine(E.row[row->idx+1].render, E.row[row->idx+1].rsize)) {
+		memset(row->hl, HL_KEYWORD1, len);
+		goto done;
+	}
+
+	if (p[0] == '#') {
+		memset(row->hl, HL_KEYWORD1, len);
+		goto done;
+	}
+
+	/* Blockquote: line starts with '>'. */
+	if (p[0] == '>') {
+		memset(row->hl, HL_COMMENT, len);
+		goto done;
+	}
+
+	/* Inline: inline code (`...`), bold (**...**), link text ([...]). */
+	for (i = 0; i < len; i++) {
+		if (p[i] == '`') {
+			for (j = i+1; j < len && p[j] != '`'; j++);
+			if (j < len) {
+				memset(row->hl+i, HL_STRING, j-i+1);
+				i = j;
+			}
+		} else if (i+1 < len && p[i] == '*' && p[i+1] == '*') {
+			for (j = i+2; j+1 < len && !(p[j] == '*' && p[j+1] == '*'); j++);
+			if (j+1 <= len) {
+				memset(row->hl+i, HL_KEYWORD2, j-i+2);
+				i = j+1;
+			}
+		} else if (p[i] == '[') {
+			for (j = i+1; j < len && p[j] != ']'; j++);
+			if (j < len) {
+				memset(row->hl+i, HL_KEYWORD2, j-i+1);
+				i = j;
+			}
+		}
+	}
+
+done:
+	if (row->hl_oc != oc && row->idx+1 < E.numrows)
+		editorUpdateSyntax(&E.row[row->idx+1]);
+	row->hl_oc = oc;
+}
+
 /* Set every byte of row->hl (that corresponds to every character in the line)
  * to the right syntax highlight type (HL_* defines). */
 void editorUpdateSyntax(erow *row)
@@ -684,6 +790,11 @@ void editorUpdateSyntax(erow *row)
 	memset(row->hl, HL_NORMAL, row->rsize);
 
 	if (E.syntax == NULL) return; /* No syntax, everything is HL_NORMAL. */
+
+	if (E.syntax->flags & SHL_MARKDOWN) {
+		markdownSyntax(row);
+		return;
+	}
 
 	char **keywords = E.syntax->keywords;
 	char *mcs = E.syntax->multiline_comment_start;
