@@ -174,6 +174,7 @@ struct editorConfig {
 	int mark_row;       /* Mark row position */
 	int mark_col;       /* Mark column position */
 	int show_help;      /* If 1, display help screen instead of file content. */
+	int readonly;       /* If 1, buffer is read-only (editing is blocked). */
 };
 
 /* Append buffer for efficient screen rendering */
@@ -246,6 +247,7 @@ struct editorBuffer {
 	int mark_row, mark_col;
 	struct undoStack undostack; /* per-buffer undo chain */
 	int active;                 /* 1 if this slot is in use */
+	int readonly;               /* 1 if buffer is read-only */
 };
 
 /* Global editor state */
@@ -266,10 +268,12 @@ extern int win_total_cols;  /* terminal cols (set by updateWindowSize) */
 
 /* bufmgr.c */
 void bufLoadArgs(int nfiles, char **filenames);
-void bufCycleNext(void);
+void bufSelectInteractive(int fd);
 void bufOpenFile(int fd);
+void bufOpenFileReadOnly(int fd);
 void bufKill(int fd);
-void bufListMessage(void);
+void bufOpenList(void);
+void bufIbufferSelect(void);
 
 /* winmgr.c */
 void winInit(void);

@@ -54,6 +54,7 @@ void initEditor(void)
 	E.mark_set = 0;
 	E.mark_row = 0;
 	E.mark_col = 0;
+	E.readonly = 0;
 	gettimeofday(&E.last_char_time, NULL);
 	killRingInit();
 	undoInit();

@@ -239,8 +239,7 @@ void winCycleNext(void)
 	}
 
 	winActivateWindow();
-	editorSetStatusMessage("[%d/%d] %s", buf_current+1, buf_count,
-		E.filename ? E.filename : "[new]");
+	editorSetStatusMessage("%s", E.filename ? E.filename : "[new]");
 }
 
 /* Delete the current window (C-x 0). */

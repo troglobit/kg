@@ -59,14 +59,17 @@ void editorProcessKeypress(int fd)
 		case CTRL_F:    /* C-x C-f: Open file in new buffer */
 			bufOpenFile(fd);
 			break;
-		case 'b':       /* C-x b: Cycle to next buffer */
-			bufCycleNext();
+		case CTRL_R:    /* C-x C-r: Open file read-only */
+			bufOpenFileReadOnly(fd);
+			break;
+		case 'b':       /* C-x b: Interactive buffer select */
+			bufSelectInteractive(fd);
 			break;
 		case 'k':       /* C-x k: Kill current buffer */
 			bufKill(fd);
 			break;
-		case CTRL_B:    /* C-x C-b: List buffers */
-			bufListMessage();
+		case CTRL_B:    /* C-x C-b: Open buffer list */
+			bufOpenList();
 			break;
 		case '2':       /* C-x 2: Split window horizontally */
 			winSplitHorizontal();
@@ -83,6 +86,10 @@ void editorProcessKeypress(int fd)
 		case '1':       /* C-x 1: Delete other windows */
 			winDeleteOthers();
 			break;
+		case CTRL_Q:    /* C-x C-q: Toggle read-only */
+			E.readonly = !E.readonly;
+			editorSetStatusMessage(E.readonly ? "Read-only" : "Writable");
+			break;
 		case CTRL_G:    /* C-x C-g: Cancel C-x prefix */
 			editorSetStatusMessage("");
 			break;
@@ -91,6 +98,27 @@ void editorProcessKeypress(int fd)
 			break;
 		}
 		return;
+	}
+
+	/* q closes special *...* buffers without dirty prompt */
+	if (c == 'q' && E.filename && E.filename[0] == '*') {
+		bufKill(fd);
+		return;
+	}
+
+	/* Read-only mode: Enter opens the item at point; editing is blocked. */
+	if (E.readonly) {
+		if (c == ENTER) {
+			bufIbufferSelect();
+			return;
+		}
+		if (c == BACKSPACE || c == DEL_KEY || c == CTRL_D ||
+		    c == CTRL_K    || c == CTRL_W  || c == CTRL_Y ||
+		    c == CTRL_UNDERSCORE || c == TAB ||
+		    (c >= 32 && c < 127)) {
+			editorSetStatusMessage("Buffer is read-only");
+			return;
+		}
 	}
 
 	/* Regular key processing */

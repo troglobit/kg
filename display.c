@@ -164,15 +164,9 @@ static void drawModeLine(struct abuf *ab, int ml_row, int win_x, int win_w,
 	abMoveTo(ab, ml_row, win_x);
 	abAppend(ab, is_active ? "\x1b[7m" : "\x1b[2m", 4); /* active: reverse; inactive: dim */
 
-	if (buf_count > 1)
-		len = snprintf(status, sizeof(status), "%s  [%d/%d] %.30s  %s (%d,%d)  (%s)",
-			dirty ? "-**-" : "----",
-			buf_current+1, buf_count, fname,
-			pos, cur_row, cur_col, modename);
-	else
-		len = snprintf(status, sizeof(status), "%s  %.30s  %s (%d,%d)  (%s)",
-			dirty ? "-**-" : "----", fname,
-			pos, cur_row, cur_col, modename);
+	len = snprintf(status, sizeof(status), "%s  %.30s  %s (%d,%d)  (%s)",
+		dirty ? "-**-" : "----", fname,
+		pos, cur_row, cur_col, modename);
 
 	if (len > win_w) len = win_w;
 	abAppend(ab, status, len);

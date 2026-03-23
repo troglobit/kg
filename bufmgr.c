@@ -1,8 +1,17 @@
 /* ========================= Buffer management ============================== */
 
-#include <string.h>
-#include <ctype.h>
 #include "def.h"
+
+/* Synthetic syntax record for the IBuffer (buffer list) mode. */
+static struct editorSyntax ibuffer_syntax = {
+	"IBuffer", NULL, NULL, "", "", "", 0
+};
+
+/* Column offset of the filename field in a *Buffer List* data row.
+ * Format: " %c  %-24s  %6d  %-14s  %s"
+ *          1+1+2+24  +2+6  +2+14  +2 = 54  */
+#define IBUF_FILENAME_OFFSET 54
+#define IBUF_NAME "*Buffer List*"
 
 struct editorBuffer buflist[MAX_BUFFERS];
 int buf_current = 0;
@@ -23,6 +32,7 @@ static void bufSaveToSlot(int idx)
 	b->mark_set = E.mark_set;
 	b->mark_row = E.mark_row;   b->mark_col = E.mark_col;
 	b->undostack = undostack;   /* struct copy — pointer ownership moves here */
+	b->readonly = E.readonly;
 	b->active = 1;
 }
 
@@ -41,10 +51,18 @@ static void bufRestoreFromSlot(int idx)
 	E.mark_set = b->mark_set;
 	E.mark_row = b->mark_row;   E.mark_col = b->mark_col;
 	undostack = b->undostack;   /* struct copy */
+	E.readonly = b->readonly;
 	buf_current = idx;
 	/* Keep the active window pointing at the newly-restored buffer. */
 	if (win_count > 0)
 		winlist[win_current].bufidx = idx;
+}
+
+/* Save current window view and buffer state before switching away. */
+static void bufSaveCurrentState(void)
+{
+	winSaveActiveView();
+	bufSaveToSlot(buf_current);
 }
 
 /* Reset E to a clean empty state and initialise a fresh undo stack.
@@ -61,7 +79,18 @@ static void bufResetE(void)
 	E.mark_set = E.mark_row = E.mark_col = 0;
 	E.cx_prefix = 0;
 	E.paste_mode = 0;
+	E.readonly = 0;
 	undoInit();
+}
+
+/* Return the basename of a filename (part after last '/'), or the whole
+ * string if no '/' is present.  Falls back to "[new]" for NULL. */
+static const char *bufBasename(const char *filename)
+{
+	const char *base;
+	if (!filename) return "[new]";
+	base = strrchr(filename, '/');
+	return base ? base+1 : filename;
 }
 
 /* Prompt the user for a line of text in the status bar.  Returns 0 on
@@ -111,46 +140,74 @@ void bufLoadArgs(int nfiles, char **filenames)
 	bufRestoreFromSlot(0);
 }
 
-/* Cycle to the next active buffer. */
-void bufCycleNext(void)
+/* Interactive buffer selector shown in the echo area (C-x b).
+ * Displays all buffers except the current one in a ring; left/right arrows
+ * rotate the selection; Enter switches, ESC/C-g cancels. */
+void bufSelectInteractive(int fd)
 {
-	int i, next = -1;
+	int order[MAX_BUFFERS], n = 0, sel = 0;
+	int i, c;
+	char msg[256];
+	int off;
 
-	if (buf_count <= 1) {
+	/* Build ring starting from the buffer after current (most natural default). */
+	for (i = 1; i <= MAX_BUFFERS; i++) {
+		int idx = (buf_current + i) % MAX_BUFFERS;
+		if (buflist[idx].active) order[n++] = idx;
+	}
+	if (n == 0) {
 		editorSetStatusMessage("No other buffers.");
 		return;
 	}
-	for (i = 1; i <= MAX_BUFFERS; i++) {
-		int idx = (buf_current + i) % MAX_BUFFERS;
-		if (buflist[idx].active) { next = idx; break; }
+
+	while (1) {
+		off = snprintf(msg, sizeof(msg), "Buffer: ");
+		for (i = 0; i < n; i++) {
+			const char *name = bufBasename(buflist[order[i]].filename);
+			if (i == sel)
+				off += snprintf(msg+off, sizeof(msg)-off, "[%s]  ", name);
+			else
+				off += snprintf(msg+off, sizeof(msg)-off, "%s  ", name);
+		}
+		editorSetStatusMessage("%s", msg);
+		editorRefreshScreen();
+
+		c = editorReadKey(fd);
+		if (c == ARROW_RIGHT || c == CTRL_F) {
+			sel = (sel + 1) % n;
+		} else if (c == ARROW_LEFT || c == CTRL_B) {
+			sel = (sel - 1 + n) % n;
+		} else if (c == ENTER) {
+			bufSaveCurrentState();
+			bufRestoreFromSlot(order[sel]);
+			editorSetStatusMessage("");
+			return;
+		} else if (c == ESC || c == CTRL_G) {
+			editorSetStatusMessage("");
+			return;
+		}
 	}
-	if (next < 0) return;
-	winSaveActiveView();
-	bufSaveToSlot(buf_current);
-	bufRestoreFromSlot(next);
-	editorSetStatusMessage("[%d/%d] %s", buf_current+1, buf_count,
-		E.filename ? E.filename : "[new]");
 }
 
 /* Open a file in a new buffer, prompting for the filename.  If the file is
- * already open in an existing buffer, switch to it instead. */
-void bufOpenFile(int fd)
+ * already open in an existing buffer, switch to it instead.
+ * readonly: if 1, mark the buffer read-only after loading. */
+static void bufOpenFileRO(int fd, int readonly)
 {
 	char query[256];
 	int i, slot;
+	const char *prompt = readonly ? "Open file read-only: " : "Open file: ";
 
-	if (readLine(fd, "Open file: ", query, sizeof(query)) < 0 || query[0] == '\0')
+	if (readLine(fd, prompt, query, sizeof(query)) < 0 || query[0] == '\0')
 		return;
 
 	/* Switch to existing buffer if the file is already open. */
 	for (i = 0; i < MAX_BUFFERS; i++) {
 		if (buflist[i].active && buflist[i].filename &&
 		    strcmp(buflist[i].filename, query) == 0) {
-			winSaveActiveView();
-			bufSaveToSlot(buf_current);
+			bufSaveCurrentState();
 			bufRestoreFromSlot(i);
-			editorSetStatusMessage("[%d/%d] %s", buf_current+1, buf_count,
-				E.filename);
+			editorSetStatusMessage("%s", E.filename);
 			return;
 		}
 	}
@@ -167,17 +224,20 @@ void bufOpenFile(int fd)
 	}
 	if (slot < 0) return; /* should not happen given buf_count check above */
 
-	winSaveActiveView();
-	bufSaveToSlot(buf_current);
+	bufSaveCurrentState();
 	bufResetE();
+	E.readonly = readonly;
 	editorSelectSyntaxHighlight(query);
 	editorOpen(query);
 	bufSaveToSlot(slot);
 	bufRestoreFromSlot(slot);
 	buf_count++;
-	editorSetStatusMessage("[%d/%d] %s", buf_current+1, buf_count,
-		E.filename ? E.filename : "[new]");
+	editorSetStatusMessage("%s%s", E.filename ? E.filename : "[new]",
+		readonly ? " [read-only]" : "");
 }
+
+void bufOpenFile(int fd)     { bufOpenFileRO(fd, 0); }
+void bufOpenFileReadOnly(int fd) { bufOpenFileRO(fd, 1); }
 
 /* Kill (close) the current buffer, prompting if modified. */
 void bufKill(int fd)
@@ -216,27 +276,119 @@ void bufKill(int fd)
 	for (i = 0; i < MAX_BUFFERS; i++) {
 		if (buflist[i].active) { bufRestoreFromSlot(i); break; }
 	}
-	editorSetStatusMessage("[%d/%d] %s", buf_current+1, buf_count,
-		E.filename ? E.filename : "[new]");
+	editorSetStatusMessage("%s", E.filename ? E.filename : "[new]");
 }
 
-/* Show a one-line buffer list in the status message. */
-void bufListMessage(void)
+/* Open (or refresh) a *Buffer List* buffer in the current window (C-x C-b).
+ * Lists all open buffers with modification flag, name, size, mode, and path.
+ * Press q or C-x k to close. */
+void bufOpenList(void)
 {
-	char msg[80];
-	int off = 0, i;
-	const char *name, *base;
+	int i, j, slot = -1, existing = -1;
+	char line[256];
+	int len, size;
+	const char *modename;
 
-	bufSaveToSlot(buf_current); /* ensure buflist reflects current state */
-	for (i = 0; i < MAX_BUFFERS && off < (int)sizeof(msg)-2; i++) {
-		if (!buflist[i].active) continue;
-		name = buflist[i].filename ? buflist[i].filename : "[new]";
-		base = strrchr(name, '/');
-		base = base ? base+1 : name;
-		off += snprintf(msg+off, sizeof(msg)-off, "%s%s%s ",
-			i == buf_current ? "*" : " ",
-			base,
-			buflist[i].dirty ? "+" : "");
+	/* Save current state so the snapshot is up-to-date. */
+	bufSaveCurrentState();
+
+	/* Find an existing *Buffer List* slot to reuse, or a free slot. */
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		if (!buflist[i].active) {
+			if (slot < 0) slot = i;
+			continue;
+		}
+		if (buflist[i].filename &&
+		    strcmp(buflist[i].filename, IBUF_NAME) == 0)
+			existing = i;
 	}
-	editorSetStatusMessage("Buffers: %s", msg);
+
+	if (existing >= 0) {
+		/* Reuse: switch to it, then rebuild content below. */
+		bufRestoreFromSlot(existing);
+		undoInit(); /* content is rebuilt from scratch; don't keep stale ops */
+	} else {
+		if (buf_count >= MAX_BUFFERS) {
+			editorSetStatusMessage("Too many open buffers (%d max).", MAX_BUFFERS);
+			return;
+		}
+		if (slot < 0) return;
+		bufResetE();
+		E.filename = strdup(IBUF_NAME);
+	}
+
+	/* Clear existing rows. */
+	for (i = 0; i < E.numrows; i++) editorFreeRow(&E.row[i]);
+	free(E.row);
+	E.row = NULL;
+	E.numrows = 0;
+
+	/* Header. */
+	len = snprintf(line, sizeof(line), " M  %-24s  %6s  %-14s  %s",
+		"Buffer", "Size", "Mode", "File");
+	editorInsertRow(E.numrows, line, len);
+	len = snprintf(line, sizeof(line), " -  %-24s  %6s  %-14s  %s",
+		"------", "------", "----", "----");
+	editorInsertRow(E.numrows, line, len);
+
+	/* One row per buffer (using the just-saved snapshot in buflist[]). */
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		struct editorBuffer *b = &buflist[i];
+		if (!b->active) continue;
+
+		modename = b->syntax ? b->syntax->name : "Fundamental";
+		size = 0;
+		for (j = 0; j < b->numrows; j++) size += b->row[j].size;
+
+		len = snprintf(line, sizeof(line), " %c  %-24s  %6d  %-14s  %s",
+			b->dirty ? '*' : ' ',
+			bufBasename(b->filename),
+			size, modename,
+			b->filename ? b->filename : "");
+		editorInsertRow(E.numrows, line, len);
+	}
+
+	E.cx = E.cy = E.rowoff = E.coloff = 0;
+	E.dirty = 0;
+	E.readonly = 1;
+	E.syntax = &ibuffer_syntax;
+
+	if (existing >= 0) {
+		bufSaveToSlot(existing);
+	} else {
+		bufSaveToSlot(slot);
+		bufRestoreFromSlot(slot);
+		buf_count++;
+	}
+
+	editorSetStatusMessage("Buffer list — RET to open, q or C-x k to close.");
+}
+
+/* Open the buffer named on the current IBuffer line.
+ * Line format: " M  <24-char name>  <6-char size>  <14-char mode>  <filename>"
+ * The full filename starts at byte offset 54. */
+void bufIbufferSelect(void)
+{
+	int filerow = E.rowoff + E.cy;
+	const char *filename;
+	int i;
+
+	if (E.syntax != &ibuffer_syntax) return; /* only valid in IBuffer mode */
+	if (filerow < 2 || filerow >= E.numrows) return; /* skip header rows */
+	if (E.row[filerow].size <= IBUF_FILENAME_OFFSET) return;
+
+	filename = E.row[filerow].chars + IBUF_FILENAME_OFFSET;
+	if (!filename[0]) return;
+	if (strcmp(filename, IBUF_NAME) == 0) return; /* don't recurse */
+
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		if (!buflist[i].active || !buflist[i].filename) continue;
+		if (strcmp(buflist[i].filename, filename) == 0) {
+			bufSaveCurrentState();
+			bufRestoreFromSlot(i);
+			editorSetStatusMessage("%s", E.filename ? E.filename : "[new]");
+			return;
+		}
+	}
+	editorSetStatusMessage("Buffer not found: %s", filename);
 }
