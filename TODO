@@ -4,8 +4,8 @@
 
 - [x] Refactor code to Linux style, variable decl. at top of context sorted
       in reverse chrismas tree style, lines can be up to 110 chars long
-- [ ] Add hash-bang fallback for detection of syntax highlighting, e.g., #!/bin/sh
-- [ ] Fix delete key
+- [x] Add hash-bang fallback for detection of syntax highlighting, e.g., #!/bin/sh
+- [x] Fix delete key
 - [ ] Add auto-indent à la Mg
 - [ ] Add built-in help
 - [ ] Testing and stability to reach "usable" level
