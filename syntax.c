@@ -769,7 +769,7 @@ void editorUpdateSyntax(erow *row)
 		}
 
 		/* Handle keywords and lib calls */
-		if (prev_sep) {
+		if (prev_sep && keywords) {
 			int j;
 			for (j = 0; keywords[j]; j++) {
 				int klen = strlen(keywords[j]);

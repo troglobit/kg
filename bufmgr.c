@@ -2,9 +2,12 @@
 
 #include "def.h"
 
-/* Synthetic syntax record for the IBuffer (buffer list) mode. */
+/* Synthetic syntax records for special modes. */
 static struct editorSyntax ibuffer_syntax = {
 	"IBuffer", NULL, NULL, "", "", "", 0
+};
+static struct editorSyntax text_syntax = {
+	"Text", NULL, NULL, "", "", "", 0
 };
 
 /* Column offset of the filename field in a *Buffer List* data row.
@@ -59,7 +62,7 @@ static void bufRestoreFromSlot(int idx)
 }
 
 /* Save current window view and buffer state before switching away. */
-static void bufSaveCurrentState(void)
+void bufSaveCurrentState(void)
 {
 	winSaveActiveView();
 	bufSaveToSlot(buf_current);
@@ -96,7 +99,7 @@ static const char *bufBasename(const char *filename)
 /* Prompt the user for a line of text in the status bar.  Returns 0 on
  * confirmation (Enter) or -1 if cancelled (ESC / C-g).  buf is always
  * NUL-terminated on return. */
-static int readLine(int fd, const char *prompt, char *buf, int bufsize)
+int editorReadLine(int fd, const char *prompt, char *buf, int bufsize)
 {
 	int len = 0, c;
 
@@ -120,22 +123,47 @@ static int readLine(int fd, const char *prompt, char *buf, int bufsize)
 }
 
 /* Load all command-line files into the buffer list, then start in buffer 0.
- * Called once from main() after initEditor(). */
+ * Called once from main() after initEditor().
+ * Arguments of the form +LINE or +LINE:COL position the next file. */
 void bufLoadArgs(int nfiles, char **filenames)
 {
-	int i;
+	int i, slot = 0;
+	int pending_line = 0, pending_col = 1;
 
 	memset(buflist, 0, sizeof(buflist));
 	buf_current = 0;
 	buf_count = 0;
 
-	for (i = 0; i < nfiles && i < MAX_BUFFERS; i++) {
+	if (nfiles == 0) {
+		/* No files given: open an empty *scratch* buffer. */
+		bufResetE();
+		E.filename = strdup("*scratch*");
+		E.syntax = &text_syntax;
+		bufSaveToSlot(0);
+		buflist[0].active = 1;
+		buf_count = 1;
+		bufRestoreFromSlot(0);
+		return;
+	}
+
+	for (i = 0; i < nfiles && slot < MAX_BUFFERS; i++) {
+		if (filenames[i][0] == '+') {
+			/* Position specifier: +LINE or +LINE:COL */
+			pending_line = 0; pending_col = 1;
+			sscanf(filenames[i] + 1, "%d:%d", &pending_line, &pending_col);
+			continue;
+		}
 		bufResetE();
 		editorSelectSyntaxHighlight(filenames[i]);
 		editorOpen(filenames[i]);
-		bufSaveToSlot(i);
-		buflist[i].active = 1;
+		if (pending_line > 0) {
+			editorGotoLineDirect(pending_line, pending_col);
+			pending_line = 0; pending_col = 1;
+		}
+		bufSaveToSlot(slot);
+		buflist[slot].active = 1;
 		buf_count++;
+		slot++;
 	}
 	bufRestoreFromSlot(0);
 }
@@ -198,7 +226,7 @@ static void bufOpenFileRO(int fd, int readonly)
 	int i, slot;
 	const char *prompt = readonly ? "Open file read-only: " : "Open file: ";
 
-	if (readLine(fd, prompt, query, sizeof(query)) < 0 || query[0] == '\0')
+	if (editorReadLine(fd, prompt, query, sizeof(query)) < 0 || query[0] == '\0')
 		return;
 
 	/* Switch to existing buffer if the file is already open. */
@@ -238,6 +266,57 @@ static void bufOpenFileRO(int fd, int readonly)
 
 void bufOpenFile(int fd)     { bufOpenFileRO(fd, 0); }
 void bufOpenFileReadOnly(int fd) { bufOpenFileRO(fd, 1); }
+
+/* Write a buffer slot's rows directly to its file without switching to it.
+ * Returns 0 on success, 1 on error (errno set). */
+static int writeSlot(struct editorBuffer *b)
+{
+	char *buf;
+	int len, fd;
+
+	buf = editorRowsToString(b->row, b->numrows, &len);
+	fd = open(b->filename, O_RDWR|O_CREAT, 0644);
+	if (fd == -1) { free(buf); return 1; }
+	if (ftruncate(fd, len) == -1 || write(fd, buf, len) != len) {
+		close(fd); free(buf); return 1;
+	}
+	close(fd);
+	free(buf);
+	return 0;
+}
+
+/* Save all modified non-special buffers, prompting for each (C-x s). */
+void bufSaveAll(int fd)
+{
+	int i;
+
+	bufSaveToSlot(buf_current); /* flush current edits into slot */
+
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		struct editorBuffer *b = &buflist[i];
+		int answer;
+
+		if (!b->active || !b->dirty) continue;
+		if (isSpecialBuffer(b->filename)) continue;
+
+		editorSetStatusMessage("Save %s? (y/n) ", b->filename);
+		editorRefreshScreen();
+		answer = editorReadKey(fd);
+		if (answer != 'y' && answer != 'Y') continue;
+
+		if (writeSlot(b) == 0) {
+			b->dirty = 0;
+			if (i == buf_current) {
+				E.dirty = 0;
+				undoMarkClean();
+			}
+			editorSetStatusMessage("Wrote %s", b->filename);
+		} else {
+			editorSetStatusMessage("Error writing %s: %s",
+				b->filename, strerror(errno));
+		}
+	}
+}
 
 /* Kill (close) the current buffer, prompting if modified. */
 void bufKill(int fd)

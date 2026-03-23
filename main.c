@@ -65,11 +65,6 @@ void initEditor(void)
 
 int main(int argc, char **argv)
 {
-	if (argc < 2) {
-		fprintf(stderr, "Usage: kg <filename> [filename ...]\n");
-		exit(1);
-	}
-
 	initEditor();
 	bufLoadArgs(argc-1, argv+1);
 	enableRawMode(STDIN_FILENO);

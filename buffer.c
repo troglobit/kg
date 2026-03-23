@@ -88,22 +88,22 @@ void editorDelRow(int at)
  * Returns the pointer to the heap-allocated string and populate the
  * integer pointed by 'buflen' with the size of the string, excluding
  * the final nulterm. */
-char *editorRowsToString(int *buflen)
+char *editorRowsToString(erow *rows, int numrows, int *buflen)
 {
 	char *buf = NULL, *p;
 	int totlen = 0;
 	int j;
 
 	/* Compute count of bytes */
-	for (j = 0; j < E.numrows; j++)
-		totlen += E.row[j].size+1; /* +1 is for "\n" at end of every row */
+	for (j = 0; j < numrows; j++)
+		totlen += rows[j].size+1; /* +1 is for "\n" at end of every row */
 	*buflen = totlen;
 	totlen++; /* Also make space for nulterm */
 
 	p = buf = malloc(totlen);
-	for (j = 0; j < E.numrows; j++) {
-		memcpy(p, E.row[j].chars, E.row[j].size);
-		p += E.row[j].size;
+	for (j = 0; j < numrows; j++) {
+		memcpy(p, rows[j].chars, rows[j].size);
+		p += rows[j].size;
 		*p = '\n';
 		p++;
 	}

@@ -33,10 +33,16 @@ void editorProcessKeypress(int fd)
 		E.cx_prefix = 0;
 		switch (c) {
 		case CTRL_C: {  /* C-x C-c: Quit */
-			int i, ndirty = E.dirty;
-			for (i = 0; i < MAX_BUFFERS; i++)
-				if (buflist[i].active && i != buf_current && buflist[i].dirty)
-					ndirty++;
+			int i, ndirty = 0;
+			/* Count modified real-file buffers (exclude *special* ones). */
+			if (E.dirty && !isSpecialBuffer(E.filename))
+				ndirty++;
+			for (i = 0; i < MAX_BUFFERS; i++) {
+				if (!buflist[i].active || i == buf_current) continue;
+				if (!buflist[i].dirty) continue;
+				if (isSpecialBuffer(buflist[i].filename)) continue;
+				ndirty++;
+			}
 			if (ndirty) {
 				int answer;
 				editorSetStatusMessage(
@@ -54,7 +60,10 @@ void editorProcessKeypress(int fd)
 			break;
 		}
 		case CTRL_S:    /* C-x C-s: Save */
-			editorSave();
+			editorSave(fd);
+			break;
+		case 's':       /* C-x s: Save all modified buffers */
+			bufSaveAll(fd);
 			break;
 		case CTRL_F:    /* C-x C-f: Open file in new buffer */
 			bufOpenFile(fd);
@@ -101,7 +110,7 @@ void editorProcessKeypress(int fd)
 	}
 
 	/* q closes special *...* buffers without dirty prompt */
-	if (c == 'q' && E.filename && E.filename[0] == '*') {
+	if (c == 'q' && isSpecialBuffer(E.filename)) {
 		bufKill(fd);
 		return;
 	}
@@ -219,6 +228,9 @@ void editorProcessKeypress(int fd)
 		break;
 	case CTRL_END:
 		editorMoveToEnd();
+		break;
+	case ALT_G:         /* Goto line */
+		editorGotoLine(fd);
 		break;
 	case CTRL_ARROW_LEFT:
 	case ALT_B:

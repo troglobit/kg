@@ -120,6 +120,7 @@ enum KEY_ACTION {
 	CTRL_END,
 	ALT_F,
 	ALT_B,
+	ALT_G,
 	ALT_V,
 	ALT_W
 };
@@ -267,11 +268,14 @@ extern int win_total_rows;  /* terminal rows (set by updateWindowSize) */
 extern int win_total_cols;  /* terminal cols (set by updateWindowSize) */
 
 /* bufmgr.c */
+void bufSaveCurrentState(void);
+int  editorReadLine(int fd, const char *prompt, char *buf, int bufsize);
 void bufLoadArgs(int nfiles, char **filenames);
 void bufSelectInteractive(int fd);
 void bufOpenFile(int fd);
 void bufOpenFileReadOnly(int fd);
 void bufKill(int fd);
+void bufSaveAll(int fd);
 void bufOpenList(void);
 void bufIbufferSelect(void);
 
@@ -294,13 +298,15 @@ void editorInsertCharAutoComplete(int c);
 void editorMoveCursor(int key);
 void editorMoveToBeginning(void);
 void editorMoveToEnd(void);
+void editorGotoLineDirect(int line, int col);
+void editorGotoLine(int fd);
 
 /* buffer.c */
 void editorUpdateRow(erow *row);
 void editorInsertRow(int at, char *s, size_t len);
 void editorFreeRow(erow *row);
 void editorDelRow(int at);
-char *editorRowsToString(int *buflen);
+char *editorRowsToString(erow *rows, int numrows, int *buflen);
 void editorRowInsertChar(erow *row, int at, int c);
 void editorRowAppendString(erow *row, char *s, size_t len);
 void editorRowDelChar(erow *row, int at);
@@ -309,6 +315,12 @@ void editorInsertNewline(void);
 void editorDelChar(void);
 void editorDelForwardChar(void);
 void editorKillLine(void);
+
+/* Returns 1 if filename belongs to a special/system buffer (NULL or starts with '*'). */
+static inline int isSpecialBuffer(const char *filename)
+{
+	return !filename || filename[0] == '*';
+}
 
 /* help.c */
 void editorToggleHelp(void);
@@ -322,7 +334,7 @@ void editorSetStatusMessage(const char *fmt, ...);
 
 /* fileio.c */
 int editorOpen(char *filename);
-int editorSave(void);
+int editorSave(int fd);
 
 /* kbd.c */
 void editorProcessKeypress(int fd);

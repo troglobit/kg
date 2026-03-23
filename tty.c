@@ -81,6 +81,7 @@ int editorReadKey(int fd)
 			/* Alt+key sequences (ESC followed by a character). */
 			if (seq[0] == 'f') return ALT_F;
 			if (seq[0] == 'b') return ALT_B;
+			if (seq[0] == 'g') return ALT_G;
 			if (seq[0] == 'v') return ALT_V;
 			if (seq[0] == 'w') return ALT_W;
 

@@ -101,6 +101,49 @@ void editorMoveToBeginning(void)
 	E.coloff = 0;
 }
 
+/* Jump to a specific line (1-based) and column (1-based, 0 = start). */
+void editorGotoLineDirect(int line, int col)
+{
+	int filerow, filecol;
+	erow *row;
+
+	if (E.numrows == 0) return;
+	if (line < 1) line = 1;
+	if (line > E.numrows) line = E.numrows;
+
+	filerow = line - 1;
+	filecol = (col > 1) ? col - 1 : 0;
+	row = &E.row[filerow];
+	if (filecol > row->size) filecol = row->size;
+
+	/* Centre the target line vertically. */
+	E.rowoff = filerow - E.screenrows / 2;
+	if (E.rowoff < 0) E.rowoff = 0;
+	E.cy = filerow - E.rowoff;
+
+	if (filecol > E.screencols - 1) {
+		E.coloff = filecol - E.screencols + 1;
+		E.cx = E.screencols - 1;
+	} else {
+		E.coloff = 0;
+		E.cx = filecol;
+	}
+}
+
+/* Prompt for a line number (optionally "LINE:COL") and jump to it. */
+void editorGotoLine(int fd)
+{
+	char buf[16];
+	int line = 0, col = 1, n;
+
+	if (editorReadLine(fd, "Goto line: ", buf, sizeof(buf)) < 0 || !buf[0])
+		return;
+	n = sscanf(buf, "%d:%d", &line, &col);
+	if (n < 1) return;
+	if (n < 2) col = 1;
+	editorGotoLineDirect(line, col);
+}
+
 /* Move to the end of the document */
 void editorMoveToEnd(void)
 {

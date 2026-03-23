@@ -140,15 +140,14 @@ static void drawWindowRows(struct abuf *ab,
  * terminal column win_x (1-based).  Needed for vertical splits where two mode
  * lines share the same terminal row. */
 static void drawModeLine(struct abuf *ab, int ml_row, int win_x, int win_w,
-	int bufidx, int is_active, int cur_row, int total_rows, int rowoff, int win_h)
+	int bufidx, int is_active, int cur_row, int cur_col, int total_rows, int rowoff, int win_h)
 {
 	char status[120];
 	int len;
 	struct editorBuffer *b = &buflist[bufidx];
 	const char *fname    = b->filename ? b->filename : "[new]";
 	const char *modename = b->syntax   ? b->syntax->name : "Fundamental";
-	int dirty = is_active ? E.dirty : b->dirty;
-	int cur_col = is_active ? E.cx + 1 : b->cx + 1;
+	int dirty = (is_active || bufidx == buf_current) ? E.dirty : b->dirty;
 	char pos[8];
 
 	/* Emacs-style position indicator. */
@@ -219,10 +218,14 @@ void editorRefreshScreen(void)
 			rowoff  = E.rowoff;
 			coloff  = E.coloff;
 		} else {
-			numrows = b->numrows;
-			rows    = b->row;
-			rowoff  = b->rowoff;
-			coloff  = b->coloff;
+			/* Row data: if this window shares the active buffer, use the
+			 * live E arrays — b->row may be a stale pointer after realloc. */
+			numrows = (bidx == buf_current) ? E.numrows : b->numrows;
+			rows    = (bidx == buf_current) ? E.row     : b->row;
+			/* Always use the window's own scroll offsets, not the buffer
+			 * slot's (which tracks the last-active window's scroll). */
+			rowoff  = w->rowoff;
+			coloff  = w->coloff;
 		}
 
 		drawWindowRows(&ab, w->y, w->x, w->h, w->w,
@@ -230,11 +233,12 @@ void editorRefreshScreen(void)
 
 		ml_row = w->y + w->h;
 		{
-			int wrowoff    = is_active ? E.rowoff    : b->rowoff;
-			int cur_row    = is_active ? (E.rowoff + E.cy + 1) : (b->rowoff + b->cy + 1);
-			int total_rows = is_active ? E.numrows   : b->numrows;
+			int wrowoff    = is_active ? E.rowoff : w->rowoff;
+			int cur_row    = is_active ? (E.rowoff + E.cy + 1) : (w->rowoff + w->cy + 1);
+			int cur_col    = is_active ? (E.cx + 1) : (w->cx + 1);
+			int total_rows = (is_active || bidx == buf_current) ? E.numrows : b->numrows;
 			drawModeLine(&ab, ml_row, w->x, w->w, bidx, is_active,
-				cur_row, total_rows, wrowoff, w->h);
+				cur_row, cur_col, total_rows, wrowoff, w->h);
 		}
 
 		/* Draw vertical separator to the right of non-rightmost windows. */

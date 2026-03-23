@@ -38,23 +38,34 @@ int editorOpen(char *filename)
 	return 0;
 }
 
-/* Save the current file on disk. Return 0 on success, 1 on error. */
-int editorSave(void)
+/* Save the current file on disk. Return 0 on success, 1 on error.
+ * Special buffers (filename is NULL or starts with '*') prompt for a name. */
+int editorSave(int fd)
 {
 	char *buf;
 	int len;
-	int fd;
+	int filefd;
 
-	buf = editorRowsToString(&len);
-	fd = open(E.filename, O_RDWR|O_CREAT, 0644);
-	if (fd == -1) goto writeerr;
+	if (isSpecialBuffer(E.filename)) {
+		char newname[256];
+		if (editorReadLine(fd, "Write file: ", newname, sizeof(newname)) < 0
+		    || !newname[0])
+			return 1;
+		free(E.filename);
+		E.filename = strdup(newname);
+		editorSelectSyntaxHighlight(E.filename);
+	}
+
+	buf = editorRowsToString(E.row, E.numrows, &len);
+	filefd = open(E.filename, O_RDWR|O_CREAT, 0644);
+	if (filefd == -1) goto writeerr;
 
 	/* Use truncate + a single write(2) call in order to make saving
 	 * a bit safer, under the limits of what we can do in a small editor. */
-	if (ftruncate(fd, len) == -1) goto writeerr;
-	if (write(fd, buf, len) != len) goto writeerr;
+	if (ftruncate(filefd, len) == -1) goto writeerr;
+	if (write(filefd, buf, len) != len) goto writeerr;
 
-	close(fd);
+	close(filefd);
 	free(buf);
 	E.dirty = 0;
 	undoMarkClean();  /* Mark this state as clean for undo tracking */
@@ -63,8 +74,8 @@ int editorSave(void)
 
 writeerr:
 	free(buf);
-	if (fd != -1)
-		close(fd);
+	if (filefd != -1)
+		close(filefd);
 
 	editorSetStatusMessage("Error writing %s: %s", E.filename, strerror(errno));
 	return 1;

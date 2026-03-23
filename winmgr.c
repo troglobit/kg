@@ -178,7 +178,7 @@ void winSplitHorizontal(void)
 	}
 	if (slot < 0) return;
 
-	winSaveActiveView();
+	bufSaveCurrentState();
 
 	/* New window inherits the same buffer, cursor state, and col_group. */
 	winlist[slot]        = winlist[win_current];
@@ -210,7 +210,7 @@ void winSplitVertical(void)
 	}
 	if (slot < 0) return;
 
-	winSaveActiveView();
+	bufSaveCurrentState();
 
 	/* New window: same buffer/cursor, but a new column group (rightmost). */
 	winlist[slot]           = winlist[win_current];
@@ -231,7 +231,7 @@ void winCycleNext(void)
 		return;
 	}
 
-	winSaveActiveView();
+	bufSaveCurrentState();
 
 	for (i = 1; i <= MAX_WINDOWS; i++) {
 		int idx = (win_current + i) % MAX_WINDOWS;
@@ -252,6 +252,7 @@ void winDeleteCurrent(void)
 		return;
 	}
 
+	bufSaveCurrentState();
 	winlist[win_current].active = 0;
 	win_count--;
 
