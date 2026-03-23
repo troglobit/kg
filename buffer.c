@@ -188,8 +188,10 @@ void editorInsertChar(int c)
 void editorInsertNewline(void)
 {
 	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
+	char *new_content;
 	int filerow = E.rowoff + E.cy;
 	int filecol = E.coloff + E.cx;
+	int rest_len, indent = 0;
 
 	if (!row) {
 		if (filerow == E.numrows) {
@@ -205,10 +207,24 @@ void editorInsertNewline(void)
 		undoPush(UNDO_INSERT_LINE, filerow, 0, 0, NULL, 0);
 		editorInsertRow(filerow, "", 0);
 	} else {
-		/* We are in the middle of a line. Split it between two rows. */
-		/* Record undo: save the part that will move to new line */
-		undoPush(UNDO_SPLIT_LINE, filerow, filecol, 0, row->chars+filecol, row->size-filecol);
-		editorInsertRow(filerow+1, row->chars+filecol, row->size-filecol);
+		/* Compute leading whitespace of the current line for auto-indent. */
+		while (indent < row->size &&
+		       (row->chars[indent] == ' ' || row->chars[indent] == TAB))
+			indent++;
+		/* Don't indent past the split point. */
+		if (indent > filecol) indent = filecol;
+
+		/* Build new line: indent prefix + rest of split. */
+		rest_len = row->size - filecol;
+		new_content = malloc(indent + rest_len + 1);
+		memcpy(new_content, row->chars, indent);
+		memcpy(new_content + indent, row->chars + filecol, rest_len);
+		new_content[indent + rest_len] = '\0';
+
+		/* Record undo: save the original rest without the indent prefix. */
+		undoPush(UNDO_SPLIT_LINE, filerow, filecol, 0, row->chars + filecol, rest_len);
+		editorInsertRow(filerow + 1, new_content, indent + rest_len);
+		free(new_content);
 		row = &E.row[filerow];
 		row->chars[filecol] = '\0';
 		row->size = filecol;
@@ -220,8 +236,12 @@ fixcursor:
 	} else {
 		E.cy++;
 	}
-	E.cx = 0;
+	E.cx = indent;
 	E.coloff = 0;
+	if (E.cx >= E.screencols) {
+		E.coloff = indent - E.screencols + 1;
+		E.cx = E.screencols - 1;
+	}
 }
 
 /* Delete the char at the current prompt position. */

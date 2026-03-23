@@ -166,11 +166,19 @@ void editorUndo(void)
 		break;
 
 	case UNDO_SPLIT_LINE:
-		/* Reverse: join the lines */
-		if (op->row < E.numrows - 1) {
+		/* Reverse: truncate row at split point, append saved rest, delete row+1.
+		 * Using saved op->text rather than live row+1 content because row+1 may
+		 * have an auto-indent prefix that was not part of the original text. */
+		if (op->row < E.numrows) {
 			erow *row = &E.row[op->row];
-			editorRowAppendString(row, E.row[op->row + 1].chars, E.row[op->row + 1].size);
-			editorDelRow(op->row + 1);
+			row->size = op->col;
+			row->chars[op->col] = '\0';
+			if (op->text && op->len > 0)
+				editorRowAppendString(row, op->text, op->len);
+			else
+				editorUpdateRow(row);
+			if (op->row + 1 < E.numrows)
+				editorDelRow(op->row + 1);
 			E.dirty++;
 		}
 		break;
