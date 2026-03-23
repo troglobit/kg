@@ -147,7 +147,7 @@ static void drawModeLine(struct abuf *ab, int ml_row, int win_x, int win_w,
 	int dirty = is_active ? E.dirty : b->dirty;
 
 	abMoveTo(ab, ml_row, win_x);
-	abAppend(ab, "\x1b[7m", 4); /* reverse video */
+	abAppend(ab, is_active ? "\x1b[7m" : "\x1b[2m", 4); /* active: reverse; inactive: dim */
 
 	if (buf_count > 1)
 		len = snprintf(status, sizeof(status), "%s[%d/%d] %.20s - %d lines %s",
