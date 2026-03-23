@@ -22,6 +22,12 @@ void editorProcessKeypress(int fd)
 	}
 	E.last_char_time = tv;
 
+	/* Help screen: any key dismisses it. */
+	if (E.show_help) {
+		E.show_help = 0;
+		return;
+	}
+
 	/* Handle C-x prefix commands */
 	if (E.cx_prefix) {
 		E.cx_prefix = 0;
@@ -115,8 +121,10 @@ void editorProcessKeypress(int fd)
 	case CTRL_UNDERSCORE: /* Undo (C-_ or C-/) */
 		editorUndo();
 		break;
+	case CTRL_H:        /* Help */
+		editorToggleHelp();
+		break;
 	case BACKSPACE:     /* Backspace */
-	case CTRL_H:        /* Ctrl-h */
 		editorDelChar();
 		break;
 	case DEL_KEY:       /* Forward delete */

@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 	editorOpen(argv[1]);
 	enableRawMode(STDIN_FILENO);
 	editorSetStatusMessage(
-		"HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line");
+		"HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line | C-h = help");
 	while (running) {
 		editorRefreshScreen();
 		editorProcessKeypress(STDIN_FILENO);

@@ -34,6 +34,10 @@ void editorRefreshScreen(void)
 
 	abAppend(&ab, "\x1b[?25l", 6); /* Hide cursor. */
 	abAppend(&ab, "\x1b[H", 3); /* Go home. */
+	if (E.show_help) {
+		editorDrawHelp(&ab, E.screenrows);
+		goto statusbar;
+	}
 	for (y = 0; y < E.screenrows; y++) {
 		int fr = E.rowoff + y;
 
@@ -96,6 +100,7 @@ void editorRefreshScreen(void)
 		abAppend(&ab, "\r\n", 2);
 	}
 
+statusbar:
 	/* Create a two rows status. First row: */
 	abAppend(&ab, "\x1b[0K", 4);
 	abAppend(&ab, "\x1b[7m", 4);

@@ -162,7 +162,7 @@ struct editorConfig {
 	erow *row;          /* Rows */
 	int dirty;          /* File modified but not saved. */
 	char *filename;     /* Currently open filename */
-	char statusmsg[80];
+	char statusmsg[160];
 	time_t statusmsg_time;
 	struct editorSyntax *syntax;    /* Current syntax highlight, or NULL. */
 	int cx_prefix;      /* Set to 1 when C-x was pressed, waiting for next key. */
@@ -171,6 +171,7 @@ struct editorConfig {
 	int mark_set;       /* Is mark set for region selection? */
 	int mark_row;       /* Mark row position */
 	int mark_col;       /* Mark column position */
+	int show_help;      /* If 1, display help screen instead of file content. */
 };
 
 /* Append buffer for efficient screen rendering */
@@ -246,6 +247,10 @@ void editorInsertNewline(void);
 void editorDelChar(void);
 void editorDelForwardChar(void);
 void editorKillLine(void);
+
+/* help.c */
+void editorToggleHelp(void);
+void editorDrawHelp(struct abuf *ab, int nrows);
 
 /* display.c */
 void abAppend(struct abuf *ab, const char *s, int len);
