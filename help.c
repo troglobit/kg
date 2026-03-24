@@ -14,7 +14,7 @@ static const char *help_lines[] = {
 	" C-v/M-v   pgdn/pgup   C-y       yank        C-_      undo    C-x C-b  buf list",
 	" M-f/M-b   word fw/bk  C-w       kill region C-l      redraw  C-x C-r  open r/o",
 	" C-up/dn   paragraph  M-w       copy region          C-x C-q toggle r/o",
-	" C-HOME    beg file    M-w       copy region C-h      help",
+	" C-HOME    beg file    M-w       copy region C-h      help    C-z  suspend",
 	" C-END     end file    C-SPC     set mark    M-g      goto line",
 	"",
 	" WINDOWS",

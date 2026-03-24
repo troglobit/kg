@@ -196,6 +196,9 @@ void editorProcessKeypress(int fd)
 	case CTRL_H:        /* Help */
 		editorToggleHelp();
 		break;
+	case CTRL_Z:        /* Suspend to shell */
+		editorSuspend();
+		break;
 	case BACKSPACE:     /* Backspace */
 		editorDelChar();
 		break;

@@ -99,6 +99,7 @@ enum KEY_ACTION {
 	CTRL_W = 23,        /* Ctrl-w */
 	CTRL_X = 24,        /* Ctrl-x */
 	CTRL_Y = 25,        /* Ctrl-y */
+	CTRL_Z = 26,        /* Ctrl-z */
 	ESC = 27,           /* Escape */
 	CTRL_UNDERSCORE = 31, /* Ctrl-_ or Ctrl-/ (undo) */
 	BACKSPACE =  127,   /* Backspace */
@@ -356,6 +357,7 @@ void editorSelectSyntaxHighlight(char *filename);
 void disableRawMode(int fd);
 void editorAtExit(void);
 int enableRawMode(int fd);
+void editorSuspend(void);
 int editorReadKey(int fd);
 int getCursorPosition(int ifd, int ofd, int *rows, int *cols);
 int getWindowSize(int ifd, int ofd, int *rows, int *cols);

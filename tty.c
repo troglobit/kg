@@ -240,3 +240,16 @@ void handleSigWinCh(int unused __attribute__((unused)))
 	updateWindowSize(); /* calls winReflow() which clamps cursors */
 	editorRefreshScreen();
 }
+
+/* Suspend the editor (C-z): restore terminal, stop the process, then
+ * re-enable raw mode and redraw when resumed with fg. */
+void editorSuspend(void)
+{
+	disableRawMode(STDIN_FILENO);
+	write(STDOUT_FILENO, "\x1b[2J\x1b[H", 7); /* clear screen, cursor home */
+	raise(SIGTSTP);
+	/* Execution resumes here when the shell sends SIGCONT (fg). */
+	enableRawMode(STDIN_FILENO);
+	updateWindowSize();
+	editorRefreshScreen();
+}
