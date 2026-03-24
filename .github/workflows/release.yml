@@ -35,7 +35,7 @@ jobs:
           git archive --format=tar.gz --prefix=${name}/ HEAD -o artifacts/${name}.tar.gz
       - name: Build .deb package
         run: |
-          sudo apt-get install -y debhelper
+          sudo apt-get install -y debhelper build-essential
           make deb
           mv ../kg_*.deb artifacts/
       - name: Extract release notes
