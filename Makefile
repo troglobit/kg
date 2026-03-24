@@ -33,6 +33,9 @@ clean:
 
 distclean: clean
 	rm -f $(TARGET)
+	find . -name '*~' -o -name '*.orig' -o -name '*.rej' \
+	       -o -name '*.bak' -o -name '*.swp' -o -name '.*.swp' | xargs rm -f
+	rm -f core DEADJOE
 
 deb:
 	dpkg-buildpackage -b -us -uc
