@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    name: ${{ matrix.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [gcc, clang]
+      fail-fast: false
+    env:
+      CC: ${{ matrix.compiler }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build
+        run: make
+      - name: Install to ~/tmp and inspect
+        run: |
+          DESTDIR=~/tmp make install
+          ls -la ~/tmp/usr/local/bin/kg
+          ls -la ~/tmp/usr/local/share/man/man1/kg.1
+          ~/tmp/usr/local/bin/kg --version 2>/dev/null || true
