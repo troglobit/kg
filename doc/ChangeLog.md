@@ -1,11 +1,8 @@
-Change Log
-==========
+# Change Log
 
 All relevant changes to the project are documented in this file.
 
-
-[v1.0.0-beta1][] - 2026-03-24
-------------------------------
+## [v1.0.0][] - 2026-03-xx
 
 First release of kg, a small terminal text editor with Emacs key
 bindings, based on [kilo][] by Salvatore Sanfilippo.
@@ -32,7 +29,8 @@ bindings, based on [kilo][] by Salvatore Sanfilippo.
   sequences, useful over serial console connections where resize events
   are not delivered
 - Built-in key binding reference toggled with C-h
-- Man page (kg.1) and `make install` / `make uninstall` support
+- Man page ([kg.1][]) and `make install` / `make uninstall` support
 
-[v1.0.0-beta1]: https://github.com/troglobit/kg/releases/tag/v1.0.0-beta1
-[kilo]:         https://github.com/antirez/kilo
+[UNRELEASED]: https://github.com/troglobit/kg/compare/1.0.0...HEAD
+[kg.1]:       https://man.troglobit.com/man1/kg.1.html
+[kilo]:       https://github.com/antirez/kilo
