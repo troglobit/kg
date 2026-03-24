@@ -272,7 +272,7 @@ void editorProcessKeypress(int fd)
 		break;
 	case CTRL_L:
 		probeWindowSize();
-		write(STDOUT_FILENO, "\x1b[2J", 4);
+		tty_write("\x1b[2J", 4);
 		editorRefreshScreen();
 		break;
 	case ESC:

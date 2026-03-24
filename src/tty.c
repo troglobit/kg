@@ -17,8 +17,8 @@ void disableRawMode(int fd)
 void editorAtExit(void)
 {
 	/* Clear screen and reset cursor position before exiting. */
-	write(STDOUT_FILENO, "\x1b[2J", 4);  /* Clear entire screen */
-	write(STDOUT_FILENO, "\x1b[H", 3);   /* Move cursor to top-left */
+	tty_write("\x1b[2J", 4);  /* Clear entire screen */
+	tty_write("\x1b[H", 3);   /* Move cursor to top-left */
 
 	disableRawMode(STDIN_FILENO);
 }
@@ -238,7 +238,7 @@ void probeWindowSize(void)
 
 restore:
 	snprintf(seq, sizeof(seq), "\x1b[%d;%dH", orig_row, orig_col);
-	write(STDOUT_FILENO, seq, strlen(seq));
+	tty_write(seq, strlen(seq));
 }
 
 void updateWindowSize(void)
@@ -284,7 +284,7 @@ void handleSigWinCh(int unused __attribute__((unused)))
 void editorSuspend(void)
 {
 	disableRawMode(STDIN_FILENO);
-	write(STDOUT_FILENO, "\x1b[2J\x1b[H", 7); /* clear screen, cursor home */
+	tty_write("\x1b[2J\x1b[H", 7); /* clear screen, cursor home */
 	raise(SIGTSTP);
 	/* Execution resumes here when the shell sends SIGCONT (fg). */
 	enableRawMode(STDIN_FILENO);

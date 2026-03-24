@@ -58,6 +58,13 @@
 #include <fcntl.h>
 #include <signal.h>
 
+/* Write escape sequences to stdout; silently discard errors (best-effort). */
+static inline void tty_write(const void *buf, size_t n)
+{
+	ssize_t r = write(STDOUT_FILENO, buf, n);
+	(void)r;
+}
+
 /* Syntax highlight types */
 #define HL_NORMAL 0
 #define HL_NONPRINT 1

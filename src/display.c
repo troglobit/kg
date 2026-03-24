@@ -192,7 +192,7 @@ void editorRefreshScreen(void)
 		abAppend(&ab, "\x1b[0K", 4);
 		abAppend(&ab, "\x1b[H", 3);
 		abAppend(&ab, "\x1b[?25h", 6);
-		write(STDOUT_FILENO, ab.b, ab.len);
+		tty_write(ab.b, ab.len);
 		abFree(&ab);
 		return;
 	}
@@ -279,7 +279,7 @@ void editorRefreshScreen(void)
 	}
 
 	abAppend(&ab, "\x1b[?25h", 6); /* Show cursor. */
-	write(STDOUT_FILENO, ab.b, ab.len);
+	tty_write(ab.b, ab.len);
 	abFree(&ab);
 }
 
