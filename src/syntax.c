@@ -894,12 +894,57 @@ void editor_update_syntax(erow *row)
 			continue;
 		}
 
+		/* Handle non-base-10 integer numbers */
+		if (prev_sep && *p == '0') {
+			row->hl[i] = HL_NUMBER;
+			p++; i++;
+			prev_sep = 0;
+
+			switch (*p) {
+			case 'b':
+			case 'B':
+				do {
+					row->hl[i] = HL_NUMBER;
+					p++; i++;
+				} while (*p && (*p == '0' || *p == '1'));
+				break;
+			case 'o':
+			case 'O':
+				do {
+					row->hl[i] = HL_NUMBER;
+					p++; i++;
+				} while (*p && (*p >= '0' && *p <= '7'));
+				break;
+			case 'x':
+			case 'X':
+				do {
+					row->hl[i] = HL_NUMBER;
+					p++; i++;
+				} while (*p && ((*p >= '0' && *p <= '9') ||
+						(*p >= 'a' && *p <= 'f') ||
+						(*p >= 'A' && *p <= 'F')));
+				break;
+			}
+			continue;
+		}
+
 		/* Handle numbers */
 		if ((isdigit(*p) && (prev_sep || row->hl[i-1] == HL_NUMBER)) ||
 		    (*p == '.' && i > 0 && row->hl[i-1] == HL_NUMBER)) {
 			row->hl[i] = HL_NUMBER;
 			p++; i++;
 			prev_sep = 0;
+
+			switch (*p) {
+			case 'b':
+			case 'B':
+			case 'o':
+			case 'O':
+			case 'x':
+			case 'X':
+				row->hl[i] = HL_NUMBER;
+				p++; i++;
+			}
 			continue;
 		}
 
