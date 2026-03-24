@@ -519,6 +519,9 @@ char *SVELTE_HL_keywords[] = {
 	"<script>", "</script>", "<style>", "</style>",
 	NULL};
 
+/* Makefile */
+char *MAKE_HL_extensions[] = {"Makefile", "makefile", "GNUmakefile", ".mk", ".mak", NULL};
+
 /* Markdown */
 char *MD_HL_extensions[] = {".md", ".markdown", ".mkd", NULL};
 char *MD_HL_keywords[]   = {NULL};
@@ -544,6 +547,7 @@ struct editorSyntax HLDB[] = {
 	{ "Vue",        VUE_HL_extensions,     VUE_HL_keywords,     "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
 	{ "Angular",    ANGULAR_HL_extensions, ANGULAR_HL_keywords, "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
 	{ "Svelte",     SVELTE_HL_extensions,  SVELTE_HL_keywords,  "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Makefile",   MAKE_HL_extensions,    NULL,                "","","",       SHL_MAKEFILE },
 	{ "Markdown",   MD_HL_extensions,      MD_HL_keywords,      "","","",       SHL_MARKDOWN },
 };
 
@@ -662,6 +666,131 @@ done:
 	row->hl_oc = oc;
 }
 
+/* Highlight variable references $(...), ${...}, and single-char $X.
+ * Scans render buffer from position *ip to end, marking HL_STRING.
+ * Also stops at '#' and marks the rest as HL_COMMENT.
+ */
+static void makeVarAndComment(erow *row, int start)
+{
+	char *p = row->render;
+	int len = row->rsize;
+	int i, j;
+	char close;
+
+	for (i = start; i < len; i++) {
+		if (p[i] == '#') {
+			memset(row->hl+i, HL_COMMENT, len-i);
+			return;
+		}
+		if (p[i] == '$') {
+			row->hl[i] = HL_STRING;
+			if (i+1 >= len) continue;
+			i++;
+			if (p[i] == '(' || p[i] == '{') {
+				close = (p[i] == '(') ? ')' : '}';
+				for (j = i; j < len && p[j] != close; j++)
+					row->hl[j] = HL_STRING;
+				if (j < len) row->hl[j] = HL_STRING;
+				i = (j < len) ? j : j-1;
+			} else {
+				row->hl[i] = HL_STRING; /* $@, $<, $^, etc. */
+			}
+		}
+	}
+}
+
+/* Makefile syntax highlighter.
+ * Highlights:
+ *   - Recipe lines (tab-indented): variable refs and trailing comments
+ *   - Directives (include, ifdef, define, ...): HL_KEYWORD1
+ *   - Rule targets (before ':'): HL_KEYWORD1
+ *   - Assignment LHS (before =, :=, +=, ?=, !=): HL_KEYWORD2
+ *   - Assignment operator: HL_KEYWORD1
+ *   - Variable references $(VAR), ${VAR}, $@, $<, ...: HL_STRING
+ *   - Comments (#): HL_COMMENT
+ */
+static void makefileSyntax(erow *row)
+{
+	static const char *directives[] = {
+		"include", "-include", "sinclude",
+		"define", "endef",
+		"ifdef", "ifndef", "ifeq", "ifneq", "else", "endif",
+		"override", "export", "unexport", "vpath",
+		NULL
+	};
+	char *p = row->render;
+	int len = row->rsize;
+	int i, j, d, dlen, colon, eq, tend, name_end, op_start, op_len;
+
+	/* Recipe line: starts with a hard tab */
+	if (len > 0 && p[0] == '\t') {
+		makeVarAndComment(row, 0);
+		return;
+	}
+
+	/* Skip leading spaces */
+	i = 0;
+	while (i < len && p[i] == ' ') i++;
+	if (i >= len) return;
+
+	/* Comment line */
+	if (p[i] == '#') {
+		memset(row->hl+i, HL_COMMENT, len-i);
+		return;
+	}
+
+	/* Directives at the start of a non-recipe line */
+	for (d = 0; directives[d]; d++) {
+		dlen = strlen(directives[d]);
+		if (!strncmp(p+i, directives[d], dlen) &&
+		    (i+dlen >= len || isspace((unsigned char)p[i+dlen]))) {
+			memset(row->hl+i, HL_KEYWORD1, dlen);
+			makeVarAndComment(row, i+dlen);
+			return;
+		}
+	}
+
+	/* Scan ahead for ':' (rule) or '=' (assignment) */
+	colon = -1;
+	eq    = -1;
+	for (j = i; j < len; j++) {
+		if (p[j] == '#') break;
+		if (p[j] == ':' && (j+1 >= len || p[j+1] != '=')) { colon = j; break; }
+		if (p[j] == '=') {
+			eq = j;
+			/* Back up over compound operators := ?= += != */
+			if (j > i && (p[j-1]==':' || p[j-1]=='?' ||
+			              p[j-1]=='+' || p[j-1]=='!'))
+				eq = j-1;
+			break;
+		}
+	}
+
+	if (colon > i) {
+		/* Rule: highlight target (before ':') as KEYWORD1 */
+		tend = colon;
+		while (tend > i && p[tend-1] == ' ') tend--;
+		if (tend > i) memset(row->hl+i, HL_KEYWORD1, tend-i);
+		makeVarAndComment(row, colon+1);
+		return;
+	}
+
+	if (eq >= i) {
+		/* Assignment: variable name as KEYWORD2, operator as KEYWORD1 */
+		name_end = eq;
+		while (name_end > i && p[name_end-1] == ' ') name_end--;
+		if (name_end > i) memset(row->hl+i, HL_KEYWORD2, name_end-i);
+		op_start = eq;
+		op_len   = (p[op_start] == '=') ? 1 : 2;
+		memset(row->hl+op_start, HL_KEYWORD1, op_len);
+		makeVarAndComment(row, op_start+op_len);
+		return;
+	}
+
+	/* Fallback: highlight variable refs and comments */
+	makeVarAndComment(row, i);
+}
+
 /* Set every byte of row->hl (that corresponds to every character in the line)
  * to the right syntax highlight type (HL_* defines). */
 void editorUpdateSyntax(erow *row)
@@ -682,6 +811,11 @@ void editorUpdateSyntax(erow *row)
 		return;
 	}
 
+	if (E.syntax->flags & SHL_MAKEFILE) {
+		makefileSyntax(row);
+		return;
+	}
+
 	char **keywords = E.syntax->keywords;
 	char *mcs = E.syntax->multiline_comment_start;
 	char *mce = E.syntax->multiline_comment_end;
@@ -699,8 +833,9 @@ void editorUpdateSyntax(erow *row)
 		in_comment = 1;
 
 	while (*p) {
-		/* Handle // comments. */
-		if (prev_sep && *p == scs[0] && *(p+1) == scs[1]) {
+		/* Handle single-line comments (1- or 2-char starter). */
+		if (scs[0] && prev_sep && *p == scs[0] &&
+		    (!scs[1] || *(p+1) == scs[1])) {
 			/* From here to end is a comment */
 			memset(row->hl+i, HL_COMMENT, row->size-i);
 			return;
