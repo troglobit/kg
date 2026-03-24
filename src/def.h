@@ -283,7 +283,7 @@ extern int win_total_cols;  /* terminal cols (set by updateWindowSize) */
 /* bufmgr.c */
 void bufSaveCurrentState(void);
 int  editorReadLine(int fd, const char *prompt, char *buf, int bufsize);
-void bufLoadArgs(int nfiles, char **filenames);
+void bufLoadArgs(int nfiles, char **filenames, int readonly);
 void bufSelectInteractive(int fd);
 void bufOpenFile(int fd);
 void bufOpenFileReadOnly(int fd);

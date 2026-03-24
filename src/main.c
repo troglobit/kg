@@ -63,10 +63,38 @@ void initEditor(void)
 	signal(SIGWINCH, handleSigWinCh);
 }
 
+static int usage(FILE *fp, int rc)
+{
+	fprintf(fp, "Usage: kg [-RVh] [file ...]\n"
+	            "\n"
+	            "Options:\n"
+	            "  -R  Open file(s) read-only\n"
+	            "  -V  Print version and exit\n"
+	            "  -h  Print this help and exit\n");
+	return rc;
+}
+
 int main(int argc, char **argv)
 {
+	int opt, readonly = 0;
+
+	while ((opt = getopt(argc, argv, "RVh")) != -1) {
+		switch (opt) {
+		case 'R':
+			readonly = 1;
+			break;
+		case 'V':
+			printf("kg %s\n", KG_VERSION);
+			return 0;
+		case 'h':
+			return usage(stdout, 0);
+		default:
+			return usage(stderr, 1);
+		}
+	}
+
 	initEditor();
-	bufLoadArgs(argc-1, argv+1);
+	bufLoadArgs(argc - optind, argv + optind, readonly);
 	enableRawMode(STDIN_FILENO);
 	editorSetStatusMessage(
 		"HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line | C-h = help");

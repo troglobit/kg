@@ -6,7 +6,17 @@
 .Nd a small text editor with Emacs keybindings
 .Sh SYNOPSIS
 .Nm
-.Op Ar
+.Op Fl RVh
+.Op Ar file ...
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl R
+Open all files given on the command line in read-only mode.
+.It Fl V
+Print version and exit.
+.It Fl h
+Print a short usage message and exit.
+.El
 .Sh DESCRIPTION
 .Nm
 is a minimal terminal text editor with Emacs-style keybindings.

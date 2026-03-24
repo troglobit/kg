@@ -28,7 +28,7 @@ jobs:
           DESTDIR=~/tmp make install
           ls -la ~/tmp/usr/local/bin/kg
           ls -la ~/tmp/usr/local/share/man/man1/kg.1
-          ~/tmp/usr/local/bin/kg --version 2>/dev/null || true
+          ~/tmp/usr/local/bin/kg -V
       - name: Build .deb package
         if: runner.os == 'Linux'
         run: |

@@ -125,7 +125,7 @@ int editorReadLine(int fd, const char *prompt, char *buf, int bufsize)
 /* Load all command-line files into the buffer list, then start in buffer 0.
  * Called once from main() after initEditor().
  * Arguments of the form +LINE or +LINE:COL position the next file. */
-void bufLoadArgs(int nfiles, char **filenames)
+void bufLoadArgs(int nfiles, char **filenames, int readonly)
 {
 	int i, slot = 0;
 	int pending_line = 0, pending_col = 1;
@@ -154,6 +154,7 @@ void bufLoadArgs(int nfiles, char **filenames)
 			continue;
 		}
 		bufResetE();
+		E.readonly = readonly;
 		editorSelectSyntaxHighlight(filenames[i]);
 		editorOpen(filenames[i]);
 		if (pending_line > 0) {
