@@ -528,7 +528,7 @@ char *MD_HL_keywords[]   = {NULL};
 
 /* Here we define an array of syntax highlights by extensions, keywords,
  * comments delimiters and flags. */
-struct editorSyntax HLDB[] = {
+struct editor_syntax HLDB[] = {
 	{ "C",          C_HL_extensions,       C_HL_keywords,       "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
 	{ "Python",     PYTHON_HL_extensions,  PYTHON_HL_keywords,  "#","","",      HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
 	{ "Shell",      SHELL_HL_extensions,   SHELL_HL_keywords,   "#","","",      HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
@@ -557,7 +557,7 @@ struct editorSyntax HLDB[] = {
 
 /* Return 1 if every character in p is '=' or every character is '-' (and
  * len > 0).  Used to detect setext heading underlines. */
-static int isSetextLine(const char *p, int len)
+static int is_setext_line(const char *p, int len)
 {
 	int all_eq = 1, all_dash = 1, i;
 
@@ -578,7 +578,7 @@ int is_separator(int c)
 /* Return true if the specified row last char is part of a multi line comment
  * that starts at this row or at one before, and does not end at the end
  * of the row but spawns to the next row. */
-int editorRowHasOpenComment(erow *row)
+int editor_row_has_open_comment(erow *row)
 {
 	if (row->hl && row->rsize && row->hl[row->rsize-1] == HL_MLCOMMENT &&
 	    (row->rsize < 2 || (row->render[row->rsize-2] != '*' ||
@@ -588,11 +588,11 @@ int editorRowHasOpenComment(erow *row)
 
 /* Markdown syntax highlighter.  Uses hl_oc to track fenced code block state
  * across rows (1 = inside a fenced block). */
-static void markdownSyntax(erow *row)
+static void markdown_syntax(erow *row)
 {
 	char *p = row->render;
 	int len = row->rsize, i, j, oc;
-	int in_block = (row->idx > 0 && E.row[row->idx-1].hl_oc);
+	int in_block = (row->idx > 0 && editor.row[row->idx-1].hl_oc);
 
 	/* Fenced code block fence line (```). */
 	if (len >= 3 && p[0] == '`' && p[1] == '`' && p[2] == '`') {
@@ -612,16 +612,16 @@ static void markdownSyntax(erow *row)
 
 	/* Setext heading underline (===== or -----).
 	 * Re-trigger the row above so it gets heading colour too. */
-	if (isSetextLine(p, len)) {
+	if (is_setext_line(p, len)) {
 		memset(row->hl, HL_KEYWORD1, len);
 		if (row->idx > 0)
-			editorUpdateSyntax(&E.row[row->idx-1]);
+			editor_update_syntax(&editor.row[row->idx-1]);
 		goto done;
 	}
 
 	/* Setext heading text: next row is the underline. */
-	if (len > 0 && row->idx+1 < E.numrows &&
-	    isSetextLine(E.row[row->idx+1].render, E.row[row->idx+1].rsize)) {
+	if (len > 0 && row->idx+1 < editor.numrows &&
+	    is_setext_line(editor.row[row->idx+1].render, editor.row[row->idx+1].rsize)) {
 		memset(row->hl, HL_KEYWORD1, len);
 		goto done;
 	}
@@ -661,8 +661,8 @@ static void markdownSyntax(erow *row)
 	}
 
 done:
-	if (row->hl_oc != oc && row->idx+1 < E.numrows)
-		editorUpdateSyntax(&E.row[row->idx+1]);
+	if (row->hl_oc != oc && row->idx+1 < editor.numrows)
+		editor_update_syntax(&editor.row[row->idx+1]);
 	row->hl_oc = oc;
 }
 
@@ -670,7 +670,7 @@ done:
  * Scans render buffer from position *ip to end, marking HL_STRING.
  * Also stops at '#' and marks the rest as HL_COMMENT.
  */
-static void makeVarAndComment(erow *row, int start)
+static void make_var_and_comment(erow *row, int start)
 {
 	char *p = row->render;
 	int len = row->rsize;
@@ -709,7 +709,7 @@ static void makeVarAndComment(erow *row, int start)
  *   - Variable references $(VAR), ${VAR}, $@, $<, ...: HL_STRING
  *   - Comments (#): HL_COMMENT
  */
-static void makefileSyntax(erow *row)
+static void makefile_syntax(erow *row)
 {
 	static const char *directives[] = {
 		"include", "-include", "sinclude",
@@ -724,7 +724,7 @@ static void makefileSyntax(erow *row)
 
 	/* Recipe line: starts with a hard tab */
 	if (len > 0 && p[0] == '\t') {
-		makeVarAndComment(row, 0);
+		make_var_and_comment(row, 0);
 		return;
 	}
 
@@ -745,7 +745,7 @@ static void makefileSyntax(erow *row)
 		if (!strncmp(p+i, directives[d], dlen) &&
 		    (i+dlen >= len || isspace((unsigned char)p[i+dlen]))) {
 			memset(row->hl+i, HL_KEYWORD1, dlen);
-			makeVarAndComment(row, i+dlen);
+			make_var_and_comment(row, i+dlen);
 			return;
 		}
 	}
@@ -771,7 +771,7 @@ static void makefileSyntax(erow *row)
 		tend = colon;
 		while (tend > i && p[tend-1] == ' ') tend--;
 		if (tend > i) memset(row->hl+i, HL_KEYWORD1, tend-i);
-		makeVarAndComment(row, colon+1);
+		make_var_and_comment(row, colon+1);
 		return;
 	}
 
@@ -783,17 +783,17 @@ static void makefileSyntax(erow *row)
 		op_start = eq;
 		op_len   = (p[op_start] == '=') ? 1 : 2;
 		memset(row->hl+op_start, HL_KEYWORD1, op_len);
-		makeVarAndComment(row, op_start+op_len);
+		make_var_and_comment(row, op_start+op_len);
 		return;
 	}
 
 	/* Fallback: highlight variable refs and comments */
-	makeVarAndComment(row, i);
+	make_var_and_comment(row, i);
 }
 
 /* Set every byte of row->hl (that corresponds to every character in the line)
  * to the right syntax highlight type (HL_* defines). */
-void editorUpdateSyntax(erow *row)
+void editor_update_syntax(erow *row)
 {
 	int in_string = 0; /* Are we inside "" or '' ? */
 	int in_comment = 0; /* Are we inside multi-line comment? */
@@ -804,22 +804,22 @@ void editorUpdateSyntax(erow *row)
 	row->hl = realloc(row->hl, row->rsize);
 	memset(row->hl, HL_NORMAL, row->rsize);
 
-	if (E.syntax == NULL) return; /* No syntax, everything is HL_NORMAL. */
+	if (editor.syntax == NULL) return; /* No syntax, everything is HL_NORMAL. */
 
-	if (E.syntax->flags & SHL_MARKDOWN) {
-		markdownSyntax(row);
+	if (editor.syntax->flags & SHL_MARKDOWN) {
+		markdown_syntax(row);
 		return;
 	}
 
-	if (E.syntax->flags & SHL_MAKEFILE) {
-		makefileSyntax(row);
+	if (editor.syntax->flags & SHL_MAKEFILE) {
+		makefile_syntax(row);
 		return;
 	}
 
-	char **keywords = E.syntax->keywords;
-	char *mcs = E.syntax->multiline_comment_start;
-	char *mce = E.syntax->multiline_comment_end;
-	char *scs = E.syntax->singleline_comment_start;
+	char **keywords = editor.syntax->keywords;
+	char *mcs = editor.syntax->multiline_comment_start;
+	char *mce = editor.syntax->multiline_comment_end;
+	char *scs = editor.syntax->singleline_comment_start;
 
 	/* Point to the first non-space char. */
 	while (*p && isspace(*p)) {
@@ -829,7 +829,7 @@ void editorUpdateSyntax(erow *row)
 
 	/* If the previous line has an open comment, this line starts
 	 * with an open comment state. */
-	if (row->idx > 0 && editorRowHasOpenComment(&E.row[row->idx-1]))
+	if (row->idx > 0 && editor_row_has_open_comment(&editor.row[row->idx-1]))
 		in_comment = 1;
 
 	while (*p) {
@@ -933,14 +933,14 @@ void editorUpdateSyntax(erow *row)
 	/* Propagate syntax change to the next row if the open comment
 	 * state changed. This may recursively affect all the following rows
 	 * in the file. */
-	int oc = editorRowHasOpenComment(row);
-	if (row->hl_oc != oc && row->idx+1 < E.numrows)
-		editorUpdateSyntax(&E.row[row->idx+1]);
+	int oc = editor_row_has_open_comment(row);
+	if (row->hl_oc != oc && row->idx+1 < editor.numrows)
+		editor_update_syntax(&editor.row[row->idx+1]);
 	row->hl_oc = oc;
 }
 
 /* Maps syntax highlight token types to terminal colors. */
-int editorSyntaxToColor(int hl)
+int editor_syntax_to_color(int hl)
 {
 	switch (hl) {
 	case HL_COMMENT:
@@ -958,7 +958,7 @@ int editorSyntaxToColor(int hl)
  * Supports versioned names (python3, python3.11) since shebangs often
  * pin specific versions.
  * Returns a dot-prefixed extension string, or NULL if unknown. */
-static const char *shebanInterpToExt(const char *interp)
+static const char *shebang_interp_to_ext(const char *interp)
 {
 	static const struct { const char *name; const char *ext; } table[] = {
 		{"sh",     ".sh"},
@@ -989,8 +989,8 @@ static const char *shebanInterpToExt(const char *interp)
 }
 
 /* Try to select syntax by reading a hash-bang (#!) on the first line of
- * filename, falling back to extension matching via shebanInterpToExt(). */
-static void selectSyntaxByShebang(const char *filename)
+ * filename, falling back to extension matching via shebang_interp_to_ext(). */
+static void select_syntax_by_shebang(const char *filename)
 {
 	char line[256];
 	char *interp, *slash, *end;
@@ -1031,14 +1031,14 @@ static void selectSyntaxByShebang(const char *filename)
 
 	if (*interp == '\0') return;
 
-	ext = shebanInterpToExt(interp);
+	ext = shebang_interp_to_ext(interp);
 	if (!ext) return;
 
 	for (j = 0; j < HLDB_ENTRIES; j++) {
-		struct editorSyntax *s = HLDB + j;
+		struct editor_syntax *s = HLDB + j;
 		for (i = 0; s->filematch[i]; i++) {
 			if (strcmp(s->filematch[i], ext) == 0) {
-				E.syntax = s;
+				editor.syntax = s;
 				return;
 			}
 		}
@@ -1046,20 +1046,20 @@ static void selectSyntaxByShebang(const char *filename)
 }
 
 /* Select the syntax highlight scheme depending on the filename,
- * setting it in the global state E.syntax. */
-void editorSelectSyntaxHighlight(char *filename)
+ * setting it in the global state editor.syntax. */
+void editor_select_syntax_highlight(char *filename)
 {
 	unsigned int j;
 
 	for (j = 0; j < HLDB_ENTRIES; j++) {
-		struct editorSyntax *s = HLDB + j;
+		struct editor_syntax *s = HLDB + j;
 		unsigned int i = 0;
 		while (s->filematch[i]) {
 			int patlen = strlen(s->filematch[i]);
 			char *p;
 			if ((p = strstr(filename, s->filematch[i])) != NULL) {
 				if (s->filematch[i][0] != '.' || p[patlen] == '\0') {
-					E.syntax = s;
+					editor.syntax = s;
 					return;
 				}
 			}
@@ -1068,5 +1068,5 @@ void editorSelectSyntaxHighlight(char *filename)
 	}
 
 	/* No extension match — try hash-bang on first line of file */
-	selectSyntaxByShebang(filename);
+	select_syntax_by_shebang(filename);
 }

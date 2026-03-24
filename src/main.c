@@ -34,33 +34,33 @@
 
 #include "def.h"
 
-struct editorConfig E;
+struct editor_config editor;
 int running = 1;
 int suppress_undo = 0;
 
-void initEditor(void)
+void init_editor(void)
 {
-	E.cx = 0;
-	E.cy = 0;
-	E.rowoff = 0;
-	E.coloff = 0;
-	E.numrows = 0;
-	E.row = NULL;
-	E.dirty = 0;
-	E.filename = NULL;
-	E.syntax = NULL;
-	E.cx_prefix = 0;
-	E.paste_mode = 0;
-	E.mark_set = 0;
-	E.mark_row = 0;
-	E.mark_col = 0;
-	E.readonly = 0;
-	gettimeofday(&E.last_char_time, NULL);
-	killRingInit();
-	undoInit();
-	updateWindowSize();
-	winInit();
-	signal(SIGWINCH, handleSigWinCh);
+	editor.cx = 0;
+	editor.cy = 0;
+	editor.rowoff = 0;
+	editor.coloff = 0;
+	editor.numrows = 0;
+	editor.row = NULL;
+	editor.dirty = 0;
+	editor.filename = NULL;
+	editor.syntax = NULL;
+	editor.cx_prefix = 0;
+	editor.paste_mode = 0;
+	editor.mark_set = 0;
+	editor.mark_row = 0;
+	editor.mark_col = 0;
+	editor.readonly = 0;
+	gettimeofday(&editor.last_char_time, NULL);
+	kill_ring_init();
+	undo_init();
+	update_window_size();
+	win_init();
+	signal(SIGWINCH, handle_sig_winch);
 }
 
 static int usage(FILE *fp, int rc)
@@ -93,14 +93,14 @@ int main(int argc, char **argv)
 		}
 	}
 
-	initEditor();
-	bufLoadArgs(argc - optind, argv + optind, readonly);
-	enableRawMode(STDIN_FILENO);
-	editorSetStatusMessage(
+	init_editor();
+	buf_load_args(argc - optind, argv + optind, readonly);
+	enable_raw_mode(STDIN_FILENO);
+	editor_set_status_message(
 		"HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line | C-h = help");
 	while (running) {
-		editorRefreshScreen();
-		editorProcessKeypress(STDIN_FILENO);
+		editor_refresh_screen();
+		editor_process_keypress(STDIN_FILENO);
 	}
 	return 0;
 }

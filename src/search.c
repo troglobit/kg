@@ -4,11 +4,11 @@
 
 #define KILO_QUERY_LEN 256
 
-void editorFind(int fd)
+void editor_find(int fd)
 {
 	char query[KILO_QUERY_LEN+1] = {0};
-	int saved_cx = E.cx, saved_cy = E.cy;
-	int saved_coloff = E.coloff, saved_rowoff = E.rowoff;
+	int saved_cx = editor.cx, saved_cy = editor.cy;
+	int saved_coloff = editor.coloff, saved_rowoff = editor.rowoff;
 	int last_match = -1; /* Last line where a match was found. -1 for none. */
 	int saved_hl_line = -1;  /* No saved HL */
 	int find_next = 0; /* if 1 search next, if -1 search prev. */
@@ -17,7 +17,7 @@ void editorFind(int fd)
 
 #define FIND_RESTORE_HL do { \
 	if (saved_hl) { \
-		memcpy(E.row[saved_hl_line].hl, saved_hl, E.row[saved_hl_line].rsize); \
+		memcpy(editor.row[saved_hl_line].hl, saved_hl, editor.row[saved_hl_line].rsize); \
 		free(saved_hl); \
 		saved_hl = NULL; \
 	} \
@@ -26,20 +26,20 @@ void editorFind(int fd)
 	while (1) {
 		int c;
 
-		editorSetStatusMessage("I-search: %s", query);
-		editorRefreshScreen();
+		editor_set_status_message("I-search: %s", query);
+		editor_refresh_screen();
 
-		c = editorReadKey(fd);
+		c = editor_read_key(fd);
 		if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
 			if (qlen != 0) query[--qlen] = '\0';
 			last_match = -1;
 		} else if (c == ESC || c == ENTER || c == CTRL_G) {
 			if (c == ESC) {
-				E.cx = saved_cx; E.cy = saved_cy;
-				E.coloff = saved_coloff; E.rowoff = saved_rowoff;
+				editor.cx = saved_cx; editor.cy = saved_cy;
+				editor.coloff = saved_coloff; editor.rowoff = saved_rowoff;
 			}
 			FIND_RESTORE_HL;
-			editorSetStatusMessage("");
+			editor_set_status_message("");
 			return;
 		} else if (c == ARROW_RIGHT || c == ARROW_DOWN || c == CTRL_S) {
 			find_next = 1;
@@ -61,13 +61,13 @@ void editorFind(int fd)
 			int match_offset = 0;
 			int i;
 
-			for (i = 0; i < E.numrows; i++) {
+			for (i = 0; i < editor.numrows; i++) {
 				current += find_next;
-				if (current == -1) current = E.numrows - 1;
-				else if (current == E.numrows) current = 0;
-				match = strstr(E.row[current].render, query);
+				if (current == -1) current = editor.numrows - 1;
+				else if (current == editor.numrows) current = 0;
+				match = strstr(editor.row[current].render, query);
 				if (match) {
-					match_offset = match - E.row[current].render;
+					match_offset = match - editor.row[current].render;
 					break;
 				}
 			}
@@ -77,7 +77,7 @@ void editorFind(int fd)
 			FIND_RESTORE_HL;
 
 			if (match) {
-				erow *row = &E.row[current];
+				erow *row = &editor.row[current];
 				last_match = current;
 				if (row->hl) {
 					saved_hl_line = current;
@@ -85,15 +85,15 @@ void editorFind(int fd)
 					memcpy(saved_hl, row->hl, row->rsize);
 					memset(row->hl+match_offset, HL_MATCH, qlen);
 				}
-				E.cy = 0;
-				E.cx = match_offset;
-				E.rowoff = current;
-				E.coloff = 0;
+				editor.cy = 0;
+				editor.cx = match_offset;
+				editor.rowoff = current;
+				editor.coloff = 0;
 				/* Scroll horizontally as needed. */
-				if (E.cx > E.screencols) {
-					int diff = E.cx - E.screencols;
-					E.cx -= diff;
-					E.coloff += diff;
+				if (editor.cx > editor.screencols) {
+					int diff = editor.cx - editor.screencols;
+					editor.cx -= diff;
+					editor.coloff += diff;
 				}
 			}
 		}

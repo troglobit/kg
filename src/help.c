@@ -37,12 +37,12 @@ static const char *help_lines[] = {
 	NULL
 };
 
-void editorToggleHelp(void)
+void editor_toggle_help(void)
 {
-	E.show_help = !E.show_help;
+	editor.show_help = !editor.show_help;
 }
 
-void editorDrawHelp(struct abuf *ab, int nrows)
+void editor_draw_help(struct abuf *ab, int nrows)
 {
 	int nhelp = sizeof(help_lines) / sizeof(help_lines[0]) - 1;
 	int i;
@@ -55,12 +55,12 @@ void editorDrawHelp(struct abuf *ab, int nrows)
 			const char *s = help_lines[i];
 			const char *p = s;
 			int cols = 0;
-			while (*p && cols < E.screencols) {
+			while (*p && cols < editor.screencols) {
 				if (((unsigned char)*p & 0xC0) != 0x80) cols++;
 				p++;
 			}
-			abAppend(ab, s, p - s);
+			ab_append(ab, s, p - s);
 		}
-		abAppend(ab, "\x1b[0K\r\n", 6);
+		ab_append(ab, "\x1b[0K\r\n", 6);
 	}
 }

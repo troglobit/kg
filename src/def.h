@@ -138,7 +138,7 @@ enum KEY_ACTION {
 };
 
 /* Syntax highlight definition */
-struct editorSyntax {
+struct editor_syntax {
 	char *name;         /* Display name shown in mode line, e.g. "C", "Python" */
 	char **filematch;
 	char **keywords;
@@ -161,12 +161,12 @@ typedef struct erow {
 } erow;
 
 /* Highlight color */
-typedef struct hlcolor {
+typedef struct hl_color {
 	int r, g, b;
-} hlcolor;
+} hl_color;
 
 /* Editor configuration state */
-struct editorConfig {
+struct editor_config {
 	int cx, cy;         /* Cursor x and y position in characters */
 	int rowoff;         /* Offset of row displayed. */
 	int coloff;         /* Offset of column displayed. */
@@ -179,7 +179,7 @@ struct editorConfig {
 	char *filename;     /* Currently open filename */
 	char statusmsg[160];
 	time_t statusmsg_time;
-	struct editorSyntax *syntax;    /* Current syntax highlight, or NULL. */
+	struct editor_syntax *syntax;    /* Current syntax highlight, or NULL. */
 	int cx_prefix;      /* Set to 1 when C-x was pressed, waiting for next key. */
 	int paste_mode;     /* If 1, we're in paste mode - disable autocomplete */
 	struct timeval last_char_time; /* Time of last character for paste detection */
@@ -197,13 +197,13 @@ struct abuf {
 };
 
 /* Kill ring (yank buffer) for copy/paste operations */
-struct killRing {
+struct kill_ring {
 	char *text;         /* Killed/copied text */
 	int len;            /* Length of text */
 };
 
 /* Undo operation types */
-enum undoType {
+enum undo_type {
 	UNDO_INSERT_CHAR,
 	UNDO_DELETE_CHAR,
 	UNDO_INSERT_LINE,
@@ -216,19 +216,19 @@ enum undoType {
 };
 
 /* Single undo operation */
-struct undoOp {
-	enum undoType type;
+struct undo_op {
+	enum undo_type type;
 	int row;            /* Row where operation occurred */
 	int col;            /* Column where operation occurred */
 	int c;              /* Character (for char operations) */
 	char *text;         /* Line text (for line operations) */
 	int len;            /* Length of text */
-	struct undoOp *next;
+	struct undo_op *next;
 };
 
 /* Undo stack */
-struct undoStack {
-	struct undoOp *head;
+struct undo_stack {
+	struct undo_op *head;
 	int size;
 	int max_size;
 	int clean_size;  /* Stack size at last save (-1 if never saved clean) */
@@ -236,7 +236,7 @@ struct undoStack {
 
 /* Per-window viewport state. */
 #define MAX_WINDOWS 8
-struct editorWindow {
+struct editor_window {
 	int bufidx;         /* Which buffer this window shows */
 	int cx, cy;         /* Cursor position within window */
 	int rowoff, coloff; /* Scroll offsets */
@@ -249,161 +249,161 @@ struct editorWindow {
 
 /* Per-buffer state saved when switching away from a buffer. */
 #define MAX_BUFFERS 20
-struct editorBuffer {
+struct editor_buffer {
 	int cx, cy;
 	int rowoff, coloff;
 	int numrows;
 	erow *row;
 	int dirty;
 	char *filename;
-	struct editorSyntax *syntax;
+	struct editor_syntax *syntax;
 	int mark_set;
 	int mark_row, mark_col;
-	struct undoStack undostack; /* per-buffer undo chain */
+	struct undo_stack undostack; /* per-buffer undo chain */
 	int active;                 /* 1 if this slot is in use */
 	int readonly;               /* 1 if buffer is read-only */
 };
 
 /* Global editor state */
-extern struct editorConfig E;
+extern struct editor_config editor;
 extern int running;
 extern int suppress_undo;
-extern struct killRing killring;
-extern struct undoStack undostack;
-extern struct editorBuffer buflist[MAX_BUFFERS];
+extern struct kill_ring killring;
+extern struct undo_stack undostack;
+extern struct editor_buffer buflist[MAX_BUFFERS];
 extern int buf_current; /* index into buflist[] of the active buffer */
 extern int buf_count;   /* number of active buffers */
 
-extern struct editorWindow winlist[MAX_WINDOWS];
+extern struct editor_window winlist[MAX_WINDOWS];
 extern int win_current;     /* index into winlist[] of the active window */
 extern int win_count;       /* number of active windows */
-extern int win_total_rows;  /* terminal rows (set by updateWindowSize) */
-extern int win_total_cols;  /* terminal cols (set by updateWindowSize) */
+extern int win_total_rows;  /* terminal rows (set by update_window_size) */
+extern int win_total_cols;  /* terminal cols (set by update_window_size) */
 
 /* bufmgr.c */
-void bufSaveCurrentState(void);
-int  editorReadLine(int fd, const char *prompt, char *buf, int bufsize);
-void bufLoadArgs(int nfiles, char **filenames, int readonly);
-void bufSelectInteractive(int fd);
-void bufOpenFile(int fd);
-void bufOpenFileReadOnly(int fd);
-void bufKill(int fd);
-void bufSaveAll(int fd);
-void bufOpenList(void);
-void bufIbufferSelect(void);
+void buf_save_current_state(void);
+int  editor_read_line(int fd, const char *prompt, char *buf, int bufsize);
+void buf_load_args(int nfiles, char **filenames, int readonly);
+void buf_select_interactive(int fd);
+void buf_open_file(int fd);
+void buf_open_file_read_only(int fd);
+void buf_kill(int fd);
+void buf_save_all(int fd);
+void buf_open_list(void);
+void buf_ibuffer_select(void);
 
 /* winmgr.c */
-void winInit(void);
-void winReflow(void);
-void winSaveActiveView(void);
-void winRestoreActiveView(void);
-void winSplitHorizontal(void);
-void winSplitVertical(void);
-void winCycleNext(void);
-void winDeleteCurrent(void);
-void winDeleteOthers(void);
+void win_init(void);
+void win_reflow(void);
+void win_save_active_view(void);
+void win_restore_active_view(void);
+void win_split_horizontal(void);
+void win_split_vertical(void);
+void win_cycle_next(void);
+void win_delete_current(void);
+void win_delete_others(void);
 
 /* autocomplete.c */
-int editorFindCloseChar(int open_char);
-void editorInsertCharAutoComplete(int c);
+int editor_find_close_char(int open_char);
+void editor_insert_char_auto_complete(int c);
 
 /* basic.c */
-void editorMoveCursor(int key);
-void editorMoveToBeginning(void);
-void editorMoveToEnd(void);
-void editorGotoLineDirect(int line, int col);
-void editorGotoLine(int fd);
+void editor_move_cursor(int key);
+void editor_move_to_beginning(void);
+void editor_move_to_end(void);
+void editor_goto_line_direct(int line, int col);
+void editor_goto_line(int fd);
 
 /* buffer.c */
-void editorUpdateRow(erow *row);
-void editorInsertRow(int at, char *s, size_t len);
-void editorFreeRow(erow *row);
-void editorDelRow(int at);
-char *editorRowsToString(erow *rows, int numrows, int *buflen);
-void editorRowInsertChar(erow *row, int at, int c);
-void editorRowAppendString(erow *row, char *s, size_t len);
-void editorRowDelChar(erow *row, int at);
-void editorInsertChar(int c);
-void editorInsertNewlineRaw(void);
-void editorInsertTextRaw(const char *text, int len);
-void editorInsertNewline(void);
-void editorDelChar(void);
-void editorDelForwardChar(void);
-void editorKillLine(void);
+void editor_update_row(erow *row);
+void editor_insert_row(int at, char *s, size_t len);
+void editor_free_row(erow *row);
+void editor_del_row(int at);
+char *editor_rows_to_string(erow *rows, int numrows, int *buflen);
+void editor_row_insert_char(erow *row, int at, int c);
+void editor_row_append_string(erow *row, char *s, size_t len);
+void editor_row_del_char(erow *row, int at);
+void editor_insert_char(int c);
+void editor_insert_newline_raw(void);
+void editor_insert_text_raw(const char *text, int len);
+void editor_insert_newline(void);
+void editor_del_char(void);
+void editor_del_forward_char(void);
+void editor_kill_line(void);
 
 /* Returns 1 if filename belongs to a special/system buffer (NULL or starts with '*'). */
-static inline int isSpecialBuffer(const char *filename)
+static inline int is_special_buffer(const char *filename)
 {
 	return !filename || filename[0] == '*';
 }
 
 /* help.c */
-void editorToggleHelp(void);
-void editorDrawHelp(struct abuf *ab, int nrows);
+void editor_toggle_help(void);
+void editor_draw_help(struct abuf *ab, int nrows);
 
 /* display.c */
-void abAppend(struct abuf *ab, const char *s, int len);
-void abFree(struct abuf *ab);
-void editorRefreshScreen(void);
-void editorSetStatusMessage(const char *fmt, ...);
+void ab_append(struct abuf *ab, const char *s, int len);
+void ab_free(struct abuf *ab);
+void editor_refresh_screen(void);
+void editor_set_status_message(const char *fmt, ...);
 
 /* fileio.c */
-int editorOpen(char *filename);
-int editorSave(int fd);
+int editor_open(char *filename);
+int editor_save(int fd);
 
 /* kbd.c */
-void editorProcessKeypress(int fd);
+void editor_process_keypress(int fd);
 
 /* search.c */
-void editorFind(int fd);
+void editor_find(int fd);
 
 /* syntax.c */
 int is_separator(int c);
-int editorRowHasOpenComment(erow *row);
-void editorUpdateSyntax(erow *row);
-int editorSyntaxToColor(int hl);
-void editorSelectSyntaxHighlight(char *filename);
+int editor_row_has_open_comment(erow *row);
+void editor_update_syntax(erow *row);
+int editor_syntax_to_color(int hl);
+void editor_select_syntax_highlight(char *filename);
 
 /* tty.c */
-void disableRawMode(int fd);
-void editorAtExit(void);
-int enableRawMode(int fd);
-void editorSuspend(void);
-int editorReadKey(int fd);
-int getCursorPosition(int ifd, int ofd, int *rows, int *cols);
-int getWindowSize(int ifd, int ofd, int *rows, int *cols);
-void updateWindowSize(void);
-void probeWindowSize(void);
-void handleSigWinCh(int unused);
+void disable_raw_mode(int fd);
+void editor_at_exit(void);
+int enable_raw_mode(int fd);
+void editor_suspend(void);
+int editor_read_key(int fd);
+int get_cursor_position(int ifd, int ofd, int *rows, int *cols);
+int get_window_size(int ifd, int ofd, int *rows, int *cols);
+void update_window_size(void);
+void probe_window_size(void);
+void handle_sig_winch(int unused);
 
 /* word.c */
-void editorMoveWordForward(void);
-void editorMoveWordBackward(void);
-void editorMoveParagraphForward(void);
-void editorMoveParagraphBackward(void);
-void editorKillWordForward(void);
-void editorKillWordBackward(void);
-void editorReflowParagraph(void);
+void editor_move_word_forward(void);
+void editor_move_word_backward(void);
+void editor_move_paragraph_forward(void);
+void editor_move_paragraph_backward(void);
+void editor_kill_word_forward(void);
+void editor_kill_word_backward(void);
+void editor_reflow_paragraph(void);
 
 /* yank.c */
-void killRingInit(void);
-void killRingFree(void);
-void killRingSet(char *text, int len);
-void killRingAppend(char *text, int len);
-char *killRingGet(void);
-void editorSetMark(void);
-void editorKillRegion(void);
-void editorCopyRegion(void);
-void editorYank(void);
+void kill_ring_init(void);
+void kill_ring_free(void);
+void kill_ring_set(char *text, int len);
+void kill_ring_append(char *text, int len);
+char *kill_ring_get(void);
+void editor_set_mark(void);
+void editor_kill_region(void);
+void editor_copy_region(void);
+void editor_yank(void);
 
 /* undo.c */
-void undoInit(void);
-void undoFree(void);
-void undoPush(enum undoType type, int row, int col, int c, char *text, int len);
-void editorUndo(void);
-void undoMarkClean(void);
+void undo_init(void);
+void undo_free(void);
+void undo_push(enum undo_type type, int row, int col, int c, char *text, int len);
+void editor_undo(void);
+void undo_mark_clean(void);
 
 /* main.c */
-void initEditor(void);
+void init_editor(void);
 
 #endif /* DEF_H */

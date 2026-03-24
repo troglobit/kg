@@ -2,63 +2,63 @@
 
 #include "def.h"
 
-struct editorWindow winlist[MAX_WINDOWS];
+struct editor_window winlist[MAX_WINDOWS];
 int win_current    = 0;
 int win_count      = 0;
 int win_total_rows = 0;
 int win_total_cols = 0;
 
-/* Save the active E cursor/scroll state into the current window slot and
+/* Save the active editor cursor/scroll state into the current window slot and
  * also into its buffer slot so switching buffers later is consistent. */
-void winSaveActiveView(void)
+void win_save_active_view(void)
 {
-	struct editorWindow *w = &winlist[win_current];
+	struct editor_window *w = &winlist[win_current];
 
-	w->cx     = E.cx;
-	w->cy     = E.cy;
-	w->rowoff = E.rowoff;
-	w->coloff = E.coloff;
+	w->cx     = editor.cx;
+	w->cy     = editor.cy;
+	w->rowoff = editor.rowoff;
+	w->coloff = editor.coloff;
 
 	/* Keep buflist in sync so a buffer switch restores correctly. */
 	if (w->bufidx < MAX_BUFFERS && buflist[w->bufidx].active) {
-		buflist[w->bufidx].cx     = E.cx;
-		buflist[w->bufidx].cy     = E.cy;
-		buflist[w->bufidx].rowoff = E.rowoff;
-		buflist[w->bufidx].coloff = E.coloff;
+		buflist[w->bufidx].cx     = editor.cx;
+		buflist[w->bufidx].cy     = editor.cy;
+		buflist[w->bufidx].rowoff = editor.rowoff;
+		buflist[w->bufidx].coloff = editor.coloff;
 	}
 }
 
-/* Load the buffer associated with win_current into live E state and restore
+/* Load the buffer associated with win_current into live editor state and restore
  * the window's cursor/scroll.  Called after win_current changes. */
-static void winActivateWindow(void)
+static void win_activate_window(void)
 {
-	struct editorBuffer *b;
+	struct editor_buffer *b;
 	buf_current = winlist[win_current].bufidx;
 	b = &buflist[buf_current];
-	E.numrows  = b->numrows;
-	E.row      = b->row;
-	E.dirty    = b->dirty;
-	E.filename = b->filename;
-	E.syntax   = b->syntax;
-	E.mark_set = b->mark_set;
-	E.mark_row = b->mark_row;
-	E.mark_col = b->mark_col;
+	editor.numrows  = b->numrows;
+	editor.row      = b->row;
+	editor.dirty    = b->dirty;
+	editor.filename = b->filename;
+	editor.syntax   = b->syntax;
+	editor.mark_set = b->mark_set;
+	editor.mark_row = b->mark_row;
+	editor.mark_col = b->mark_col;
 	undostack  = b->undostack;
-	winRestoreActiveView();
+	win_restore_active_view();
 }
 
-/* Restore the active window's cursor/scroll into E and update E.screenrows/cols
+/* Restore the active window's cursor/scroll into editor and update editor.screenrows/cols
  * to match the window dimensions so all movement code stays correct. */
-void winRestoreActiveView(void)
+void win_restore_active_view(void)
 {
-	struct editorWindow *w = &winlist[win_current];
+	struct editor_window *w = &winlist[win_current];
 
-	E.cx         = w->cx;
-	E.cy         = w->cy;
-	E.rowoff     = w->rowoff;
-	E.coloff     = w->coloff;
-	E.screenrows = w->h;
-	E.screencols = w->w;
+	editor.cx         = w->cx;
+	editor.cy         = w->cy;
+	editor.rowoff     = w->rowoff;
+	editor.coloff     = w->coloff;
+	editor.screenrows = w->h;
+	editor.screencols = w->w;
 }
 
 /* Recompute the layout of all active windows.
@@ -74,7 +74,7 @@ void winRestoreActiveView(void)
  *      Each window band = (text rows) + 1 mode-line row.
  *   4. One global echo-area row is reserved at win_total_rows.
  */
-void winReflow(void)
+void win_reflow(void)
 {
 	int col_groups[MAX_WINDOWS];
 	int num_col_groups = 0;
@@ -131,19 +131,19 @@ void winReflow(void)
 		col_x += cw + 1; /* +1 skips the separator column between groups */
 	}
 
-	E.screenrows = winlist[win_current].h;
-	E.screencols = winlist[win_current].w;
+	editor.screenrows = winlist[win_current].h;
+	editor.screencols = winlist[win_current].w;
 
 	/* Clamp cursor to new bounds. */
-	if (E.cy >= E.screenrows) E.cy = E.screenrows - 1;
-	if (E.cx >= E.screencols) E.cx = E.screencols - 1;
-	if (E.cy < 0)             E.cy = 0;
-	if (E.cx < 0)             E.cx = 0;
+	if (editor.cy >= editor.screenrows) editor.cy = editor.screenrows - 1;
+	if (editor.cx >= editor.screencols) editor.cx = editor.screencols - 1;
+	if (editor.cy < 0)             editor.cy = 0;
+	if (editor.cx < 0)             editor.cx = 0;
 }
 
 /* Initialise the window list with a single window covering the whole screen.
- * Called once from initEditor() after updateWindowSize(). */
-void winInit(void)
+ * Called once from init_editor() after update_window_size(). */
+void win_init(void)
 {
 	memset(winlist, 0, sizeof(winlist));
 	win_current = 0;
@@ -153,23 +153,23 @@ void winInit(void)
 	winlist[0].active    = 1;
 	winlist[0].col_group = 0;
 
-	/* win_total_rows/cols are set by updateWindowSize() before winInit(). */
-	winReflow();
+	/* win_total_rows/cols are set by update_window_size() before win_init(). */
+	win_reflow();
 }
 
 /* Split the current window horizontally (C-x 2): the current window shrinks
  * to the top half; a new window showing the same buffer appears below.
  * The new window stays in the same column group. */
-void winSplitHorizontal(void)
+void win_split_horizontal(void)
 {
 	int i, slot = -1;
 
 	if (win_count >= MAX_WINDOWS) {
-		editorSetStatusMessage("Too many windows (%d max).", MAX_WINDOWS);
+		editor_set_status_message("Too many windows (%d max).", MAX_WINDOWS);
 		return;
 	}
 	if (winlist[win_current].h < 3) {
-		editorSetStatusMessage("Window too small to split.");
+		editor_set_status_message("Window too small to split.");
 		return;
 	}
 
@@ -178,29 +178,29 @@ void winSplitHorizontal(void)
 	}
 	if (slot < 0) return;
 
-	bufSaveCurrentState();
+	buf_save_current_state();
 
 	/* New window inherits the same buffer, cursor state, and col_group. */
 	winlist[slot]        = winlist[win_current];
 	winlist[slot].active = 1;
 
 	win_count++;
-	winReflow();
+	win_reflow();
 }
 
 /* Split the current window vertically (C-x 3): the current window becomes the
  * left half; a new window showing the same buffer appears to the right.
  * The new window is placed in a new column group. */
-void winSplitVertical(void)
+void win_split_vertical(void)
 {
 	int i, slot = -1, max_cg = 0;
 
 	if (win_count >= MAX_WINDOWS) {
-		editorSetStatusMessage("Too many windows (%d max).", MAX_WINDOWS);
+		editor_set_status_message("Too many windows (%d max).", MAX_WINDOWS);
 		return;
 	}
 	if (winlist[win_current].w < 6) {
-		editorSetStatusMessage("Window too small to split.");
+		editor_set_status_message("Window too small to split.");
 		return;
 	}
 
@@ -210,7 +210,7 @@ void winSplitVertical(void)
 	}
 	if (slot < 0) return;
 
-	bufSaveCurrentState();
+	buf_save_current_state();
 
 	/* New window: same buffer/cursor, but a new column group (rightmost). */
 	winlist[slot]           = winlist[win_current];
@@ -218,41 +218,41 @@ void winSplitVertical(void)
 	winlist[slot].col_group = max_cg + 1;
 
 	win_count++;
-	winReflow();
+	win_reflow();
 }
 
 /* Switch focus to the next window (C-x o). */
-void winCycleNext(void)
+void win_cycle_next(void)
 {
 	int i;
 
 	if (win_count <= 1) {
-		editorSetStatusMessage("No other windows.");
+		editor_set_status_message("No other windows.");
 		return;
 	}
 
-	bufSaveCurrentState();
+	buf_save_current_state();
 
 	for (i = 1; i <= MAX_WINDOWS; i++) {
 		int idx = (win_current + i) % MAX_WINDOWS;
 		if (winlist[idx].active) { win_current = idx; break; }
 	}
 
-	winActivateWindow();
-	editorSetStatusMessage("%s", E.filename ? E.filename : "[new]");
+	win_activate_window();
+	editor_set_status_message("%s", editor.filename ? editor.filename : "[new]");
 }
 
 /* Delete the current window (C-x 0). */
-void winDeleteCurrent(void)
+void win_delete_current(void)
 {
 	int i;
 
 	if (win_count <= 1) {
-		editorSetStatusMessage("Only one window.");
+		editor_set_status_message("Only one window.");
 		return;
 	}
 
-	bufSaveCurrentState();
+	buf_save_current_state();
 	winlist[win_current].active = 0;
 	win_count--;
 
@@ -260,12 +260,12 @@ void winDeleteCurrent(void)
 		if (winlist[i].active) { win_current = i; break; }
 	}
 
-	winReflow();
-	winActivateWindow();
+	win_reflow();
+	win_activate_window();
 }
 
 /* Delete all other windows, leaving only the current one (C-x 1). */
-void winDeleteOthers(void)
+void win_delete_others(void)
 {
 	int i;
 
@@ -273,5 +273,5 @@ void winDeleteOthers(void)
 		if (i != win_current) winlist[i].active = 0;
 	}
 	win_count = 1;
-	winReflow();
+	win_reflow();
 }

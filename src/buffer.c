@@ -3,7 +3,7 @@
 #include "def.h"
 
 /* Update the rendered version and the syntax highlight of a row. */
-void editorUpdateRow(erow *row)
+void editor_update_row(erow *row)
 {
 	unsigned long long allocsize;
 	unsigned int tabs = 0, nonprint = 0;
@@ -17,7 +17,7 @@ void editorUpdateRow(erow *row)
 
 	allocsize = (unsigned long long)row->size + tabs*8 + nonprint*9 + 1;
 	if (allocsize > UINT32_MAX) {
-		editorSetStatusMessage("Line too long for editor");
+		editor_set_status_message("Line too long for editor");
 		running = 0;
 		return;
 	}
@@ -36,34 +36,34 @@ void editorUpdateRow(erow *row)
 	row->render[idx] = '\0';
 
 	/* Update the syntax highlighting attributes of the row. */
-	editorUpdateSyntax(row);
+	editor_update_syntax(row);
 }
 
 /* Insert a row at the specified position, shifting the other rows on the bottom
  * if required. */
-void editorInsertRow(int at, char *s, size_t len)
+void editor_insert_row(int at, char *s, size_t len)
 {
-	if (at > E.numrows) return;
-	E.row = realloc(E.row, sizeof(erow) * (E.numrows+1));
-	if (at != E.numrows) {
-		memmove(E.row+at+1, E.row+at, sizeof(E.row[0]) * (E.numrows-at));
-		for (int j = at+1; j <= E.numrows; j++) E.row[j].idx++;
+	if (at > editor.numrows) return;
+	editor.row = realloc(editor.row, sizeof(erow) * (editor.numrows+1));
+	if (at != editor.numrows) {
+		memmove(editor.row+at+1, editor.row+at, sizeof(editor.row[0]) * (editor.numrows-at));
+		for (int j = at+1; j <= editor.numrows; j++) editor.row[j].idx++;
 	}
-	E.row[at].size = len;
-	E.row[at].chars = malloc(len+1);
-	memcpy(E.row[at].chars, s, len+1);
-	E.row[at].hl = NULL;
-	E.row[at].hl_oc = 0;
-	E.row[at].render = NULL;
-	E.row[at].rsize = 0;
-	E.row[at].idx = at;
-	editorUpdateRow(E.row+at);
-	E.numrows++;
-	E.dirty++;
+	editor.row[at].size = len;
+	editor.row[at].chars = malloc(len+1);
+	memcpy(editor.row[at].chars, s, len+1);
+	editor.row[at].hl = NULL;
+	editor.row[at].hl_oc = 0;
+	editor.row[at].render = NULL;
+	editor.row[at].rsize = 0;
+	editor.row[at].idx = at;
+	editor_update_row(editor.row+at);
+	editor.numrows++;
+	editor.dirty++;
 }
 
 /* Free row's heap allocated stuff. */
-void editorFreeRow(erow *row)
+void editor_free_row(erow *row)
 {
 	free(row->render);
 	free(row->chars);
@@ -71,24 +71,24 @@ void editorFreeRow(erow *row)
 }
 
 /* Remove the row at the specified position, shifting the remaining on the top. */
-void editorDelRow(int at)
+void editor_del_row(int at)
 {
 	erow *row;
 
-	if (at >= E.numrows) return;
-	row = E.row+at;
-	editorFreeRow(row);
-	memmove(E.row+at, E.row+at+1, sizeof(E.row[0]) * (E.numrows-at-1));
-	for (int j = at; j < E.numrows-1; j++) E.row[j].idx--;
-	E.numrows--;
-	E.dirty++;
+	if (at >= editor.numrows) return;
+	row = editor.row+at;
+	editor_free_row(row);
+	memmove(editor.row+at, editor.row+at+1, sizeof(editor.row[0]) * (editor.numrows-at-1));
+	for (int j = at; j < editor.numrows-1; j++) editor.row[j].idx--;
+	editor.numrows--;
+	editor.dirty++;
 }
 
 /* Turn the editor rows into a single heap-allocated string.
  * Returns the pointer to the heap-allocated string and populate the
  * integer pointed by 'buflen' with the size of the string, excluding
  * the final nulterm. */
-char *editorRowsToString(erow *rows, int numrows, int *buflen)
+char *editor_rows_to_string(erow *rows, int numrows, int *buflen)
 {
 	char *buf = NULL, *p;
 	int totlen = 0;
@@ -113,7 +113,7 @@ char *editorRowsToString(erow *rows, int numrows, int *buflen)
 
 /* Insert a character at the specified position in a row, moving the remaining
  * chars on the right if needed. */
-void editorRowInsertChar(erow *row, int at, int c)
+void editor_row_insert_char(erow *row, int at, int c)
 {
 	if (at > row->size) {
 		/* Pad the string with spaces if the insert location is outside the
@@ -132,112 +132,112 @@ void editorRowInsertChar(erow *row, int at, int c)
 		row->size++;
 	}
 	row->chars[at] = c;
-	editorUpdateRow(row);
-	E.dirty++;
+	editor_update_row(row);
+	editor.dirty++;
 }
 
 /* Append the string 's' at the end of a row */
-void editorRowAppendString(erow *row, char *s, size_t len)
+void editor_row_append_string(erow *row, char *s, size_t len)
 {
 	row->chars = realloc(row->chars, row->size+len+1);
 	memcpy(row->chars+row->size, s, len);
 	row->size += len;
 	row->chars[row->size] = '\0';
-	editorUpdateRow(row);
-	E.dirty++;
+	editor_update_row(row);
+	editor.dirty++;
 }
 
 /* Delete the character at offset 'at' from the specified row. */
-void editorRowDelChar(erow *row, int at)
+void editor_row_del_char(erow *row, int at)
 {
 	if (row->size <= at) return;
 	memmove(row->chars+at, row->chars+at+1, row->size-at);
-	editorUpdateRow(row);
+	editor_update_row(row);
 	row->size--;
-	E.dirty++;
+	editor.dirty++;
 }
 
 /* Insert the specified char at the current prompt position. */
-void editorInsertChar(int c)
+void editor_insert_char(int c)
 {
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 
 	/* If the row where the cursor is currently located does not exist in our
 	 * logical representation of the file, add enough empty rows as needed. */
 	if (!row) {
-		while (E.numrows <= filerow)
-			editorInsertRow(E.numrows, "", 0);
+		while (editor.numrows <= filerow)
+			editor_insert_row(editor.numrows, "", 0);
 	}
-	row = &E.row[filerow];
+	row = &editor.row[filerow];
 
 	/* Record undo operation */
-	undoPush(UNDO_INSERT_CHAR, filerow, filecol, c, NULL, 0);
+	undo_push(UNDO_INSERT_CHAR, filerow, filecol, c, NULL, 0);
 
-	editorRowInsertChar(row, filecol, c);
-	if (E.cx == E.screencols - 1)
-		E.coloff++;
+	editor_row_insert_char(row, filecol, c);
+	if (editor.cx == editor.screencols - 1)
+		editor.coloff++;
 	else
-		E.cx++;
-	E.dirty++;
+		editor.cx++;
+	editor.dirty++;
 }
 
 /* Split the current line at the cursor without auto-indent.
  * Used by yank and kill-undo to re-insert newlines exactly as copied. */
-void editorInsertNewlineRaw(void)
+void editor_insert_newline_raw(void)
 {
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 	erow *row;
 	int rest_len;
 
-	if (filerow >= E.numrows) {
-		editorInsertRow(filerow, "", 0);
+	if (filerow >= editor.numrows) {
+		editor_insert_row(filerow, "", 0);
 	} else {
-		row = &E.row[filerow];
+		row = &editor.row[filerow];
 		if (filecol > row->size) filecol = row->size;
 		rest_len = row->size - filecol;
-		editorInsertRow(filerow + 1, row->chars + filecol, rest_len);
-		row = &E.row[filerow];
+		editor_insert_row(filerow + 1, row->chars + filecol, rest_len);
+		row = &editor.row[filerow];
 		row->chars[filecol] = '\0';
 		row->size = filecol;
-		editorUpdateRow(row);
+		editor_update_row(row);
 	}
-	if (E.cy == E.screenrows - 1) E.rowoff++;
-	else E.cy++;
-	E.cx = 0;
-	E.coloff = 0;
+	if (editor.cy == editor.screenrows - 1) editor.rowoff++;
+	else editor.cy++;
+	editor.cx = 0;
+	editor.coloff = 0;
 }
 
 /* Insert text character by character without recording undo, using raw
- * newlines (no auto-indent).  Used by editorYank and UNDO_KILL_TEXT. */
-void editorInsertTextRaw(const char *text, int len)
+ * newlines (no auto-indent).  Used by editor_yank and UNDO_KILL_TEXT. */
+void editor_insert_text_raw(const char *text, int len)
 {
 	int i;
 	suppress_undo = 1;
 	for (i = 0; i < len; i++) {
 		if (text[i] == '\n')
-			editorInsertNewlineRaw();
+			editor_insert_newline_raw();
 		else
-			editorInsertChar(text[i]);
+			editor_insert_char(text[i]);
 	}
 	suppress_undo = 0;
 }
 
 /* Inserting a newline is slightly complex as we have to handle inserting a
  * newline in the middle of a line, splitting the line as needed. */
-void editorInsertNewline(void)
+void editor_insert_newline(void)
 {
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
+	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
 	char *new_content;
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 	int rest_len, indent = 0;
 
 	if (!row) {
-		if (filerow == E.numrows) {
-			editorInsertRow(filerow, "", 0);
+		if (filerow == editor.numrows) {
+			editor_insert_row(filerow, "", 0);
 			goto fixcursor;
 		}
 		return;
@@ -246,8 +246,8 @@ void editorInsertNewline(void)
 	 * think it's just over the last character. */
 	if (filecol >= row->size) filecol = row->size;
 	if (filecol == 0) {
-		undoPush(UNDO_INSERT_LINE, filerow, 0, 0, NULL, 0);
-		editorInsertRow(filerow, "", 0);
+		undo_push(UNDO_INSERT_LINE, filerow, 0, 0, NULL, 0);
+		editor_insert_row(filerow, "", 0);
 	} else {
 		/* Compute leading whitespace of the current line for auto-indent. */
 		while (indent < row->size &&
@@ -264,122 +264,122 @@ void editorInsertNewline(void)
 		new_content[indent + rest_len] = '\0';
 
 		/* Record undo: save the original rest without the indent prefix. */
-		undoPush(UNDO_SPLIT_LINE, filerow, filecol, 0, row->chars + filecol, rest_len);
-		editorInsertRow(filerow + 1, new_content, indent + rest_len);
+		undo_push(UNDO_SPLIT_LINE, filerow, filecol, 0, row->chars + filecol, rest_len);
+		editor_insert_row(filerow + 1, new_content, indent + rest_len);
 		free(new_content);
-		row = &E.row[filerow];
+		row = &editor.row[filerow];
 		row->chars[filecol] = '\0';
 		row->size = filecol;
-		editorUpdateRow(row);
+		editor_update_row(row);
 	}
 fixcursor:
-	if (E.cy == E.screenrows - 1) {
-		E.rowoff++;
+	if (editor.cy == editor.screenrows - 1) {
+		editor.rowoff++;
 	} else {
-		E.cy++;
+		editor.cy++;
 	}
-	E.cx = indent;
-	E.coloff = 0;
-	if (E.cx >= E.screencols) {
-		E.coloff = indent - E.screencols + 1;
-		E.cx = E.screencols - 1;
+	editor.cx = indent;
+	editor.coloff = 0;
+	if (editor.cx >= editor.screencols) {
+		editor.coloff = indent - editor.screencols + 1;
+		editor.cx = editor.screencols - 1;
 	}
 }
 
 /* Delete the char at the current prompt position. */
-void editorDelChar(void)
+void editor_del_char(void)
 {
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 
 	if (!row || (filecol == 0 && filerow == 0)) return;
 	if (filecol == 0) {
 		/* Handle the case of column 0, we need to move the current line
 		 * on the right of the previous one. */
 		/* Record undo: save the line that will be joined */
-		undoPush(UNDO_JOIN_LINE, filerow-1, E.row[filerow-1].size, 0, row->chars, row->size);
-		filecol = E.row[filerow-1].size;
-		editorRowAppendString(&E.row[filerow-1], row->chars, row->size);
-		editorDelRow(filerow);
+		undo_push(UNDO_JOIN_LINE, filerow-1, editor.row[filerow-1].size, 0, row->chars, row->size);
+		filecol = editor.row[filerow-1].size;
+		editor_row_append_string(&editor.row[filerow-1], row->chars, row->size);
+		editor_del_row(filerow);
 		row = NULL;
-		if (E.cy == 0)
-			E.rowoff--;
+		if (editor.cy == 0)
+			editor.rowoff--;
 		else
-			E.cy--;
-		E.cx = filecol;
-		if (E.cx >= E.screencols) {
-			int shift = (E.screencols - E.cx) + 1;
-			E.cx -= shift;
-			E.coloff += shift;
+			editor.cy--;
+		editor.cx = filecol;
+		if (editor.cx >= editor.screencols) {
+			int shift = (editor.screencols - editor.cx) + 1;
+			editor.cx -= shift;
+			editor.coloff += shift;
 		}
 	} else {
 		/* Record undo: save the character being deleted */
-		undoPush(UNDO_DELETE_CHAR, filerow, filecol-1, row->chars[filecol-1], NULL, 0);
-		editorRowDelChar(row, filecol-1);
-		if (E.cx == 0 && E.coloff)
-			E.coloff--;
+		undo_push(UNDO_DELETE_CHAR, filerow, filecol-1, row->chars[filecol-1], NULL, 0);
+		editor_row_del_char(row, filecol-1);
+		if (editor.cx == 0 && editor.coloff)
+			editor.coloff--;
 		else
-			E.cx--;
+			editor.cx--;
 	}
-	if (row) editorUpdateRow(row);
-	E.dirty++;
+	if (row) editor_update_row(row);
+	editor.dirty++;
 }
 
 /* Forward-delete the char at the current cursor position (DEL key).
  * At end of line, joins with the next line. */
-void editorDelForwardChar(void)
+void editor_del_forward_char(void)
 {
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 
 	if (!row) return;
 
 	if (filecol == row->size) {
-		if (filerow + 1 >= E.numrows) return;
-		undoPush(UNDO_JOIN_LINE, filerow, filecol, 0,
-			 E.row[filerow+1].chars, E.row[filerow+1].size);
-		editorRowAppendString(row, E.row[filerow+1].chars, E.row[filerow+1].size);
-		editorDelRow(filerow + 1);
+		if (filerow + 1 >= editor.numrows) return;
+		undo_push(UNDO_JOIN_LINE, filerow, filecol, 0,
+			 editor.row[filerow+1].chars, editor.row[filerow+1].size);
+		editor_row_append_string(row, editor.row[filerow+1].chars, editor.row[filerow+1].size);
+		editor_del_row(filerow + 1);
 	} else {
-		undoPush(UNDO_DELETE_CHAR, filerow, filecol, row->chars[filecol], NULL, 0);
-		editorRowDelChar(row, filecol);
+		undo_push(UNDO_DELETE_CHAR, filerow, filecol, row->chars[filecol], NULL, 0);
+		editor_row_del_char(row, filecol);
 	}
-	E.dirty++;
+	editor.dirty++;
 }
 
 /* Kill (delete) from cursor to end of line (C-k). */
-void editorKillLine(void)
+void editor_kill_line(void)
 {
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 
 	if (!row) return;
 
 	if (filecol >= row->size) {
 		/* At end of line, join with next line like C-k in Emacs. */
-		if (filerow+1 < E.numrows) {
+		if (filerow+1 < editor.numrows) {
 			/* Save newline to kill ring */
-			killRingAppend("\n", 1);
+			kill_ring_append("\n", 1);
 			/* Record undo: save the line that will be joined */
-			undoPush(UNDO_KILL_TEXT, filerow, filecol, 0,
-				 E.row[filerow+1].chars, E.row[filerow+1].size);
-			editorRowAppendString(row, E.row[filerow+1].chars, E.row[filerow+1].size);
-			editorDelRow(filerow+1);
+			undo_push(UNDO_KILL_TEXT, filerow, filecol, 0,
+				 editor.row[filerow+1].chars, editor.row[filerow+1].size);
+			editor_row_append_string(row, editor.row[filerow+1].chars, editor.row[filerow+1].size);
+			editor_del_row(filerow+1);
 		}
 	} else {
 		/* Delete from cursor to end of line and save to kill ring. */
 		int kill_len = row->size - filecol;
 		if (kill_len > 0) {
-			killRingAppend(row->chars + filecol, kill_len);
+			kill_ring_append(row->chars + filecol, kill_len);
 			/* Record undo operation */
-			undoPush(UNDO_KILL_TEXT, filerow, filecol, 0, row->chars + filecol, kill_len);
+			undo_push(UNDO_KILL_TEXT, filerow, filecol, 0, row->chars + filecol, kill_len);
 		}
 		row->chars[filecol] = '\0';
 		row->size = filecol;
-		editorUpdateRow(row);
-		E.dirty++;
+		editor_update_row(row);
+		editor.dirty++;
 	}
 }

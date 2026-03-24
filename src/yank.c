@@ -3,17 +3,17 @@
 #include "def.h"
 
 /* Global kill ring */
-struct killRing killring = {NULL, 0};
+struct kill_ring killring = {NULL, 0};
 
 /* Initialize the kill ring */
-void killRingInit(void)
+void kill_ring_init(void)
 {
 	killring.text = NULL;
 	killring.len = 0;
 }
 
 /* Free the kill ring */
-void killRingFree(void)
+void kill_ring_free(void)
 {
 	if (killring.text) {
 		free(killring.text);
@@ -23,11 +23,11 @@ void killRingFree(void)
 }
 
 /* Set the kill ring to new text (replaces existing content) */
-void killRingSet(char *text, int len)
+void kill_ring_set(char *text, int len)
 {
 	if (len <= 0) return;
 
-	killRingFree();
+	kill_ring_free();
 	killring.text = malloc(len + 1);
 	if (!killring.text) return;
 
@@ -37,14 +37,14 @@ void killRingSet(char *text, int len)
 }
 
 /* Append text to the kill ring (for consecutive kills) */
-void killRingAppend(char *text, int len)
+void kill_ring_append(char *text, int len)
 {
 	char *new_text;
 
 	if (len <= 0) return;
 
 	if (!killring.text) {
-		killRingSet(text, len);
+		kill_ring_set(text, len);
 		return;
 	}
 
@@ -58,60 +58,60 @@ void killRingAppend(char *text, int len)
 }
 
 /* Get the kill ring text (returns NULL if empty) */
-char *killRingGet(void)
+char *kill_ring_get(void)
 {
 	return killring.text;
 }
 
 /* Set mark at current cursor position */
-void editorSetMark(void)
+void editor_set_mark(void)
 {
-	E.mark_set = 1;
-	E.mark_row = E.rowoff + E.cy;
-	E.mark_col = E.coloff + E.cx;
-	editorSetStatusMessage("Mark set");
+	editor.mark_set = 1;
+	editor.mark_row = editor.rowoff + editor.cy;
+	editor.mark_col = editor.coloff + editor.cx;
+	editor_set_status_message("Mark set");
 }
 
 /* Get text from region (between mark and point) */
-static char *getRegionText(int *out_len)
+static char *get_region_text(int *out_len)
 {
 	int start_row, start_col, end_row, end_col;
-	int cur_row = E.rowoff + E.cy;
-	int cur_col = E.coloff + E.cx;
+	int cur_row = editor.rowoff + editor.cy;
+	int cur_col = editor.coloff + editor.cx;
 	int total_len = 0;
 	char *text;
 	int pos = 0;
 	int row;
 
-	if (!E.mark_set) return NULL;
+	if (!editor.mark_set) return NULL;
 
 	/* Determine which position comes first */
-	if (E.mark_row < cur_row || (E.mark_row == cur_row && E.mark_col < cur_col)) {
-		start_row = E.mark_row;
-		start_col = E.mark_col;
+	if (editor.mark_row < cur_row || (editor.mark_row == cur_row && editor.mark_col < cur_col)) {
+		start_row = editor.mark_row;
+		start_col = editor.mark_col;
 		end_row = cur_row;
 		end_col = cur_col;
 	} else {
 		start_row = cur_row;
 		start_col = cur_col;
-		end_row = E.mark_row;
-		end_col = E.mark_col;
+		end_row = editor.mark_row;
+		end_col = editor.mark_col;
 	}
 
 	/* Calculate total length needed */
-	for (row = start_row; row <= end_row && row < E.numrows; row++) {
+	for (row = start_row; row <= end_row && row < editor.numrows; row++) {
 		if (row == start_row && row == end_row) {
 			/* Single line region */
 			total_len += end_col - start_col;
 		} else if (row == start_row) {
 			/* First line */
-			total_len += E.row[row].size - start_col + 1; /* +1 for newline */
+			total_len += editor.row[row].size - start_col + 1; /* +1 for newline */
 		} else if (row == end_row) {
 			/* Last line */
 			total_len += end_col;
 		} else {
 			/* Middle lines */
-			total_len += E.row[row].size + 1; /* +1 for newline */
+			total_len += editor.row[row].size + 1; /* +1 for newline */
 		}
 	}
 
@@ -121,17 +121,17 @@ static char *getRegionText(int *out_len)
 	text = malloc(total_len + 1);
 	if (!text) return NULL;
 
-	for (row = start_row; row <= end_row && row < E.numrows; row++) {
+	for (row = start_row; row <= end_row && row < editor.numrows; row++) {
 		int copy_start = (row == start_row) ? start_col : 0;
-		int copy_end = (row == end_row) ? end_col : E.row[row].size;
+		int copy_end = (row == end_row) ? end_col : editor.row[row].size;
 		int copy_len;
 
-		if (copy_end > E.row[row].size) copy_end = E.row[row].size;
-		if (copy_start > E.row[row].size) copy_start = E.row[row].size;
+		if (copy_end > editor.row[row].size) copy_end = editor.row[row].size;
+		if (copy_start > editor.row[row].size) copy_start = editor.row[row].size;
 
 		copy_len = copy_end - copy_start;
 		if (copy_len > 0) {
-			memcpy(text + pos, E.row[row].chars + copy_start, copy_len);
+			memcpy(text + pos, editor.row[row].chars + copy_start, copy_len);
 			pos += copy_len;
 		}
 
@@ -146,100 +146,100 @@ static char *getRegionText(int *out_len)
 }
 
 /* Kill (cut) region - removes text and saves to kill ring */
-void editorKillRegion(void)
+void editor_kill_region(void)
 {
 	int start_row, start_col;
-	int cur_row = E.rowoff + E.cy;
-	int cur_col = E.coloff + E.cx;
+	int cur_row = editor.rowoff + editor.cy;
+	int cur_col = editor.coloff + editor.cx;
 	char *text;
 	int len;
 
-	if (!E.mark_set) {
-		editorSetStatusMessage("No mark set");
+	if (!editor.mark_set) {
+		editor_set_status_message("No mark set");
 		return;
 	}
 
-	text = getRegionText(&len);
+	text = get_region_text(&len);
 	if (!text) {
-		editorSetStatusMessage("Empty region");
+		editor_set_status_message("Empty region");
 		return;
 	}
 
-	killRingSet(text, len);
+	kill_ring_set(text, len);
 
 	/* Delete the region */
-	if (E.mark_row < cur_row || (E.mark_row == cur_row && E.mark_col < cur_col)) {
-		start_row = E.mark_row;
-		start_col = E.mark_col;
+	if (editor.mark_row < cur_row || (editor.mark_row == cur_row && editor.mark_col < cur_col)) {
+		start_row = editor.mark_row;
+		start_col = editor.mark_col;
 	} else {
 		start_row = cur_row;
 		start_col = cur_col;
 	}
 
 	/* Position cursor at start of region */
-	if (start_row < E.rowoff) {
-		E.rowoff = start_row;
-		E.cy = 0;
+	if (start_row < editor.rowoff) {
+		editor.rowoff = start_row;
+		editor.cy = 0;
 	} else {
-		E.cy = start_row - E.rowoff;
+		editor.cy = start_row - editor.rowoff;
 	}
-	E.cx = start_col;
-	E.coloff = 0;
+	editor.cx = start_col;
+	editor.coloff = 0;
 
 	/* Record single undo operation for entire region kill */
-	undoPush(UNDO_KILL_TEXT, start_row, start_col, 0, text, len);
+	undo_push(UNDO_KILL_TEXT, start_row, start_col, 0, text, len);
 
 	/* Delete character by character, but suppress individual undo records */
 	suppress_undo = 1;
 	for (int i = 0; i < len; i++) {
-		editorDelForwardChar();
+		editor_del_forward_char();
 	}
 	suppress_undo = 0;
 
-	E.mark_set = 0;
+	editor.mark_set = 0;
 	free(text);
-	editorSetStatusMessage("Region killed");
+	editor_set_status_message("Region killed");
 }
 
 /* Copy region - saves to kill ring without removing */
-void editorCopyRegion(void)
+void editor_copy_region(void)
 {
 	char *text;
 	int len;
 
-	if (!E.mark_set) {
-		editorSetStatusMessage("No mark set");
+	if (!editor.mark_set) {
+		editor_set_status_message("No mark set");
 		return;
 	}
 
-	text = getRegionText(&len);
+	text = get_region_text(&len);
 	if (!text) {
-		editorSetStatusMessage("Empty region");
+		editor_set_status_message("Empty region");
 		return;
 	}
 
-	killRingSet(text, len);
-	E.mark_set = 0;
+	kill_ring_set(text, len);
+	editor.mark_set = 0;
 	free(text);
-	editorSetStatusMessage("Region copied");
+	editor_set_status_message("Region copied");
 }
 
 /* Yank (paste) from kill ring */
-void editorYank(void)
+void editor_yank(void)
 {
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
-	char *text = killRingGet();
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
+	char *text = kill_ring_get();
 
 	if (!text) {
-		editorSetStatusMessage("Kill ring is empty");
+		editor_set_status_message("Kill ring is empty");
 		return;
 	}
 
 	/* Record single undo operation for entire yank */
-	undoPush(UNDO_YANK_TEXT, filerow, filecol, 0, text, killring.len);
+	undo_push(UNDO_YANK_TEXT, filerow, filecol, 0, text, killring.len);
 
-	editorInsertTextRaw(text, killring.len);
+	editor_insert_text_raw(text, killring.len);
 
-	editorSetStatusMessage("Yanked");
+	editor_set_status_message("Yanked");
 }

@@ -4,33 +4,33 @@
 
 static struct termios orig_termios; /* In order to restore at exit.*/
 
-void disableRawMode(int fd)
+void disable_raw_mode(int fd)
 {
 	/* Don't even check the return value as it's too late. */
-	if (E.rawmode) {
+	if (editor.rawmode) {
 		tcsetattr(fd, TCSAFLUSH, &orig_termios);
-		E.rawmode = 0;
+		editor.rawmode = 0;
 	}
 }
 
 /* Called at exit to avoid remaining in raw mode. */
-void editorAtExit(void)
+void editor_at_exit(void)
 {
 	/* Clear screen and reset cursor position before exiting. */
 	tty_write("\x1b[2J", 4);  /* Clear entire screen */
 	tty_write("\x1b[H", 3);   /* Move cursor to top-left */
 
-	disableRawMode(STDIN_FILENO);
+	disable_raw_mode(STDIN_FILENO);
 }
 
 /* Raw mode: 1960 magic shit. */
-int enableRawMode(int fd)
+int enable_raw_mode(int fd)
 {
 	struct termios raw;
 
-	if (E.rawmode) return 0; /* Already enabled. */
+	if (editor.rawmode) return 0; /* Already enabled. */
 	if (!isatty(STDIN_FILENO)) goto fatal;
-	atexit(editorAtExit);
+	atexit(editor_at_exit);
 	if (tcgetattr(fd, &orig_termios) == -1) goto fatal;
 
 	raw = orig_termios;  /* modify the original mode */
@@ -50,7 +50,7 @@ int enableRawMode(int fd)
 
 	/* put terminal in raw mode after flushing */
 	if (tcsetattr(fd, TCSAFLUSH, &raw) < 0) goto fatal;
-	E.rawmode = 1;
+	editor.rawmode = 1;
 	return 0;
 
 fatal:
@@ -60,7 +60,7 @@ fatal:
 
 /* Read a key from the terminal put in raw mode, trying to handle
  * escape sequences. */
-int editorReadKey(int fd)
+int editor_read_key(int fd)
 {
 	char seq[6];
 	char c;
@@ -147,7 +147,7 @@ int editorReadKey(int fd)
 /* Use the ESC [6n escape sequence to query the horizontal cursor position
  * and return it. On error -1 is returned, on success the position of the
  * cursor is stored at *rows and *cols and 0 is returned. */
-int getCursorPosition(int ifd, int ofd, int *rows, int *cols)
+int get_cursor_position(int ifd, int ofd, int *rows, int *cols)
 {
 	unsigned int i = 0;
 	char buf[32];
@@ -173,7 +173,7 @@ int getCursorPosition(int ifd, int ofd, int *rows, int *cols)
 /* Try to get the number of columns in the current terminal. If the ioctl()
  * call fails the function will try to query the terminal itself.
  * Returns 0 on success, -1 on error. */
-int getWindowSize(int ifd, int ofd, int *rows, int *cols)
+int get_window_size(int ifd, int ofd, int *rows, int *cols)
 {
 	struct winsize ws;
 
@@ -182,12 +182,12 @@ int getWindowSize(int ifd, int ofd, int *rows, int *cols)
 		int orig_row, orig_col, retval;
 
 		/* Get the initial position so we can restore it later. */
-		retval = getCursorPosition(ifd, ofd, &orig_row, &orig_col);
+		retval = get_cursor_position(ifd, ofd, &orig_row, &orig_col);
 		if (retval == -1) goto failed;
 
 		/* Go to right/bottom margin and get position. */
 		if (write(ofd, "\x1b[999C\x1b[999B", 12) != 12) goto failed;
-		retval = getCursorPosition(ifd, ofd, rows, cols);
+		retval = get_cursor_position(ifd, ofd, rows, cols);
 		if (retval == -1) goto failed;
 
 		/* Restore position. */
@@ -211,28 +211,28 @@ failed:
  * Necessary on serial consoles where SIGWINCH is never delivered and
  * TIOCGWINSZ may return stale host-side values.
  * Saves and restores cursor position around the probe. */
-void probeWindowSize(void)
+void probe_window_size(void)
 {
 	int new_rows, new_cols, orig_row, orig_col;
 	char seq[32];
 
-	if (getCursorPosition(STDIN_FILENO, STDOUT_FILENO, &orig_row, &orig_col) == -1)
+	if (get_cursor_position(STDIN_FILENO, STDOUT_FILENO, &orig_row, &orig_col) == -1)
 		return;
 
 	/* Drive cursor to the bottom-right corner, then read back position. */
 	if (write(STDOUT_FILENO, "\x1b[999B\x1b[999C", 12) != 12)
 		goto restore;
-	if (getCursorPosition(STDIN_FILENO, STDOUT_FILENO, &new_rows, &new_cols) == -1)
+	if (get_cursor_position(STDIN_FILENO, STDOUT_FILENO, &new_rows, &new_cols) == -1)
 		goto restore;
 
 	if (new_rows != win_total_rows || new_cols != win_total_cols) {
 		win_total_rows = new_rows;
 		win_total_cols = new_cols;
 		if (win_count > 0)
-			winReflow();
+			win_reflow();
 		else {
-			E.screenrows = new_rows - 2;
-			E.screencols = new_cols;
+			editor.screenrows = new_rows - 2;
+			editor.screencols = new_cols;
 		}
 	}
 
@@ -241,7 +241,7 @@ restore:
 	tty_write(seq, strlen(seq));
 }
 
-void updateWindowSize(void)
+void update_window_size(void)
 {
 	const int max_attempts = 3;
 	int new_rows, new_cols;
@@ -249,15 +249,15 @@ void updateWindowSize(void)
 
 	/* Try to get window size with retry logic */
 	while (attempts < max_attempts) {
-		if (getWindowSize(STDIN_FILENO, STDOUT_FILENO, &new_rows, &new_cols) == 0) {
+		if (get_window_size(STDIN_FILENO, STDOUT_FILENO, &new_rows, &new_cols) == 0) {
 			win_total_rows = new_rows;
 			win_total_cols = new_cols;
 			if (win_count > 0)
-				winReflow();
+				win_reflow();
 			else {
-				/* winInit() not yet called; set a sensible default. */
-				E.screenrows = new_rows - 2;
-				E.screencols = new_cols;
+				/* win_init() not yet called; set a sensible default. */
+				editor.screenrows = new_rows - 2;
+				editor.screencols = new_cols;
 			}
 			return;
 		}
@@ -270,24 +270,24 @@ void updateWindowSize(void)
 	}
 
 	/* If all attempts failed, keep current dimensions and warn user */
-	editorSetStatusMessage("Warning: failed updating window size");
+	editor_set_status_message("Warning: failed updating window size");
 }
 
-void handleSigWinCh(int unused __attribute__((unused)))
+void handle_sig_winch(int unused __attribute__((unused)))
 {
-	updateWindowSize(); /* calls winReflow() which clamps cursors */
-	editorRefreshScreen();
+	update_window_size(); /* calls win_reflow() which clamps cursors */
+	editor_refresh_screen();
 }
 
 /* Suspend the editor (C-z): restore terminal, stop the process, then
  * re-enable raw mode and redraw when resumed with fg. */
-void editorSuspend(void)
+void editor_suspend(void)
 {
-	disableRawMode(STDIN_FILENO);
+	disable_raw_mode(STDIN_FILENO);
 	tty_write("\x1b[2J\x1b[H", 7); /* clear screen, cursor home */
 	raise(SIGTSTP);
 	/* Execution resumes here when the shell sends SIGCONT (fg). */
-	enableRawMode(STDIN_FILENO);
-	updateWindowSize();
-	editorRefreshScreen();
+	enable_raw_mode(STDIN_FILENO);
+	update_window_size();
+	editor_refresh_screen();
 }

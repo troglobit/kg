@@ -23,7 +23,7 @@ struct autopair autopairs[] = {
 
 /* Find the matching closing character for the given opening character.
  * Returns the closing character if found, or 0 if no match exists. */
-int editorFindCloseChar(int open_char)
+int editor_find_close_char(int open_char)
 {
 	size_t i;
 
@@ -37,10 +37,10 @@ int editorFindCloseChar(int open_char)
 /* Handle character insertion with potential autocompletion.
  * Checks if the typed character has a closing pair and inserts it automatically
  * when appropriate. */
-void editorInsertCharAutoComplete(int c)
+void editor_insert_char_auto_complete(int c)
 {
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
-	int filecol = E.coloff + E.cx;
+	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
+	int filecol = editor.coloff + editor.cx;
 	int next_char_space;
 	int close_char;
 	int at_end;
@@ -51,21 +51,21 @@ void editorInsertCharAutoComplete(int c)
 			  strchr(",.()+-/*=~%[];{}", row->chars[filecol]);
 
 	/* Find closing character if this is an opening bracket/quote */
-	close_char = editorFindCloseChar(c);
+	close_char = editor_find_close_char(c);
 
 	/* Insert the character first */
-	editorInsertChar(c);
+	editor_insert_char(c);
 
 	/* Skip autocompletion during paste operations */
-	if (E.paste_mode)
+	if (editor.paste_mode)
 		return;
 
 	/* If this is a bracket/quote and we're either at end of line or
 	 * next character is whitespace/symbol, insert the closing character */
 	if (close_char && next_char_space) {
-		editorInsertChar(close_char);
+		editor_insert_char(close_char);
 
 		/* Move cursor back between the pair */
-		editorMoveCursor(ARROW_LEFT);
+		editor_move_cursor(ARROW_LEFT);
 	}
 }

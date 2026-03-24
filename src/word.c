@@ -5,10 +5,10 @@
 #define FILL_COLUMN 72
 
 /* Move cursor forward by one word (to start of next word). */
-void editorMoveWordForward(void)
+void editor_move_word_forward(void)
 {
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
-	int filecol = E.coloff + E.cx;
+	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
+	int filecol = editor.coloff + editor.cx;
 
 	if (!row) return;
 
@@ -16,75 +16,75 @@ void editorMoveWordForward(void)
 	 * relative position (start of next word) regardless of entry point. */
 	if (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
 		while (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
-			editorMoveCursor(ARROW_RIGHT);
-			filecol = E.coloff + E.cx;
+			editor_move_cursor(ARROW_RIGHT);
+			filecol = editor.coloff + editor.cx;
 		}
 		return;
 	}
 
 	/* Skip current word */
 	while (filecol < row->size && !isspace((unsigned char)row->chars[filecol])) {
-		editorMoveCursor(ARROW_RIGHT);
-		filecol = E.coloff + E.cx;
+		editor_move_cursor(ARROW_RIGHT);
+		filecol = editor.coloff + editor.cx;
 	}
 
 	/* Skip whitespace to land at start of next word */
 	while (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
-		editorMoveCursor(ARROW_RIGHT);
-		filecol = E.coloff + E.cx;
+		editor_move_cursor(ARROW_RIGHT);
+		filecol = editor.coloff + editor.cx;
 	}
 }
 
 /* Move cursor backward by one word */
-void editorMoveWordBackward(void)
+void editor_move_word_backward(void)
 {
-	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 
 	if (!row) return;
 	if (filecol == 0) {
 		/* Move to end of previous line */
 		if (filerow > 0) {
-			editorMoveCursor(ARROW_LEFT);
+			editor_move_cursor(ARROW_LEFT);
 		}
 		return;
 	}
 
 	/* Move back one position to check current position */
-	editorMoveCursor(ARROW_LEFT);
-	filerow = E.rowoff + E.cy;
-	filecol = E.coloff + E.cx;
-	row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+	editor_move_cursor(ARROW_LEFT);
+	filerow = editor.rowoff + editor.cy;
+	filecol = editor.coloff + editor.cx;
+	row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
 
 	if (!row) return;
 
 	/* Skip whitespace */
 	while (filecol > 0 && isspace(row->chars[filecol])) {
-		editorMoveCursor(ARROW_LEFT);
-		filecol = E.coloff + E.cx;
+		editor_move_cursor(ARROW_LEFT);
+		filecol = editor.coloff + editor.cx;
 	}
 
 	/* Skip word characters */
 	while (filecol > 0 && !isspace(row->chars[filecol - 1])) {
-		editorMoveCursor(ARROW_LEFT);
-		filecol = E.coloff + E.cx;
+		editor_move_cursor(ARROW_LEFT);
+		filecol = editor.coloff + editor.cx;
 	}
 }
 
 /* Kill from cursor to start of next word, saving text to kill ring (M-d). */
-void editorKillWordForward(void)
+void editor_kill_word_forward(void)
 {
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 	int start_col = filecol;
 	int kill_len;
 	char *text;
-	erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+	erow *row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
 
 	if (!row) return;
 
-	/* Mirror editorMoveWordForward: skip whitespace OR word+whitespace */
+	/* Mirror editor_move_word_forward: skip whitespace OR word+whitespace */
 	if (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
 		while (filecol < row->size && isspace((unsigned char)row->chars[filecol]))
 			filecol++;
@@ -103,30 +103,30 @@ void editorKillWordForward(void)
 	memcpy(text, row->chars + start_col, kill_len);
 	text[kill_len] = '\0';
 
-	killRingSet(text, kill_len);
-	undoPush(UNDO_KILL_TEXT, filerow, start_col, 0, text, kill_len);
+	kill_ring_set(text, kill_len);
+	undo_push(UNDO_KILL_TEXT, filerow, start_col, 0, text, kill_len);
 	free(text);
 
 	memmove(row->chars + start_col, row->chars + start_col + kill_len,
 	        row->size - start_col - kill_len + 1);
 	row->size -= kill_len;
-	editorUpdateRow(row);
-	E.dirty++;
+	editor_update_row(row);
+	editor.dirty++;
 }
 
 /* Kill from start of current word back to cursor, saving text to kill ring (M-Backspace). */
-void editorKillWordBackward(void)
+void editor_kill_word_backward(void)
 {
-	int filerow = E.rowoff + E.cy;
-	int filecol = E.coloff + E.cx;
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
 	int end_col = filecol;
 	int kill_len;
 	char *text;
-	erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+	erow *row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
 
 	if (!row || filecol == 0) return;
 
-	/* Mirror editorMoveWordBackward: skip whitespace then word chars */
+	/* Mirror editor_move_word_backward: skip whitespace then word chars */
 	while (filecol > 0 && isspace((unsigned char)row->chars[filecol - 1]))
 		filecol--;
 	while (filecol > 0 && !isspace((unsigned char)row->chars[filecol - 1]))
@@ -140,34 +140,34 @@ void editorKillWordBackward(void)
 	memcpy(text, row->chars + filecol, kill_len);
 	text[kill_len] = '\0';
 
-	killRingSet(text, kill_len);
-	undoPush(UNDO_KILL_TEXT, filerow, filecol, 0, text, kill_len);
+	kill_ring_set(text, kill_len);
+	undo_push(UNDO_KILL_TEXT, filerow, filecol, 0, text, kill_len);
 	free(text);
 
-	if (filecol < E.coloff) {
-		E.coloff = filecol;
-		E.cx = 0;
+	if (filecol < editor.coloff) {
+		editor.coloff = filecol;
+		editor.cx = 0;
 	} else {
-		E.cx = filecol - E.coloff;
+		editor.cx = filecol - editor.coloff;
 	}
 
 	memmove(row->chars + filecol, row->chars + filecol + kill_len,
 	        row->size - filecol - kill_len + 1);
 	row->size -= kill_len;
-	editorUpdateRow(row);
-	E.dirty++;
+	editor_update_row(row);
+	editor.dirty++;
 }
 
 /* Move to the beginning of the previous paragraph (or beginning of buffer) */
-void editorMoveParagraphBackward(void)
+void editor_move_paragraph_backward(void)
 {
-	int filerow = E.rowoff + E.cy;
+	int filerow = editor.rowoff + editor.cy;
 	int found_blank = 0;
 	erow *row;
 
 	/* If we're at the first line, we can't go back */
 	if (filerow == 0) {
-		editorMoveCursor(HOME_KEY);
+		editor_move_cursor(HOME_KEY);
 		return;
 	}
 
@@ -176,7 +176,7 @@ void editorMoveParagraphBackward(void)
 
 	/* Skip any blank lines we're currently on */
 	while (filerow >= 0) {
-		row = &E.row[filerow];
+		row = &editor.row[filerow];
 		if (row->size != 0)
 			break;
 		filerow--;
@@ -184,7 +184,7 @@ void editorMoveParagraphBackward(void)
 
 	/* Now find the next blank line (paragraph separator) */
 	while (filerow >= 0) {
-		row = &E.row[filerow];
+		row = &editor.row[filerow];
 		if (row->size == 0) {
 			found_blank = 1;
 			break;
@@ -193,33 +193,33 @@ void editorMoveParagraphBackward(void)
 	}
 
 	/* Position cursor at the line after the blank line, or at beginning */
-	if (found_blank && filerow < E.numrows - 1) {
+	if (found_blank && filerow < editor.numrows - 1) {
 		filerow++;
 	} else if (!found_blank) {
 		filerow = 0;
 	}
 
 	/* Update cursor position */
-	if (filerow < E.rowoff) {
-		E.rowoff = filerow;
-		E.cy = 0;
+	if (filerow < editor.rowoff) {
+		editor.rowoff = filerow;
+		editor.cy = 0;
 	} else {
-		E.cy = filerow - E.rowoff;
+		editor.cy = filerow - editor.rowoff;
 	}
-	E.cx = 0;
-	E.coloff = 0;
+	editor.cx = 0;
+	editor.coloff = 0;
 }
 
 /* Move to the beginning of the next paragraph (or end of buffer) */
-void editorMoveParagraphForward(void)
+void editor_move_paragraph_forward(void)
 {
-	int filerow = E.rowoff + E.cy;
+	int filerow = editor.rowoff + editor.cy;
 	int found_blank = 0;
 	erow *row;
 
 	/* If we're at the last line, we can't go forward */
-	if (filerow >= E.numrows - 1) {
-		editorMoveCursor(END_KEY);
+	if (filerow >= editor.numrows - 1) {
+		editor_move_cursor(END_KEY);
 		return;
 	}
 
@@ -227,16 +227,16 @@ void editorMoveParagraphForward(void)
 	filerow++;
 
 	/* Skip any blank lines we're currently on */
-	while (filerow < E.numrows) {
-		row = &E.row[filerow];
+	while (filerow < editor.numrows) {
+		row = &editor.row[filerow];
 		if (row->size != 0)
 			break;
 		filerow++;
 	}
 
 	/* Now find the next blank line (paragraph separator) */
-	while (filerow < E.numrows) {
-		row = &E.row[filerow];
+	while (filerow < editor.numrows) {
+		row = &editor.row[filerow];
 		if (row->size == 0) {
 			found_blank = 1;
 			break;
@@ -245,30 +245,30 @@ void editorMoveParagraphForward(void)
 	}
 
 	/* Position cursor at the line after the blank line, or at end */
-	if (found_blank && filerow < E.numrows - 1) {
+	if (found_blank && filerow < editor.numrows - 1) {
 		filerow++;
-	} else if (!found_blank && filerow >= E.numrows) {
-		filerow = E.numrows - 1;
+	} else if (!found_blank && filerow >= editor.numrows) {
+		filerow = editor.numrows - 1;
 	}
 
 	/* Update cursor position */
-	if (filerow >= E.rowoff + E.screenrows) {
-		E.rowoff = filerow - E.screenrows + 1;
-		E.cy = E.screenrows - 1;
+	if (filerow >= editor.rowoff + editor.screenrows) {
+		editor.rowoff = filerow - editor.screenrows + 1;
+		editor.cy = editor.screenrows - 1;
 	} else {
-		E.cy = filerow - E.rowoff;
+		editor.cy = filerow - editor.rowoff;
 	}
-	E.cx = 0;
-	E.coloff = 0;
+	editor.cx = 0;
+	editor.coloff = 0;
 }
 
 /* Reflow the current paragraph to FILL_COLUMN (M-q).
  * Paragraph boundaries are blank lines.  Indentation from the first
  * line is detected and re-applied to every reflowed line.
  * The entire operation is recorded as a single undo record. */
-void editorReflowParagraph(void)
+void editor_reflow_paragraph(void)
 {
-	int filerow = E.rowoff + E.cy;
+	int filerow = editor.rowoff + editor.cy;
 	int para_start, para_end, nrows, total_chars, i;
 	int fill_col, indent_len;
 	erow *row;
@@ -282,28 +282,28 @@ void editorReflowParagraph(void)
 	const char *p, *word_start;
 	int word_len, need;
 
-	if (filerow >= E.numrows || E.row[filerow].size == 0)
+	if (filerow >= editor.numrows || editor.row[filerow].size == 0)
 		return;
 
 	/* Locate paragraph boundaries and sum text length for pre-allocation */
 	para_start = filerow;
-	while (para_start > 0 && E.row[para_start - 1].size > 0)
+	while (para_start > 0 && editor.row[para_start - 1].size > 0)
 		para_start--;
 	para_end = filerow;
-	while (para_end < E.numrows - 1 && E.row[para_end + 1].size > 0)
+	while (para_end < editor.numrows - 1 && editor.row[para_end + 1].size > 0)
 		para_end++;
 	nrows = para_end - para_start + 1;
 	total_chars = 0;
 	for (i = para_start; i <= para_end; i++)
-		total_chars += E.row[i].size;
+		total_chars += editor.row[i].size;
 
-	fill_col = (FILL_COLUMN < E.screencols - 1) ? FILL_COLUMN : E.screencols - 1;
+	fill_col = (FILL_COLUMN < editor.screencols - 1) ? FILL_COLUMN : editor.screencols - 1;
 
 	/* Save original text (lines joined with '\n') for undo */
 	orig_text = malloc(total_chars + nrows + 1);
 	orig_len  = 0;
 	for (i = para_start; i <= para_end; i++) {
-		row = &E.row[i];
+		row = &editor.row[i];
 		if (i > para_start)
 			orig_text[orig_len++] = '\n';
 		memcpy(orig_text + orig_len, row->chars, row->size);
@@ -312,7 +312,7 @@ void editorReflowParagraph(void)
 	orig_text[orig_len] = '\0';
 
 	/* Detect leading whitespace indent from first paragraph line */
-	row = &E.row[para_start];
+	row = &editor.row[para_start];
 	indent_len = 0;
 	while (indent_len < row->size && isspace((unsigned char)row->chars[indent_len]))
 		indent_len++;
@@ -328,7 +328,7 @@ void editorReflowParagraph(void)
 		const char *line;
 		int len;
 
-		row  = &E.row[i];
+		row  = &editor.row[i];
 		line = row->chars;
 		len  = row->size;
 
@@ -421,29 +421,29 @@ void editorReflowParagraph(void)
 	/* Replace paragraph rows with reflowed lines */
 	suppress_undo = 1;
 	for (i = para_end; i >= para_start; i--)
-		editorDelRow(i);
+		editor_del_row(i);
 	for (i = 0; i < new_count; i++)
-		editorInsertRow(para_start + i, new_lines[i], new_lens[i]);
+		editor_insert_row(para_start + i, new_lines[i], new_lens[i]);
 	suppress_undo = 0;
 
 	/* col = new_count: the undo handler uses it to know how many rows to delete */
-	undoPush(UNDO_REFLOW_PARA, para_start, new_count, 0, orig_text, orig_len);
+	undo_push(UNDO_REFLOW_PARA, para_start, new_count, 0, orig_text, orig_len);
 
 	free(orig_text);
 	for (i = 0; i < new_count; i++) free(new_lines[i]);
 	free(new_lines);
 	free(new_lens);
 
-	if (para_start < E.rowoff) {
-		E.rowoff = para_start;
-		E.cy = 0;
-	} else if (para_start >= E.rowoff + E.screenrows) {
-		E.rowoff = para_start - E.screenrows + 1;
-		E.cy = E.screenrows - 1;
+	if (para_start < editor.rowoff) {
+		editor.rowoff = para_start;
+		editor.cy = 0;
+	} else if (para_start >= editor.rowoff + editor.screenrows) {
+		editor.rowoff = para_start - editor.screenrows + 1;
+		editor.cy = editor.screenrows - 1;
 	} else {
-		E.cy = para_start - E.rowoff;
+		editor.cy = para_start - editor.rowoff;
 	}
-	E.cx     = indent_len;
-	E.coloff = 0;
-	editorSetStatusMessage("Paragraph reflowed");
+	editor.cx     = indent_len;
+	editor.coloff = 0;
+	editor_set_status_message("Paragraph reflowed");
 }

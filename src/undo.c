@@ -5,10 +5,10 @@
 #define MAX_UNDO_SIZE 1000
 
 /* Global undo stack */
-struct undoStack undostack = {NULL, 0, MAX_UNDO_SIZE, -1};
+struct undo_stack undostack = {NULL, 0, MAX_UNDO_SIZE, -1};
 
 /* Initialize the undo stack */
-void undoInit(void)
+void undo_init(void)
 {
 	undostack.head = NULL;
 	undostack.size = 0;
@@ -17,12 +17,12 @@ void undoInit(void)
 }
 
 /* Free the entire undo stack */
-void undoFree(void)
+void undo_free(void)
 {
-	struct undoOp *op = undostack.head;
+	struct undo_op *op = undostack.head;
 
 	while (op) {
-		struct undoOp *next = op->next;
+		struct undo_op *next = op->next;
 		if (op->text) free(op->text);
 		free(op);
 		op = next;
@@ -32,15 +32,15 @@ void undoFree(void)
 }
 
 /* Push an undo operation onto the stack */
-void undoPush(enum undoType type, int row, int col, int c, char *text, int len)
+void undo_push(enum undo_type type, int row, int col, int c, char *text, int len)
 {
-	struct undoOp *op;
+	struct undo_op *op;
 
 	/* Skip if undo recording is suppressed */
 	if (suppress_undo) return;
 
 	/* Create new undo operation */
-	op = malloc(sizeof(struct undoOp));
+	op = malloc(sizeof(struct undo_op));
 	if (!op) return;
 
 	op->type = type;
@@ -67,8 +67,8 @@ void undoPush(enum undoType type, int row, int col, int c, char *text, int len)
 
 	/* Trim stack if too large */
 	if (undostack.size > undostack.max_size) {
-		struct undoOp *curr = undostack.head;
-		struct undoOp *prev = NULL;
+		struct undo_op *curr = undostack.head;
+		struct undo_op *prev = NULL;
 		int count = 0;
 
 		/* Find the last operation to keep */
@@ -82,7 +82,7 @@ void undoPush(enum undoType type, int row, int col, int c, char *text, int len)
 		if (prev) {
 			prev->next = NULL;
 			while (curr) {
-				struct undoOp *next = curr->next;
+				struct undo_op *next = curr->next;
 				if (curr->text) free(curr->text);
 				free(curr);
 				curr = next;
@@ -93,12 +93,12 @@ void undoPush(enum undoType type, int row, int col, int c, char *text, int len)
 }
 
 /* Perform undo operation */
-void editorUndo(void)
+void editor_undo(void)
 {
-	struct undoOp *op;
+	struct undo_op *op;
 
 	if (!undostack.head) {
-		editorSetStatusMessage("Nothing to undo");
+		editor_set_status_message("Nothing to undo");
 		return;
 	}
 
@@ -107,61 +107,61 @@ void editorUndo(void)
 	undostack.size--;
 
 	/* Position cursor at operation location */
-	if (op->row < E.rowoff) {
-		E.rowoff = op->row;
-		E.cy = 0;
-	} else if (op->row >= E.rowoff + E.screenrows) {
-		E.rowoff = op->row - E.screenrows + 1;
-		E.cy = E.screenrows - 1;
+	if (op->row < editor.rowoff) {
+		editor.rowoff = op->row;
+		editor.cy = 0;
+	} else if (op->row >= editor.rowoff + editor.screenrows) {
+		editor.rowoff = op->row - editor.screenrows + 1;
+		editor.cy = editor.screenrows - 1;
 	} else {
-		E.cy = op->row - E.rowoff;
+		editor.cy = op->row - editor.rowoff;
 	}
 
-	if (op->col < E.coloff) {
-		E.coloff = op->col;
-		E.cx = 0;
-	} else if (op->col >= E.coloff + E.screencols) {
-		E.coloff = op->col - E.screencols + 1;
-		E.cx = E.screencols - 1;
+	if (op->col < editor.coloff) {
+		editor.coloff = op->col;
+		editor.cx = 0;
+	} else if (op->col >= editor.coloff + editor.screencols) {
+		editor.coloff = op->col - editor.screencols + 1;
+		editor.cx = editor.screencols - 1;
 	} else {
-		E.cx = op->col - E.coloff;
+		editor.cx = op->col - editor.coloff;
 	}
 
 	/* Perform the reverse operation */
 	switch (op->type) {
 	case UNDO_INSERT_CHAR:
 		/* Reverse: delete the character */
-		if (op->row < E.numrows) {
-			erow *row = &E.row[op->row];
+		if (op->row < editor.numrows) {
+			erow *row = &editor.row[op->row];
 			if (op->col < row->size) {
-				editorRowDelChar(row, op->col);
-				E.dirty++;
+				editor_row_del_char(row, op->col);
+				editor.dirty++;
 			}
 		}
 		break;
 
 	case UNDO_DELETE_CHAR:
 		/* Reverse: insert the character */
-		if (op->row < E.numrows) {
-			erow *row = &E.row[op->row];
-			editorRowInsertChar(row, op->col, op->c);
-			E.dirty++;
+		if (op->row < editor.numrows) {
+			erow *row = &editor.row[op->row];
+			editor_row_insert_char(row, op->col, op->c);
+			editor.dirty++;
 		}
 		break;
 
 	case UNDO_INSERT_LINE:
 		/* Reverse: delete the line */
-		if (op->row < E.numrows) {
-			editorDelRow(op->row);
-			E.dirty++;
+		if (op->row < editor.numrows) {
+			editor_del_row(op->row);
+			editor.dirty++;
 		}
 		break;
 
 	case UNDO_DELETE_LINE:
 		/* Reverse: insert the line */
 		if (op->text) {
-			editorInsertRow(op->row, op->text, op->len);
-			E.dirty++;
+			editor_insert_row(op->row, op->text, op->len);
+			editor.dirty++;
 		}
 		break;
 
@@ -169,31 +169,31 @@ void editorUndo(void)
 		/* Reverse: truncate row at split point, append saved rest, delete row+1.
 		 * Using saved op->text rather than live row+1 content because row+1 may
 		 * have an auto-indent prefix that was not part of the original text. */
-		if (op->row < E.numrows) {
-			erow *row = &E.row[op->row];
+		if (op->row < editor.numrows) {
+			erow *row = &editor.row[op->row];
 			row->size = op->col;
 			row->chars[op->col] = '\0';
 			if (op->text && op->len > 0)
-				editorRowAppendString(row, op->text, op->len);
+				editor_row_append_string(row, op->text, op->len);
 			else
-				editorUpdateRow(row);
-			if (op->row + 1 < E.numrows)
-				editorDelRow(op->row + 1);
-			E.dirty++;
+				editor_update_row(row);
+			if (op->row + 1 < editor.numrows)
+				editor_del_row(op->row + 1);
+			editor.dirty++;
 		}
 		break;
 
 	case UNDO_JOIN_LINE:
 		/* Reverse: split the line */
-		if (op->row < E.numrows && op->text) {
-			erow *row = &E.row[op->row];
+		if (op->row < editor.numrows && op->text) {
+			erow *row = &editor.row[op->row];
 			/* Insert new line after current */
-			editorInsertRow(op->row + 1, op->text, op->len);
+			editor_insert_row(op->row + 1, op->text, op->len);
 			/* Truncate current line at split point */
 			row->size = op->col;
 			row->chars[op->col] = '\0';
-			editorUpdateRow(row);
-			E.dirty++;
+			editor_update_row(row);
+			editor.dirty++;
 		}
 		break;
 
@@ -201,7 +201,7 @@ void editorUndo(void)
 		/* Reverse: re-insert the killed text at the original position.
 		 * Cursor is already set to (op->row, op->col) above. */
 		if (op->text && op->len > 0)
-			editorInsertTextRaw(op->text, op->len);
+			editor_insert_text_raw(op->text, op->len);
 		break;
 
 	case UNDO_YANK_TEXT:
@@ -211,7 +211,7 @@ void editorUndo(void)
 			int i;
 			suppress_undo = 1;
 			for (i = 0; i < op->len; i++)
-				editorDelForwardChar();
+				editor_del_forward_char();
 			suppress_undo = 0;
 		}
 		break;
@@ -225,8 +225,8 @@ void editorUndo(void)
 
 		suppress_undo = 1;
 		for (r = 0; r < op->col; r++) {
-			if (op->row < E.numrows)
-				editorDelRow(op->row);
+			if (op->row < editor.numrows)
+				editor_del_row(op->row);
 		}
 		if (op->text) {
 			r = op->row;
@@ -235,33 +235,33 @@ void editorUndo(void)
 			while (line_start < end) {
 				nl = memchr(line_start, '\n', end - line_start);
 				if (nl) {
-					editorInsertRow(r++, line_start, nl - line_start);
+					editor_insert_row(r++, line_start, nl - line_start);
 					line_start = nl + 1;
 				} else {
-					editorInsertRow(r++, line_start, end - line_start);
+					editor_insert_row(r++, line_start, end - line_start);
 					break;
 				}
 			}
 		}
 		suppress_undo = 0;
-		E.dirty++;
+		editor.dirty++;
 		break;
 	}
 	}
 
 	/* Check if we've undone back to the saved state */
 	if (undostack.size == undostack.clean_size)
-		E.dirty = 0;
+		editor.dirty = 0;
 
 	/* Free the operation */
 	if (op->text) free(op->text);
 	free(op);
 
-	editorSetStatusMessage("Undo");
+	editor_set_status_message("Undo");
 }
 
 /* Mark current state as clean (called after save) */
-void undoMarkClean(void)
+void undo_mark_clean(void)
 {
 	undostack.clean_size = undostack.size;
 }

@@ -4,55 +4,55 @@
 
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
-void editorProcessKeypress(int fd)
+void editor_process_keypress(int fd)
 {
 	struct timeval tv;
-	int c = editorReadKey(fd);
+	int c = editor_read_key(fd);
 	long elapsed;
 
 	/* Paste mode detection: if characters arrive very quickly (< 30ms apart),
 	 * we're likely in a paste operation, so disable autocompletion */
 	gettimeofday(&tv, NULL);
-	if (tv.tv_sec == E.last_char_time.tv_sec) {
-		elapsed = (tv.tv_usec - E.last_char_time.tv_usec);
+	if (tv.tv_sec == editor.last_char_time.tv_sec) {
+		elapsed = (tv.tv_usec - editor.last_char_time.tv_usec);
 		if (elapsed < 30000)
-			E.paste_mode = 1; /* 30ms threshold */
-	} else if (tv.tv_sec - E.last_char_time.tv_sec > 0) {
-		E.paste_mode = 0;
+			editor.paste_mode = 1; /* 30ms threshold */
+	} else if (tv.tv_sec - editor.last_char_time.tv_sec > 0) {
+		editor.paste_mode = 0;
 	}
-	E.last_char_time = tv;
+	editor.last_char_time = tv;
 
 	/* Help screen: any key dismisses it. */
-	if (E.show_help) {
-		E.show_help = 0;
+	if (editor.show_help) {
+		editor.show_help = 0;
 		return;
 	}
 
 	/* Handle C-x prefix commands */
-	if (E.cx_prefix) {
-		E.cx_prefix = 0;
+	if (editor.cx_prefix) {
+		editor.cx_prefix = 0;
 		switch (c) {
 		case CTRL_C: {  /* C-x C-c: Quit */
 			int i, ndirty = 0;
 			/* Count modified real-file buffers (exclude *special* ones). */
-			if (E.dirty && !isSpecialBuffer(E.filename))
+			if (editor.dirty && !is_special_buffer(editor.filename))
 				ndirty++;
 			for (i = 0; i < MAX_BUFFERS; i++) {
 				if (!buflist[i].active || i == buf_current) continue;
 				if (!buflist[i].dirty) continue;
-				if (isSpecialBuffer(buflist[i].filename)) continue;
+				if (is_special_buffer(buflist[i].filename)) continue;
 				ndirty++;
 			}
 			if (ndirty) {
 				int answer;
-				editorSetStatusMessage(
+				editor_set_status_message(
 					ndirty == 1 ? "Modified buffer, really quit? (y/n) "
 					            : "%d modified buffers, really quit? (y/n) ",
 					ndirty);
-				editorRefreshScreen();
-				answer = editorReadKey(fd);
+				editor_refresh_screen();
+				answer = editor_read_key(fd);
 				if (answer != 'y' && answer != 'Y') {
-					editorSetStatusMessage("");
+					editor_set_status_message("");
 					return;
 				}
 			}
@@ -60,72 +60,72 @@ void editorProcessKeypress(int fd)
 			break;
 		}
 		case CTRL_S:    /* C-x C-s: Save */
-			editorSave(fd);
+			editor_save(fd);
 			break;
 		case 's':       /* C-x s: Save all modified buffers */
-			bufSaveAll(fd);
+			buf_save_all(fd);
 			break;
 		case CTRL_F:    /* C-x C-f: Open file in new buffer */
-			bufOpenFile(fd);
+			buf_open_file(fd);
 			break;
 		case CTRL_R:    /* C-x C-r: Open file read-only */
-			bufOpenFileReadOnly(fd);
+			buf_open_file_read_only(fd);
 			break;
 		case 'b':       /* C-x b: Interactive buffer select */
-			bufSelectInteractive(fd);
+			buf_select_interactive(fd);
 			break;
 		case 'k':       /* C-x k: Kill current buffer */
-			bufKill(fd);
+			buf_kill(fd);
 			break;
 		case CTRL_B:    /* C-x C-b: Open buffer list */
-			bufOpenList();
+			buf_open_list();
 			break;
 		case '2':       /* C-x 2: Split window horizontally */
-			winSplitHorizontal();
+			win_split_horizontal();
 			break;
 		case '3':       /* C-x 3: Split window vertically */
-			winSplitVertical();
+			win_split_vertical();
 			break;
 		case 'o':       /* C-x o: Other window */
-			winCycleNext();
+			win_cycle_next();
 			break;
 		case '0':       /* C-x 0: Delete current window */
-			winDeleteCurrent();
+			win_delete_current();
 			break;
 		case '1':       /* C-x 1: Delete other windows */
-			winDeleteOthers();
+			win_delete_others();
 			break;
 		case CTRL_Q:    /* C-x C-q: Toggle read-only */
-			E.readonly = !E.readonly;
-			editorSetStatusMessage(E.readonly ? "Read-only" : "Writable");
+			editor.readonly = !editor.readonly;
+			editor_set_status_message(editor.readonly ? "Read-only" : "Writable");
 			break;
 		case CTRL_G:    /* C-x C-g: Cancel C-x prefix */
-			editorSetStatusMessage("");
+			editor_set_status_message("");
 			break;
 		default:
-			editorSetStatusMessage("C-x %c is undefined", c);
+			editor_set_status_message("C-x %c is undefined", c);
 			break;
 		}
 		return;
 	}
 
 	/* q closes special *...* buffers without dirty prompt */
-	if (c == 'q' && isSpecialBuffer(E.filename)) {
-		bufKill(fd);
+	if (c == 'q' && is_special_buffer(editor.filename)) {
+		buf_kill(fd);
 		return;
 	}
 
 	/* Read-only mode: Enter opens the item at point; editing is blocked. */
-	if (E.readonly) {
+	if (editor.readonly) {
 		if (c == ENTER) {
-			bufIbufferSelect();
+			buf_ibuffer_select();
 			return;
 		}
 		if (c == BACKSPACE || c == DEL_KEY || c == CTRL_D ||
 		    c == CTRL_K    || c == CTRL_W  || c == CTRL_Y ||
 		    c == CTRL_UNDERSCORE || c == TAB ||
 		    (c >= 32 && c < 127)) {
-			editorSetStatusMessage("Buffer is read-only");
+			editor_set_status_message("Buffer is read-only");
 			return;
 		}
 	}
@@ -133,88 +133,88 @@ void editorProcessKeypress(int fd)
 	/* Regular key processing */
 	switch (c) {
 	case KEY_NULL:      /* Ctrl+Space - set mark */
-		editorSetMark();
+		editor_set_mark();
 		break;
 	case ENTER:         /* Enter */
-		editorInsertNewline();
+		editor_insert_newline();
 		break;
 	case CTRL_A:        /* Beginning of line */
-		editorMoveCursor(HOME_KEY);
+		editor_move_cursor(HOME_KEY);
 		break;
 	case CTRL_B:        /* Backward char */
-		editorMoveCursor(ARROW_LEFT);
+		editor_move_cursor(ARROW_LEFT);
 		break;
 	case CTRL_D:        /* Delete char forward */
-		editorDelForwardChar();
+		editor_del_forward_char();
 		break;
 	case CTRL_E:        /* End of line */
-		editorMoveCursor(END_KEY);
+		editor_move_cursor(END_KEY);
 		break;
 	case CTRL_F:        /* Forward char */
-		editorMoveCursor(ARROW_RIGHT);
+		editor_move_cursor(ARROW_RIGHT);
 		break;
 	case CTRL_G:        /* Keyboard quit / cancel */
-		editorSetStatusMessage("");
+		editor_set_status_message("");
 		break;
 	case CTRL_K:        /* Kill line */
-		editorKillLine();
+		editor_kill_line();
 		break;
 	case CTRL_N:        /* Next line */
-		editorMoveCursor(ARROW_DOWN);
+		editor_move_cursor(ARROW_DOWN);
 		break;
 	case CTRL_P:        /* Previous line */
-		editorMoveCursor(ARROW_UP);
+		editor_move_cursor(ARROW_UP);
 		break;
 	case CTRL_S:        /* Incremental search */
-		editorFind(fd);
+		editor_find(fd);
 		break;
 	case CTRL_R:        /* Incremental search */
-		editorFind(fd);
+		editor_find(fd);
 		break;
 	case CTRL_V:        /* Page down */
-		if (E.cy != E.screenrows - 1)
-			E.cy = E.screenrows - 1;
+		if (editor.cy != editor.screenrows - 1)
+			editor.cy = editor.screenrows - 1;
 		{
-		int times = E.screenrows;
+		int times = editor.screenrows;
 		while (times--)
-			editorMoveCursor(ARROW_DOWN);
+			editor_move_cursor(ARROW_DOWN);
 		}
 		break;
 	case CTRL_W:        /* Kill region (cut) */
-		editorKillRegion();
+		editor_kill_region();
 		break;
 	case CTRL_X:        /* C-x prefix */
-		E.cx_prefix = 1;
-		editorSetStatusMessage("C-x-");
+		editor.cx_prefix = 1;
+		editor_set_status_message("C-x-");
 		return;
 	case CTRL_Y:        /* Yank (paste) */
-		editorYank();
+		editor_yank();
 		break;
 	case CTRL_UNDERSCORE: /* Undo (C-_ or C-/) */
-		editorUndo();
+		editor_undo();
 		break;
 	case CTRL_H:        /* Help */
-		editorToggleHelp();
+		editor_toggle_help();
 		break;
 	case CTRL_Z:        /* Suspend to shell */
-		editorSuspend();
+		editor_suspend();
 		break;
 	case BACKSPACE:     /* Backspace */
-		editorDelChar();
+		editor_del_char();
 		break;
 	case DEL_KEY:       /* Forward delete */
-		editorDelForwardChar();
+		editor_del_forward_char();
 		break;
 	case PAGE_UP:
 	case PAGE_DOWN:
-		if (c == PAGE_UP && E.cy != 0)
-			E.cy = 0;
-		else if (c == PAGE_DOWN && E.cy != E.screenrows - 1)
-			E.cy = E.screenrows - 1;
+		if (c == PAGE_UP && editor.cy != 0)
+			editor.cy = 0;
+		else if (c == PAGE_DOWN && editor.cy != editor.screenrows - 1)
+			editor.cy = editor.screenrows - 1;
 		{
-		int times = E.screenrows;
+		int times = editor.screenrows;
 		while (times--)
-			editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+			editor_move_cursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
 		}
 		break;
 
@@ -224,56 +224,56 @@ void editorProcessKeypress(int fd)
 	case ARROW_RIGHT:
 	case HOME_KEY:
 	case END_KEY:
-		editorMoveCursor(c);
+		editor_move_cursor(c);
 		break;
 	case CTRL_HOME:
-		editorMoveToBeginning();
+		editor_move_to_beginning();
 		break;
 	case CTRL_END:
-		editorMoveToEnd();
+		editor_move_to_end();
 		break;
 	case ALT_G:         /* Goto line */
-		editorGotoLine(fd);
+		editor_goto_line(fd);
 		break;
 	case CTRL_ARROW_LEFT:
 	case ALT_B:
-		editorMoveWordBackward();
+		editor_move_word_backward();
 		break;
 	case CTRL_ARROW_RIGHT:
 	case ALT_F:
-		editorMoveWordForward();
+		editor_move_word_forward();
 		break;
 	case ALT_D:             /* Kill word forward */
-		editorKillWordForward();
+		editor_kill_word_forward();
 		break;
 	case ALT_BACKSPACE:     /* Kill word backward */
-		editorKillWordBackward();
+		editor_kill_word_backward();
 		break;
 	case CTRL_ARROW_UP:
-		editorMoveParagraphBackward();
+		editor_move_paragraph_backward();
 		break;
 	case CTRL_ARROW_DOWN:
-		editorMoveParagraphForward();
+		editor_move_paragraph_forward();
 		break;
 	case ALT_V:         /* Page up */
-		if (E.cy != 0)
-			E.cy = 0;
+		if (editor.cy != 0)
+			editor.cy = 0;
 		{
-		int times = E.screenrows;
+		int times = editor.screenrows;
 		while (times--)
-			editorMoveCursor(ARROW_UP);
+			editor_move_cursor(ARROW_UP);
 		}
 		break;
 	case ALT_W:         /* Copy region */
-		editorCopyRegion();
+		editor_copy_region();
 		break;
 	case ALT_Q:         /* Reflow paragraph */
-		editorReflowParagraph();
+		editor_reflow_paragraph();
 		break;
 	case CTRL_L:
-		probeWindowSize();
+		probe_window_size();
 		tty_write("\x1b[2J", 4);
-		editorRefreshScreen();
+		editor_refresh_screen();
 		break;
 	case ESC:
 		/* Nothing to do for ESC in this mode. */
@@ -286,10 +286,10 @@ void editorProcessKeypress(int fd)
 		 * key for UTF-8 input. */
 		if (c == TAB || c == ENTER) {
 			/* Allow TAB and ENTER */
-			editorInsertCharAutoComplete(c);
+			editor_insert_char_auto_complete(c);
 		} else if (c >= 32 && c < 127) {
 			/* Printable ASCII characters */
-			editorInsertCharAutoComplete(c);
+			editor_insert_char_auto_complete(c);
 		}
 		/* Silently ignore all other control/non-printable characters */
 		break;
