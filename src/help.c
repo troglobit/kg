@@ -28,7 +28,7 @@ static const char *help_lines[] = {
 	"│ SEARCH                  │ MISC                    │ WINDOWS                 │",
 	"├─────────────────────────┼─────────────────────────┼─────────────────────────┤",
 	"│ C-s      search fwd     │ C-g      cancel         │ C-x 2    split horiz    │",
-	"│ C-r      search bk      │ C-l      redraw         │ C-x 3    split vert     │",
+	"│ C-r      search bk      │ C-l      recenter       │ C-x 3    split vert     │",
 	"│                         │ C-h      help           │ C-x o    other window   │",
 	"│                         │ C-z      suspend        │ C-x 0    del window     │",
 	"│                         │ M-g      goto line      │ C-x 1    del others     │",

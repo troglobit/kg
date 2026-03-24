@@ -188,6 +188,8 @@ struct editor_config {
 	int mark_col;       /* Mark column position */
 	int show_help;      /* If 1, display help screen instead of file content. */
 	int readonly;       /* If 1, buffer is read-only (editing is blocked). */
+	int last_key;       /* Last key processed, for command repetition logic. */
+	int recenter_state; /* Cycle state for C-l: 0=center, 1=top, 2=bottom. */
 };
 
 /* Append buffer for efficient screen rendering */

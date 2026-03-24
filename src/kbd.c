@@ -130,6 +130,11 @@ void editor_process_keypress(int fd)
 		}
 	}
 
+	/* Reset recenter cycle if the previous key was not C-l. */
+	if (editor.last_key != CTRL_L)
+		editor.recenter_state = 0;
+	editor.last_key = c;
+
 	/* Regular key processing */
 	switch (c) {
 	case KEY_NULL:      /* Ctrl+Space - set mark */
@@ -270,11 +275,27 @@ void editor_process_keypress(int fd)
 	case ALT_Q:         /* Reflow paragraph */
 		editor_reflow_paragraph();
 		break;
-	case CTRL_L:
+	case CTRL_L: {      /* Recenter: cycle center → top → bottom */
+		int filerow = editor.rowoff + editor.cy;
+		switch (editor.recenter_state) {
+		case 0: /* center */
+			editor.rowoff = filerow - editor.screenrows / 2;
+			break;
+		case 1: /* top */
+			editor.rowoff = filerow;
+			break;
+		default: /* bottom */
+			editor.rowoff = filerow - (editor.screenrows - 1);
+			break;
+		}
+		if (editor.rowoff < 0) editor.rowoff = 0;
+		editor.cy = filerow - editor.rowoff;
+		editor.recenter_state = (editor.recenter_state + 1) % 3;
 		probe_window_size();
 		tty_write("\x1b[2J", 4);
 		editor_refresh_screen();
 		break;
+	}
 	case ESC:
 		/* Nothing to do for ESC in this mode. */
 		break;

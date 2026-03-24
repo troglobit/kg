@@ -25,9 +25,10 @@ bindings, based on [kilo][] by Salvatore Sanfilippo.
   recorded as a single undo step
 - Auto-indent on Enter and bracket/quote autocompletion
 - Suspend to shell with C-z; terminal is fully restored on `fg`
-- C-l redraws the screen and probes the terminal size via ANSI escape
-  sequences, useful over serial console connections where resize events
-  are not delivered
+- C-l recenters the view so the current line lands in the middle of the
+  window; pressing C-l again cycles to the top, then the bottom, then
+  back to center — also probes the terminal size, useful over serial
+  console connections where resize events are not delivered
 - Built-in key binding reference toggled with C-h
 - Man page ([kg.1][]) and `make install` / `make uninstall` support
 
