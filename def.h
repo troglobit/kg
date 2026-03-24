@@ -364,6 +364,7 @@ int editorReadKey(int fd);
 int getCursorPosition(int ifd, int ofd, int *rows, int *cols);
 int getWindowSize(int ifd, int ofd, int *rows, int *cols);
 void updateWindowSize(void);
+void probeWindowSize(void);
 void handleSigWinCh(int unused);
 
 /* word.c */

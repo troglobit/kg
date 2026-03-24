@@ -206,6 +206,40 @@ failed:
 	return -1;
 }
 
+/* Probe terminal dimensions using ANSI escape sequences, bypassing ioctl.
+ * Necessary on serial consoles where SIGWINCH is never delivered and
+ * TIOCGWINSZ may return stale host-side values.
+ * Saves and restores cursor position around the probe. */
+void probeWindowSize(void)
+{
+	int new_rows, new_cols, orig_row, orig_col;
+	char seq[32];
+
+	if (getCursorPosition(STDIN_FILENO, STDOUT_FILENO, &orig_row, &orig_col) == -1)
+		return;
+
+	/* Drive cursor to the bottom-right corner, then read back position. */
+	if (write(STDOUT_FILENO, "\x1b[999B\x1b[999C", 12) != 12)
+		goto restore;
+	if (getCursorPosition(STDIN_FILENO, STDOUT_FILENO, &new_rows, &new_cols) == -1)
+		goto restore;
+
+	if (new_rows != win_total_rows || new_cols != win_total_cols) {
+		win_total_rows = new_rows;
+		win_total_cols = new_cols;
+		if (win_count > 0)
+			winReflow();
+		else {
+			E.screenrows = new_rows - 2;
+			E.screencols = new_cols;
+		}
+	}
+
+restore:
+	snprintf(seq, sizeof(seq), "\x1b[%d;%dH", orig_row, orig_col);
+	write(STDOUT_FILENO, seq, strlen(seq));
+}
+
 void updateWindowSize(void)
 {
 	const int max_attempts = 3;
