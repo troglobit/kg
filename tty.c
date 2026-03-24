@@ -85,6 +85,7 @@ int editorReadKey(int fd)
 			if (seq[0] == 'g') return ALT_G;
 			if (seq[0] == 'v') return ALT_V;
 			if (seq[0] == 'w') return ALT_W;
+			if (seq[0] == 'q') return ALT_Q;
 			/* M-Backspace: ESC \x7f (xterm) or ESC \b (some terminals) */
 			if (seq[0] == '\x7f' || seq[0] == '\b') return ALT_BACKSPACE;
 

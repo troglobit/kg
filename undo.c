@@ -215,6 +215,38 @@ void editorUndo(void)
 			suppress_undo = 0;
 		}
 		break;
+
+	case UNDO_REFLOW_PARA: {
+		/* op->row = paragraph start row
+		 * op->col = number of reflowed rows to delete
+		 * op->text = original lines joined with '\n' */
+		char *line_start, *nl, *end;
+		int r;
+
+		suppress_undo = 1;
+		for (r = 0; r < op->col; r++) {
+			if (op->row < E.numrows)
+				editorDelRow(op->row);
+		}
+		if (op->text) {
+			r = op->row;
+			line_start = op->text;
+			end = op->text + op->len;
+			while (line_start < end) {
+				nl = memchr(line_start, '\n', end - line_start);
+				if (nl) {
+					editorInsertRow(r++, line_start, nl - line_start);
+					line_start = nl + 1;
+				} else {
+					editorInsertRow(r++, line_start, end - line_start);
+					break;
+				}
+			}
+		}
+		suppress_undo = 0;
+		E.dirty++;
+		break;
+	}
 	}
 
 	/* Check if we've undone back to the saved state */

@@ -32,6 +32,7 @@ static const char *help_lines[] = {
 	"│                         │ C-h      help           │ C-x o    other window   │",
 	"│                         │ C-z      suspend        │ C-x 0    del window     │",
 	"│                         │ M-g      goto line      │ C-x 1    del others     │",
+	"│                         │ M-q      reflow para    │                         │",
 	"└─────────────────────────┴─────────────────────────┴─────────────────────────┘",
 	NULL
 };

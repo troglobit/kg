@@ -267,6 +267,9 @@ void editorProcessKeypress(int fd)
 	case ALT_W:         /* Copy region */
 		editorCopyRegion();
 		break;
+	case ALT_Q:         /* Reflow paragraph */
+		editorReflowParagraph();
+		break;
 	case CTRL_L:
 		probeWindowSize();
 		write(STDOUT_FILENO, "\x1b[2J", 4);

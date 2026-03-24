@@ -126,6 +126,7 @@ enum KEY_ACTION {
 	ALT_G,
 	ALT_V,
 	ALT_W,
+	ALT_Q,
 	ALT_BACKSPACE
 };
 
@@ -202,8 +203,9 @@ enum undoType {
 	UNDO_DELETE_LINE,
 	UNDO_SPLIT_LINE,
 	UNDO_JOIN_LINE,
-	UNDO_KILL_TEXT,  /* Kill line or region */
-	UNDO_YANK_TEXT   /* Yank (paste) */
+	UNDO_KILL_TEXT,   /* Kill line or region */
+	UNDO_YANK_TEXT,   /* Yank (paste) */
+	UNDO_REFLOW_PARA  /* M-q paragraph reflow */
 };
 
 /* Single undo operation */
@@ -374,6 +376,7 @@ void editorMoveParagraphForward(void);
 void editorMoveParagraphBackward(void);
 void editorKillWordForward(void);
 void editorKillWordBackward(void);
+void editorReflowParagraph(void);
 
 /* yank.c */
 void killRingInit(void);
