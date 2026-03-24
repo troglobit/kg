@@ -1,7 +1,11 @@
-# kg - A Small Text Editor with Emacs Keybindings
+[![2][]][1] [![4][]][3] [![6][]][5] <a href="https://www.flaticon.com/free-icons/kg" title="Kg icons created by alekseyvanin - Flaticon"><img src="doc/kg.png" width=100 align="right"></a>
 
-kg is a minimal text editor inspired by Mg with Emacs keybindings and is
-based on [kilo][0] and its descendants.
+# Light Weight UTF-8 Terminal Text Editor
+
+kg is a minimal UTF-8 text editor inspired by Mg with Emacs keybindings,
+based on [kilo][0] and its descendants.  Suitable for editing system
+files or doing simple fixes, on remote systems where a full blown GUI
+editor does not work.
 
 ## Features
 
@@ -17,11 +21,18 @@ based on [kilo][0] and its descendants.
 
 ## Usage
 
-```bash
-kg <filename> [filename ...]
+```
+kg [-RVh] [file ...]
 ```
 
+| Option | Description                  |
+|--------|------------------------------|
+| `-R`   | Open file(s) read-only       |
+| `-V`   | Print version and exit       |
+| `-h`   | Print this help and exit     |
+
 Multiple files can be opened at once, each in its own buffer.
+A man page is available online at [man.troglobit.com](https://man.troglobit.com/man1/kg.1.html).
 
 ## Keybindings
 
@@ -227,3 +238,9 @@ The name "kg" is a nod to "mg" (Micro Emacs), suggesting "kilo-gram" - a
 minimal implementation with Emacs keybindings.
 
 [0]: https://github.com/antirez/kilo
+[1]: https://en.wikipedia.org/wiki/BSD_licenses
+[2]: https://img.shields.io/badge/License-BSD%202--Clause-green.svg
+[3]: https://github.com/troglobit/kg/actions/workflows/build.yml/
+[4]: https://github.com/troglobit/kg/actions/workflows/build.yml/badge.svg
+[5]: https://github.com/troglobit/kg/releases
+[6]: https://img.shields.io/github/v/release/troglobit/kg

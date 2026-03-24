@@ -1,7 +1,7 @@
 pkgname=kg-git
 pkgver=r38.3ae5e73
 pkgrel=1
-pkgdesc="Antirez kilo with Emacs keybindings"
+pkgdesc="Light Weight UTF-8 Terminal Text Editor"
 arch=('x86_64')
 url="https://github.com/troglobit/kg"
 license=('BSD-2')
