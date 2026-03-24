@@ -21,7 +21,7 @@ build() {
 
 package() {
         cd "$srcdir/$pkgname"
-        install -sD --target-directory=$pkgdir/usr/bin kg
+        make install DESTDIR="$pkgdir" prefix=/usr
         install -Dm644 --target-directory=$pkgdir/usr/share/licenses/$pkgname LICENSE
         install -Dm644 --target-directory=$pkgdir/usr/share/doc/$pkgname README.md
 }
