@@ -122,9 +122,11 @@ enum KEY_ACTION {
 	CTRL_END,
 	ALT_F,
 	ALT_B,
+	ALT_D,
 	ALT_G,
 	ALT_V,
-	ALT_W
+	ALT_W,
+	ALT_BACKSPACE
 };
 
 /* Syntax highlight definition */
@@ -369,6 +371,8 @@ void editorMoveWordForward(void);
 void editorMoveWordBackward(void);
 void editorMoveParagraphForward(void);
 void editorMoveParagraphBackward(void);
+void editorKillWordForward(void);
+void editorKillWordBackward(void);
 
 /* yank.c */
 void killRingInit(void);

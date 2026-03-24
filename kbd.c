@@ -144,8 +144,8 @@ void editorProcessKeypress(int fd)
 	case CTRL_B:        /* Backward char */
 		editorMoveCursor(ARROW_LEFT);
 		break;
-	case CTRL_D:        /* Delete char */
-		editorDelChar();
+	case CTRL_D:        /* Delete char forward */
+		editorDelForwardChar();
 		break;
 	case CTRL_E:        /* End of line */
 		editorMoveCursor(END_KEY);
@@ -242,6 +242,12 @@ void editorProcessKeypress(int fd)
 	case CTRL_ARROW_RIGHT:
 	case ALT_F:
 		editorMoveWordForward();
+		break;
+	case ALT_D:             /* Kill word forward */
+		editorKillWordForward();
+		break;
+	case ALT_BACKSPACE:     /* Kill word backward */
+		editorKillWordBackward();
 		break;
 	case CTRL_ARROW_UP:
 		editorMoveParagraphBackward();

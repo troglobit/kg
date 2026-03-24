@@ -2,7 +2,7 @@
 
 #include "def.h"
 
-/* Move cursor forward by one word */
+/* Move cursor forward by one word (to start of next word). */
 void editorMoveWordForward(void)
 {
 	erow *row = (E.rowoff + E.cy >= E.numrows) ? NULL : &E.row[E.rowoff + E.cy];
@@ -10,14 +10,24 @@ void editorMoveWordForward(void)
 
 	if (!row) return;
 
-	/* Skip current word (alphanumeric or punctuation) */
-	while (filecol < row->size && !isspace(row->chars[filecol])) {
+	/* If on whitespace, skip it first so we always land at the same
+	 * relative position (start of next word) regardless of entry point. */
+	if (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
+		while (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
+			editorMoveCursor(ARROW_RIGHT);
+			filecol = E.coloff + E.cx;
+		}
+		return;
+	}
+
+	/* Skip current word */
+	while (filecol < row->size && !isspace((unsigned char)row->chars[filecol])) {
 		editorMoveCursor(ARROW_RIGHT);
 		filecol = E.coloff + E.cx;
 	}
 
-	/* Skip whitespace */
-	while (filecol < row->size && isspace(row->chars[filecol])) {
+	/* Skip whitespace to land at start of next word */
+	while (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
 		editorMoveCursor(ARROW_RIGHT);
 		filecol = E.coloff + E.cx;
 	}
@@ -58,6 +68,92 @@ void editorMoveWordBackward(void)
 		editorMoveCursor(ARROW_LEFT);
 		filecol = E.coloff + E.cx;
 	}
+}
+
+/* Kill from cursor to start of next word, saving text to kill ring (M-d). */
+void editorKillWordForward(void)
+{
+	int filerow = E.rowoff + E.cy;
+	int filecol = E.coloff + E.cx;
+	int start_col = filecol;
+	int kill_len;
+	char *text;
+	erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+	if (!row) return;
+
+	/* Mirror editorMoveWordForward: skip whitespace OR word+whitespace */
+	if (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
+		while (filecol < row->size && isspace((unsigned char)row->chars[filecol]))
+			filecol++;
+	} else {
+		while (filecol < row->size && !isspace((unsigned char)row->chars[filecol]))
+			filecol++;
+		while (filecol < row->size && isspace((unsigned char)row->chars[filecol]))
+			filecol++;
+	}
+
+	kill_len = filecol - start_col;
+	if (kill_len <= 0) return;
+
+	text = malloc(kill_len + 1);
+	if (!text) return;
+	memcpy(text, row->chars + start_col, kill_len);
+	text[kill_len] = '\0';
+
+	killRingSet(text, kill_len);
+	undoPush(UNDO_KILL_TEXT, filerow, start_col, 0, text, kill_len);
+	free(text);
+
+	memmove(row->chars + start_col, row->chars + start_col + kill_len,
+	        row->size - start_col - kill_len + 1);
+	row->size -= kill_len;
+	editorUpdateRow(row);
+	E.dirty++;
+}
+
+/* Kill from start of current word back to cursor, saving text to kill ring (M-Backspace). */
+void editorKillWordBackward(void)
+{
+	int filerow = E.rowoff + E.cy;
+	int filecol = E.coloff + E.cx;
+	int end_col = filecol;
+	int kill_len;
+	char *text;
+	erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+
+	if (!row || filecol == 0) return;
+
+	/* Mirror editorMoveWordBackward: skip whitespace then word chars */
+	while (filecol > 0 && isspace((unsigned char)row->chars[filecol - 1]))
+		filecol--;
+	while (filecol > 0 && !isspace((unsigned char)row->chars[filecol - 1]))
+		filecol--;
+
+	kill_len = end_col - filecol;
+	if (kill_len <= 0) return;
+
+	text = malloc(kill_len + 1);
+	if (!text) return;
+	memcpy(text, row->chars + filecol, kill_len);
+	text[kill_len] = '\0';
+
+	killRingSet(text, kill_len);
+	undoPush(UNDO_KILL_TEXT, filerow, filecol, 0, text, kill_len);
+	free(text);
+
+	if (filecol < E.coloff) {
+		E.coloff = filecol;
+		E.cx = 0;
+	} else {
+		E.cx = filecol - E.coloff;
+	}
+
+	memmove(row->chars + filecol, row->chars + filecol + kill_len,
+	        row->size - filecol - kill_len + 1);
+	row->size -= kill_len;
+	editorUpdateRow(row);
+	E.dirty++;
 }
 
 /* Move to the beginning of the previous paragraph (or beginning of buffer) */
