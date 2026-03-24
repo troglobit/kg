@@ -1,0 +1,17 @@
+Source: kg
+Section: editors
+Priority: optional
+Maintainer: Joachim Wiberg <troglobit@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.0
+Homepage: https://github.com/troglobit/kg
+
+Package: kg
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Small terminal text editor with Emacs key bindings
+ kg is a small terminal text editor based on the kilo editor by
+ Salvatore Sanfilippo. It provides Emacs-style key bindings for
+ navigation, editing, search, and file operations, with support for
+ multiple buffers, split windows, syntax highlighting for common
+ languages, incremental search, multi-level undo, and paragraph reflow.

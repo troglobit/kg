@@ -29,3 +29,8 @@ jobs:
           ls -la ~/tmp/usr/local/bin/kg
           ls -la ~/tmp/usr/local/share/man/man1/kg.1
           ~/tmp/usr/local/bin/kg --version 2>/dev/null || true
+      - name: Build .deb package
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y debhelper
+          make deb

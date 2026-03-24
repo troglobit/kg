@@ -33,6 +33,11 @@ jobs:
           name=kg-${ver}
           mkdir -p artifacts
           git archive --format=tar.gz --prefix=${name}/ HEAD -o artifacts/${name}.tar.gz
+      - name: Build .deb package
+        run: |
+          sudo apt-get install -y debhelper
+          make deb
+          mv ../kg_*.deb artifacts/
       - name: Extract release notes
         run: sh utils/genrel.sh doc/ChangeLog.md > artifacts/release.md
       - uses: ncipollo/release-action@v1
@@ -41,4 +46,4 @@ jobs:
           bodyFile: artifacts/release.md
           prerelease: ${{ steps.vars.outputs.pre }}
           makeLatest: ${{ steps.vars.outputs.latest }}
-          artifacts: "artifacts/*.tar.gz"
+          artifacts: "artifacts/*.tar.gz,artifacts/*.deb"
