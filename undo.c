@@ -198,39 +198,21 @@ void editorUndo(void)
 		break;
 
 	case UNDO_KILL_TEXT:
-		/* Reverse: insert the killed text back */
-		if (op->row < E.numrows && op->text) {
-			erow *row = &E.row[op->row];
-			for (int i = 0; i < op->len; i++) {
-				editorRowInsertChar(row, op->col + i, op->text[i]);
-			}
-			E.dirty++;
-		}
+		/* Reverse: re-insert the killed text at the original position.
+		 * Cursor is already set to (op->row, op->col) above. */
+		if (op->text && op->len > 0)
+			editorInsertTextRaw(op->text, op->len);
 		break;
 
 	case UNDO_YANK_TEXT:
-		/* Reverse: delete the yanked text */
+		/* Reverse: delete the yanked text forward from (op->row, op->col).
+		 * Cursor is already set to (op->row, op->col) above. */
 		if (op->text && op->len > 0) {
-			/* Delete characters in reverse order */
-			for (int i = op->len - 1; i >= 0; i--) {
-				if (op->text[i] == '\n') {
-					/* Delete newline by joining lines */
-					if (op->row < E.numrows - 1) {
-						erow *row = &E.row[op->row];
-						editorRowAppendString(row, E.row[op->row + 1].chars,
-								      E.row[op->row + 1].size);
-						editorDelRow(op->row + 1);
-					}
-				} else {
-					/* Delete character */
-					if (op->row < E.numrows) {
-						erow *row = &E.row[op->row];
-						if (op->col < row->size)
-							editorRowDelChar(row, op->col);
-					}
-				}
-			}
-			E.dirty++;
+			int i;
+			suppress_undo = 1;
+			for (i = 0; i < op->len; i++)
+				editorDelForwardChar();
+			suppress_undo = 0;
 		}
 		break;
 	}

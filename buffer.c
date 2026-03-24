@@ -183,6 +183,48 @@ void editorInsertChar(int c)
 	E.dirty++;
 }
 
+/* Split the current line at the cursor without auto-indent.
+ * Used by yank and kill-undo to re-insert newlines exactly as copied. */
+void editorInsertNewlineRaw(void)
+{
+	int filerow = E.rowoff + E.cy;
+	int filecol = E.coloff + E.cx;
+	erow *row;
+	int rest_len;
+
+	if (filerow >= E.numrows) {
+		editorInsertRow(filerow, "", 0);
+	} else {
+		row = &E.row[filerow];
+		if (filecol > row->size) filecol = row->size;
+		rest_len = row->size - filecol;
+		editorInsertRow(filerow + 1, row->chars + filecol, rest_len);
+		row = &E.row[filerow];
+		row->chars[filecol] = '\0';
+		row->size = filecol;
+		editorUpdateRow(row);
+	}
+	if (E.cy == E.screenrows - 1) E.rowoff++;
+	else E.cy++;
+	E.cx = 0;
+	E.coloff = 0;
+}
+
+/* Insert text character by character without recording undo, using raw
+ * newlines (no auto-indent).  Used by editorYank and UNDO_KILL_TEXT. */
+void editorInsertTextRaw(const char *text, int len)
+{
+	int i;
+	suppress_undo = 1;
+	for (i = 0; i < len; i++) {
+		if (text[i] == '\n')
+			editorInsertNewlineRaw();
+		else
+			editorInsertChar(text[i]);
+	}
+	suppress_undo = 0;
+}
+
 /* Inserting a newline is slightly complex as we have to handle inserting a
  * newline in the middle of a line, splitting the line as needed. */
 void editorInsertNewline(void)

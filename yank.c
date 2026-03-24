@@ -192,7 +192,7 @@ void editorKillRegion(void)
 	/* Delete character by character, but suppress individual undo records */
 	suppress_undo = 1;
 	for (int i = 0; i < len; i++) {
-		editorDelChar();
+		editorDelForwardChar();
 	}
 	suppress_undo = 0;
 
@@ -239,15 +239,7 @@ void editorYank(void)
 	/* Record single undo operation for entire yank */
 	undoPush(UNDO_YANK_TEXT, filerow, filecol, 0, text, killring.len);
 
-	/* Insert each character from the kill ring, suppress individual undo records */
-	suppress_undo = 1;
-	for (int i = 0; i < killring.len; i++) {
-		if (text[i] == '\n')
-			editorInsertNewline();
-		else
-			editorInsertChar(text[i]);
-	}
-	suppress_undo = 0;
+	editorInsertTextRaw(text, killring.len);
 
 	editorSetStatusMessage("Yanked");
 }

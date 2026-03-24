@@ -311,6 +311,8 @@ void editorRowInsertChar(erow *row, int at, int c);
 void editorRowAppendString(erow *row, char *s, size_t len);
 void editorRowDelChar(erow *row, int at);
 void editorInsertChar(int c);
+void editorInsertNewlineRaw(void);
+void editorInsertTextRaw(const char *text, int len);
 void editorInsertNewline(void);
 void editorDelChar(void);
 void editorDelForwardChar(void);
