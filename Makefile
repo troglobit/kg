@@ -37,6 +37,9 @@ distclean: clean
 deb:
 	dpkg-buildpackage -b -us -uc
 
+release:
+	sh utils/mkrel.sh
+
 install: $(TARGET)
 	install -d $(DESTDIR)$(bindir)
 	install -m 755 $(TARGET) $(DESTDIR)$(bindir)/$(PROG)
@@ -47,4 +50,4 @@ uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(PROG)
 	rm -f $(DESTDIR)$(man1dir)/$(PROG).1
 
-.PHONY: all clean distclean deb install uninstall
+.PHONY: all clean distclean deb release install uninstall
