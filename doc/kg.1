@@ -147,7 +147,7 @@ The buffer is marked unmodified when undo returns to the last-saved state.
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action
 .It C-g Ta Cancel current operation
-.It C-l Ta Redraw screen
+.It C-l Ta Recenter: cycle current line to center, top, then bottom of window
 .It C-h Ta Toggle built-in help screen
 .El
 .Sh BUFFERS
@@ -174,13 +174,33 @@ Use
 to cycle between windows.
 Up to 8 windows may be open simultaneously.
 .Sh SYNTAX HIGHLIGHTING
-Syntax is detected automatically from the file extension.
-Supported languages include:
-C, C++, Python, Shell, JavaScript, TypeScript, Rust, Java, C#,
-PHP, Ruby, Swift, SQL, Dart, HTML, JSX, Vue, Angular, Svelte, Makefile, and Markdown.
-Hash-bang lines
+Syntax highlighting is detected automatically from the file extension or
+type, e.g., Makefile.  Hash-bang lines
 .Pq #!
 are used as a fallback when the extension is not recognised.
+.Bl -column "JavaScript" ".js .mjs .cjs" -compact
+.It Sy Language Ta Sy Extensions
+.It C/C++ Ta .c .h .cpp .hpp .cc
+.It Python Ta .py .pyw .pyi .pyx
+.It Shell Ta .sh .bash .zsh .profile .bashrc .zshrc
+.It JavaScript Ta .js .mjs .cjs
+.It TypeScript Ta .ts .tsx .d.ts
+.It Rust Ta .rs .rlib
+.It Java Ta .java
+.It C# Ta .cs .csx
+.It PHP Ta .php .phtml
+.It Ruby Ta .rb .rbw .rake
+.It Swift Ta .swift
+.It SQL Ta .sql .ddl .dml
+.It Dart Ta .dart
+.It HTML Ta .html .htm .xhtml
+.It JSX Ta .jsx
+.It Vue Ta .vue
+.It Angular Ta .component.ts .service.ts .module.ts .directive.ts .pipe.ts
+.It Svelte Ta .svelte
+.It Makefile Ta Makefile .mk .mak
+.It Markdown Ta .md .markdown .mkd
+.El
 .Sh AUTOCOMPLETE
 .Nm
 automatically inserts matching closing brackets when an opening bracket is
