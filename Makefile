@@ -2,8 +2,10 @@
 
 CC      = gcc
 CFLAGS  = -Wall -W -pedantic -std=c99 -Os
-TARGET  = kg
-MAN1    = kg.1
+PROG    = kg
+OBJDIR  = src
+TARGET  = $(OBJDIR)/$(PROG)
+MAN1    = doc/kg.1
 
 prefix  = /usr/local
 bindir  = $(prefix)/bin
@@ -14,31 +16,32 @@ man1dir = $(mandir)/man1
 SRCS = main.c tty.c syntax.c autocomplete.c buffer.c fileio.c \
        display.c search.c basic.c word.c kbd.c yank.c undo.c help.c bufmgr.c winmgr.c
 
-# Object files
-OBJS = $(SRCS:.c=.o)
-
-# Header files
-HDRS = def.h
+# Object and header files
+OBJS = $(addprefix $(OBJDIR)/,$(SRCS:.c=.o))
+HDRS = $(OBJDIR)/def.h
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS)
 
-%.o: %.c $(HDRS)
+$(OBJDIR)/%.o: $(OBJDIR)/%.c $(HDRS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(OBJS)
+
+distclean: clean
+	rm -f $(TARGET)
 
 install: $(TARGET)
 	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(TARGET) $(DESTDIR)$(bindir)/$(TARGET)
+	install -m 755 $(TARGET) $(DESTDIR)$(bindir)/$(PROG)
 	install -d $(DESTDIR)$(man1dir)
-	install -m 644 $(MAN1) $(DESTDIR)$(man1dir)/$(MAN1)
+	install -m 644 $(MAN1) $(DESTDIR)$(man1dir)/$(PROG).1
 
 uninstall:
-	rm -f $(DESTDIR)$(bindir)/$(TARGET)
-	rm -f $(DESTDIR)$(man1dir)/$(MAN1)
+	rm -f $(DESTDIR)$(bindir)/$(PROG)
+	rm -f $(DESTDIR)$(man1dir)/$(PROG).1
 
-.PHONY: all clean install uninstall
+.PHONY: all clean distclean install uninstall

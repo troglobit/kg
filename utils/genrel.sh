@@ -2,7 +2,7 @@
 # Extract and unwrap the latest ChangeLog entry for use as release notes.
 # Usage: genrel.sh [ChangeLog.md]
 
-changelog=${1:-ChangeLog.md}
+changelog=${1:-doc/ChangeLog.md}
 
 awk '
 /^\[v[0-9]/ && !found { found=1; skip_hr=1; next }

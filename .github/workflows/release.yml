@@ -34,7 +34,7 @@ jobs:
           mkdir -p artifacts
           git archive --format=tar.gz --prefix=${name}/ HEAD -o artifacts/${name}.tar.gz
       - name: Extract release notes
-        run: sh utils/genrel.sh ChangeLog.md > artifacts/release.md
+        run: sh utils/genrel.sh doc/ChangeLog.md > artifacts/release.md
       - uses: ncipollo/release-action@v1
         with:
           name: kg ${{ steps.vars.outputs.ver }}
