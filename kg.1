@@ -1,0 +1,226 @@
+.Dd March 24, 2026
+.Dt KG 1
+.Os
+.Sh NAME
+.Nm kg
+.Nd a small text editor with Emacs keybindings
+.Sh SYNOPSIS
+.Nm
+.Op Ar
+.Sh DESCRIPTION
+.Nm
+is a minimal terminal text editor with Emacs-style keybindings.
+It supports syntax highlighting for many programming languages,
+multiple buffers, split windows, incremental search, a kill ring,
+and undo/redo.
+.Pp
+.Nm
+does not depend on curses; it uses VT100 escape sequences directly.
+.Pp
+If no files are given,
+.Nm
+opens a scratch buffer.
+Multiple files each open in their own buffer.
+.Sh KEY BINDINGS
+.Ss Navigation
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-f / \&\(-> Ta Move forward one character
+.It C-b / \&\(<- Ta Move backward one character
+.It C-n / \(da Ta Move to next line
+.It C-p / \(ua Ta Move to previous line
+.It C-a / Home Ta Move to beginning of line
+.It C-e / End Ta Move to end of line
+.It C-v / PgDn Ta Scroll down one page
+.It M-v / PgUp Ta Scroll up one page
+.It M-f / C-\(-> Ta Move forward one word
+.It M-b / C-\(<- Ta Move backward one word
+.It C-\(ua Ta Move to previous paragraph
+.It C-\(da Ta Move to next paragraph
+.It C-Home Ta Move to beginning of buffer
+.It C-End Ta Move to end of buffer
+.It M-g Ta Go to line (prompts for line or line:col)
+.El
+.Ss Editing
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It Enter Ta Insert newline with auto-indent
+.It Tab Ta Insert tab (with bracket autocomplete)
+.It Backspace Ta Delete character before point
+.It Delete Ta Delete character at point
+.It C-d Ta Delete character before point
+.It C-k Ta Kill from point to end of line
+.El
+.Pp
+.Ic C-k
+at end of line joins it with the next line (Emacs behavior).
+Killed text is appended to the kill ring when
+.Ic C-k
+commands are consecutive.
+.Ss Copy and Paste
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-Space Ta Set mark at point
+.It C-w Ta Kill region (cut to kill ring)
+.It M-w Ta Copy region (copy to kill ring)
+.It C-y Ta Yank from kill ring (paste)
+.El
+.Pp
+Set the mark with
+.Ic C-Space ,
+move the cursor to define the region, then cut with
+.Ic C-w
+or copy with
+.Ic M-w .
+Paste anywhere with
+.Ic C-y .
+The kill ring is shared across all buffers.
+.Ss Search
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-s Ta Incremental search forward
+.It C-r Ta Incremental search backward
+.El
+.Pp
+While searching:
+type to extend the query;
+.Ic C-s
+or
+.Ic \(->
+or
+.Ic \(da
+finds the next match;
+.Ic C-r
+or
+.Ic \(<-
+or
+.Ic \(ua
+finds the previous match;
+.Ic Enter
+accepts the match;
+.Ic Esc
+cancels and returns to the original position;
+.Ic Backspace
+removes the last character from the query.
+.Ss Undo
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-_ / C-/ Ta Undo last change
+.El
+.Pp
+Undo history is per-buffer.
+Each buffer keeps up to 1000 operations.
+The buffer is marked unmodified when undo returns to the last-saved state.
+.Ss File and Buffer Commands
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-x C-s Ta Save current buffer
+.It C-x s Ta Save all modified buffers
+.It C-x C-f Ta Open file in new buffer
+.It C-x C-r Ta Open file read-only in new buffer
+.It C-x C-q Ta Toggle read-only mode on current buffer
+.It C-x b Ta Switch to buffer (interactive)
+.It C-x k Ta Kill (close) current buffer
+.It C-x C-b Ta Open buffer list
+.It C-x C-c Ta Quit
+.El
+.Ss Window Commands
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-x 2 Ta Split window horizontally
+.It C-x 3 Ta Split window vertically
+.It C-x o Ta Switch to next window
+.It C-x 0 Ta Delete current window
+.It C-x 1 Ta Delete all other windows
+.El
+.Ss Utility
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-g Ta Cancel current operation
+.It C-l Ta Redraw screen
+.It C-h Ta Toggle built-in help screen
+.El
+.Sh BUFFERS
+.Nm
+supports up to 20 open buffers.
+Each buffer has its own undo history, dirty flag, and read-only state.
+Special system buffers (such as the buffer list) have names enclosed in
+.Sq *
+and can be closed with
+.Ic q .
+.Pp
+The kill ring is global and shared across all buffers, so text killed in
+one buffer can be yanked in another.
+.Sh WINDOWS
+The terminal can be divided into multiple windows with
+.Ic C-x 2
+(horizontal split) or
+.Ic C-x 3
+(vertical split).
+Each window shows one buffer and maintains its own scroll position and cursor.
+Multiple windows may show the same buffer.
+Use
+.Ic C-x o
+to cycle between windows.
+Up to 8 windows may be open simultaneously.
+.Sh SYNTAX HIGHLIGHTING
+Syntax is detected automatically from the file extension.
+Supported languages include:
+C, C++, Python, Shell, JavaScript, TypeScript, Rust, Java, C#,
+PHP, Ruby, Swift, SQL, Dart, HTML, JSX, Vue, Angular, Svelte, Makefile, and Markdown.
+Hash-bang lines
+.Pq #!
+are used as a fallback when the extension is not recognised.
+.Sh AUTOCOMPLETE
+.Nm
+automatically inserts matching closing brackets when an opening bracket is
+typed, provided the cursor is at the end of a line.
+Recognised pairs are
+.Sq () ,
+.Sq [] ,
+and
+.Sq {} .
+Autocomplete is suppressed when text arrives quickly, such as during a paste
+operation.
+.Sh GOTO LINE
+.Ic M-g
+prompts for a line number, optionally followed by a colon and a column
+number
+.Pq e.g. Ar 42:10 .
+The cursor is moved to that position and the view is centred vertically.
+.Sh ENVIRONMENT
+.Nm
+uses the controlling terminal
+.Pa /dev/tty
+for raw-mode input and output.
+Terminal size changes
+.Pq SIGWINCH
+are handled gracefully.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /dev/tty
+Terminal device used for raw-mode I/O.
+.El
+.Sh SEE ALSO
+.Xr mg 1 ,
+.Xr emacs 1 ,
+.Xr vi 1
+.Sh HISTORY
+.Nm
+is derived from
+.Lk https://github.com/antirez/kilo kilo
+by Salvatore Sanfilippo.
+The name is a nod to
+.Xr mg 1
+.Pq Micro GNU Emacs ,
+suggesting a kilo-gram-weight minimal editor with Emacs keybindings.
+.Sh AUTHORS
+.An -nosplit
+The
+.Nm
+editor was created by
+.An Joachim Wiberg (troglobit) based on the
+original
+.Nm kilo
+by
+.An Salvatore Sanfilippo (antirez) .

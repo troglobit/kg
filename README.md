@@ -1,5 +1,4 @@
-kg - A Small Text Editor with Emacs Keybindings
-===============================================
+# kg - A Small Text Editor with Emacs Keybindings
 
 kg is a minimal text editor inspired by Mg with Emacs keybindings and is
 based on [kilo][0] and its descendants.
@@ -28,19 +27,22 @@ Multiple files can be opened at once, each in its own buffer.
 
 ### File Operations
 
-| Key       | Action                    |
-|-----------|---------------------------|
-| C-x C-s   | Save file                 |
-| C-x C-c   | Quit editor               |
+| Key       | Action                              |
+|-----------|-------------------------------------|
+| C-x C-s   | Save current buffer                 |
+| C-x s     | Save all modified buffers           |
+| C-x C-c   | Quit editor                         |
 
 ### Buffers
 
 | Key       | Action                              |
 |-----------|-------------------------------------|
 | C-x C-f   | Open file in new buffer             |
-| C-x b     | Cycle to next buffer                |
+| C-x C-r   | Open file read-only                 |
+| C-x C-q   | Toggle read-only mode               |
+| C-x b     | Switch to buffer (interactive)      |
 | C-x k     | Kill (close) current buffer         |
-| C-x C-b   | List open buffers in status bar     |
+| C-x C-b   | Open buffer list                    |
 
 The kill ring is shared across all buffers, so text killed in one buffer
 can be yanked in another.
@@ -130,6 +132,12 @@ In search mode:
 - ESC to cancel and return to original position
 - Backspace to remove from query
 
+### Goto Line
+
+| Key       | Action                    |
+|-----------|---------------------------|
+| M-g       | Goto line (prompts for `line` or `line:col`) |
+
 ### Utility
 
 | Key       | Action                    |
@@ -149,6 +157,9 @@ After pressing C-x, the editor waits for a second key:
 | C-x C-f   | Open file in new buffer             |
 | C-x b     | Cycle to next buffer                |
 | C-x k     | Kill current buffer                 |
+| C-x s     | Save all modified buffers           |
+| C-x C-r   | Open file read-only                 |
+| C-x C-q   | Toggle read-only mode               |
 | C-x C-b   | List buffers                        |
 | C-x 2     | Split window horizontally           |
 | C-x 3     | Split window vertically             |
@@ -156,6 +167,27 @@ After pressing C-x, the editor waits for a second key:
 | C-x 0     | Delete current window               |
 | C-x 1     | Delete all other windows            |
 | C-x C-g   | Cancel the C-x prefix               |
+| M-g       | Goto line                           |
+
+## Building and Installing
+
+```bash
+make
+sudo make install          # installs to /usr/local/bin and /usr/local/share/man/man1
+```
+
+Override the prefix or use DESTDIR for staged installs:
+
+```bash
+make install prefix=/usr
+make install DESTDIR=/tmp/pkg
+```
+
+To uninstall:
+
+```bash
+sudo make uninstall
+```
 
 ## Language Support
 
@@ -182,6 +214,7 @@ based on file extension:
 | Vue        | `.vue`                                | JS + Composition/Options API         |
 | Angular    | `.component.ts`, `.service.ts`, …    | TS + decorators, directives          |
 | Svelte     | `.svelte`                             | JS + Svelte lifecycle/stores         |
+| Makefile   | `Makefile`, `.mk`, `.mak`             | Directives, special targets          |
 | Markdown   | `.md`, `.markdown`, `.mkd`            | Headings, code, bold, links          |
 
 ## Origin & References
