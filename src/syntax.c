@@ -894,38 +894,39 @@ void editor_update_syntax(erow *row)
 			continue;
 		}
 
-		/* Handle non-base-10 integer numbers */
+		/* Handle non-base-10 integer literals (0b/0B, 0o/0O, 0x/0X).
+		 * Only highlight the prefix when at least one valid digit follows,
+		 * so a bare 0b/0o/0x falls through to the decimal handler. */
 		if (prev_sep && *p == '0') {
-			row->hl[i] = HL_NUMBER;
-			p++; i++;
-			prev_sep = 0;
-
-			switch (*p) {
-			case 'b':
-			case 'B':
-				do {
-					row->hl[i] = HL_NUMBER;
-					p++; i++;
-				} while (*p && (*p == '0' || *p == '1'));
+			switch (p[1]) {
+			case 'b': case 'B':
+				if (p[2] == '0' || p[2] == '1') {
+					row->hl[i] = HL_NUMBER; p++; i++;
+					row->hl[i] = HL_NUMBER; p++; i++;
+					while (*p == '0' || *p == '1') { row->hl[i] = HL_NUMBER; p++; i++; }
+					prev_sep = 0;
+					continue;
+				}
 				break;
-			case 'o':
-			case 'O':
-				do {
-					row->hl[i] = HL_NUMBER;
-					p++; i++;
-				} while (*p && (*p >= '0' && *p <= '7'));
+			case 'o': case 'O':
+				if (p[2] >= '0' && p[2] <= '7') {
+					row->hl[i] = HL_NUMBER; p++; i++;
+					row->hl[i] = HL_NUMBER; p++; i++;
+					while (*p >= '0' && *p <= '7') { row->hl[i] = HL_NUMBER; p++; i++; }
+					prev_sep = 0;
+					continue;
+				}
 				break;
-			case 'x':
-			case 'X':
-				do {
-					row->hl[i] = HL_NUMBER;
-					p++; i++;
-				} while (*p && ((*p >= '0' && *p <= '9') ||
-						(*p >= 'a' && *p <= 'f') ||
-						(*p >= 'A' && *p <= 'F')));
+			case 'x': case 'X':
+				if (isxdigit((unsigned char)p[2])) {
+					row->hl[i] = HL_NUMBER; p++; i++;
+					row->hl[i] = HL_NUMBER; p++; i++;
+					while (isxdigit((unsigned char)*p)) { row->hl[i] = HL_NUMBER; p++; i++; }
+					prev_sep = 0;
+					continue;
+				}
 				break;
 			}
-			continue;
 		}
 
 		/* Handle numbers */
@@ -934,17 +935,6 @@ void editor_update_syntax(erow *row)
 			row->hl[i] = HL_NUMBER;
 			p++; i++;
 			prev_sep = 0;
-
-			switch (*p) {
-			case 'b':
-			case 'B':
-			case 'o':
-			case 'O':
-			case 'x':
-			case 'X':
-				row->hl[i] = HL_NUMBER;
-				p++; i++;
-			}
 			continue;
 		}
 
