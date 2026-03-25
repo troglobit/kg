@@ -353,6 +353,8 @@ void editor_set_status_message(const char *fmt, ...);
 /* fileio.c */
 int editor_open(char *filename);
 int editor_save(int fd);
+void editor_write_file(int fd);
+void editor_insert_file(int fd);
 
 /* kbd.c */
 void editor_process_keypress(int fd);

@@ -80,3 +80,81 @@ writeerr:
 	editor_set_status_message("Error writing %s: %s", editor.filename, strerror(errno));
 	return 1;
 }
+
+/* Prompt for a new filename, write the buffer there, and adopt that name.
+ * This is Emacs C-x C-w (write-file / save as). */
+void editor_write_file(int fd)
+{
+	char newname[256];
+	char *newfilename;
+
+	if (editor_read_line(fd, "Write file: ", newname, sizeof(newname)) < 0 || !newname[0])
+		return;
+	newfilename = strdup(newname);
+	if (!newfilename)
+		return;
+	free(editor.filename);
+	editor.filename = newfilename;
+	editor_select_syntax_highlight(editor.filename);
+	editor_save(fd);
+}
+
+/* Prompt for a filename and insert its contents at point.
+ * This is Emacs C-x i (insert-file). */
+void editor_insert_file(int fd)
+{
+	char filename[256];
+	char *buf = NULL;
+	size_t buflen = 0, bufcap = 0;
+	char tmp[4096];
+	size_t n;
+	int filerow, filecol;
+	FILE *fp;
+
+	if (editor_read_line(fd, "Insert file: ", filename, sizeof(filename)) < 0 || !filename[0])
+		return;
+
+	fp = fopen(filename, "r");
+	if (!fp) {
+		editor_set_status_message("Cannot open %s: %s", filename, strerror(errno));
+		return;
+	}
+
+	while ((n = fread(tmp, 1, sizeof(tmp), fp)) > 0) {
+		if (buflen + n >= bufcap) {
+			char *newbuf;
+
+			bufcap = (buflen + n) * 2 + 1;
+			newbuf = realloc(buf, bufcap);
+			if (!newbuf) {
+				free(buf);
+				fclose(fp);
+				editor_set_status_message("Out of memory reading %s", filename);
+				return;
+			}
+			buf = newbuf;
+		}
+		memcpy(buf + buflen, tmp, n);
+		buflen += n;
+	}
+	fclose(fp);
+
+	if (!buflen) {
+		free(buf);
+		editor_set_status_message("(empty file)");
+		return;
+	}
+
+	/* Strip a single trailing newline to avoid inserting a spurious blank
+	 * line — most text files end with \n but we're inserting mid-buffer. */
+	if (buf[buflen - 1] == '\n')
+		buflen--;
+
+	filerow = editor.rowoff + editor.cy;
+	filecol = editor.coloff + editor.cx;
+	undo_push(UNDO_YANK_TEXT, filerow, filecol, 0, buf, buflen);
+	editor_insert_text_raw(buf, buflen);
+	free(buf);
+
+	editor_set_status_message("Inserted %s", filename);
+}

@@ -12,11 +12,11 @@ ordered by value vs implementation effort.
       (replace all)/q.  The incremental search machinery in search.c is
       a natural starting point.
 
-- [ ] **C-x C-w write-file**: Save buffer to a different filename (Save
+- [x] **C-x C-w write-file**: Save buffer to a different filename (Save
       As).  Prompts for a new name, writes, and updates the buffer's
       filename.
 
-- [ ] **C-x i insert-file**: Insert the contents of a file at point.
+- [x] **C-x i insert-file**: Insert the contents of a file at point.
 
 - [ ] **M-; comment-dwim**: Toggle or insert a line comment using the
       current buffer's syntax.  Requires plumbing comment-start strings

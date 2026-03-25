@@ -95,6 +95,12 @@ void editor_process_keypress(int fd)
 		case '1':       /* C-x 1: Delete other windows */
 			win_delete_others();
 			break;
+		case CTRL_W:    /* C-x C-w: Write file (save as) */
+			editor_write_file(fd);
+			break;
+		case 'i':       /* C-x i: Insert file at point */
+			editor_insert_file(fd);
+			break;
 		case CTRL_Q:    /* C-x C-q: Toggle read-only */
 			editor.readonly = !editor.readonly;
 			editor_set_status_message(editor.readonly ? "Read-only" : "Writable");
