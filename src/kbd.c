@@ -293,6 +293,9 @@ void editor_process_keypress(int fd)
 	case ALT_SEMICOLON: /* Toggle line comment */
 		editor_comment_dwim();
 		break;
+	case ALT_X:         /* Named command */
+		editor_named_command(fd);
+		break;
 	case CTRL_L: {      /* Recenter: cycle center → top → bottom */
 		int filerow = editor.rowoff + editor.cy;
 		switch (editor.recenter_state) {

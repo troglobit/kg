@@ -137,7 +137,8 @@ enum KEY_ACTION {
 	ALT_Q,
 	ALT_BACKSPACE,
 	ALT_PCT,       /* M-% query-replace */
-	ALT_SEMICOLON  /* M-; comment-dwim */
+	ALT_SEMICOLON, /* M-; comment-dwim */
+	ALT_X          /* M-x named command */
 };
 
 /* Syntax highlight definition */
@@ -361,6 +362,9 @@ void editor_insert_file(int fd);
 
 /* kbd.c */
 void editor_process_keypress(int fd);
+
+/* cmd.c */
+void editor_named_command(int fd);
 
 /* search.c */
 void editor_find(int fd);

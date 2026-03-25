@@ -186,6 +186,39 @@ The buffer is marked unmodified when undo returns to the last-saved state.
 .It C-g Ta Cancel current operation
 .It C-l Ta Recenter: cycle current line to center, top, then bottom of window
 .It C-h Ta Toggle built-in help screen
+.It M-x Ta Execute named command
+.El
+.Pp
+.Ic M-x
+prompts for a command name and executes it.
+Available commands:
+.Bl -tag -width "what-cursor-position"
+.It delete-trailing-space
+Remove trailing whitespace from the current line only.
+Reversible with
+.Ic C-_ .
+.It goto-line
+Go to a specific line (prompts for line or line:col).
+Equivalent to
+.Ic M-g .
+.It not-modified
+Clear the modified flag without saving.
+.It save-buffer
+Save the current buffer to its file.
+Equivalent to
+.Ic C-x C-s .
+.It toggle-read-only
+Toggle read-only mode on the current buffer.
+Equivalent to
+.Ic C-x C-q .
+.It version
+Print the editor version string in the status bar.
+.It what-cursor-position
+Show current line, column, and percentage through the buffer.
+.It whitespace-cleanup
+Remove trailing whitespace from every line in the buffer.
+Each modified line is independently reversible with
+.Ic C-_ .
 .El
 .Sh BUFFERS
 .Nm

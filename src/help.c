@@ -32,7 +32,7 @@ static const char *help_lines[] = {
 	"│ C-r      search bk      │ C-l      recenter       │ C-x 3    split vert     │",
 	"│ M-%      query replace  │ C-h      help           │ C-x o    other window   │",
 	"│ M-;      comment line   │ C-z      suspend        │ C-x 0    del window     │",
-	"│                         │ M-g      goto line      │ C-x 1    del others     │",
+	"│ M-x      named cmd      │ M-g      goto line      │ C-x 1    del others     │",
 	"│                         │ M-q      reflow para    │                         │",
 	"└─────────────────────────┴─────────────────────────┴─────────────────────────┘",
 	NULL
