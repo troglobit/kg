@@ -72,6 +72,48 @@ void editor_set_mark(void)
 	editor_set_status_message("Mark set");
 }
 
+/* Swap cursor and mark positions (C-x C-x).
+ * Scrolls only as needed to keep the target visible, rather than centering,
+ * so the user's view context is preserved when the mark is on-screen. */
+void editor_exchange_point_and_mark(void)
+{
+	int cur_row, cur_col, mark_row, mark_col;
+
+	if (!editor.mark_set) {
+		editor_set_status_message("No mark set");
+		return;
+	}
+
+	cur_row  = editor.rowoff + editor.cy;
+	cur_col  = editor.coloff + editor.cx;
+	mark_row = editor.mark_row;
+	mark_col = editor.mark_col;
+
+	if (mark_row < editor.rowoff) {
+		editor.rowoff = mark_row;
+		editor.cy = 0;
+	} else if (mark_row >= editor.rowoff + editor.screenrows) {
+		editor.rowoff = mark_row - editor.screenrows + 1;
+		editor.cy = editor.screenrows - 1;
+	} else {
+		editor.cy = mark_row - editor.rowoff;
+	}
+
+	if (mark_col < editor.coloff) {
+		editor.coloff = mark_col;
+		editor.cx = 0;
+	} else if (mark_col >= editor.coloff + editor.screencols) {
+		editor.coloff = mark_col - editor.screencols + 1;
+		editor.cx = editor.screencols - 1;
+	} else {
+		editor.cx = mark_col - editor.coloff;
+	}
+
+	editor.mark_row = cur_row;
+	editor.mark_col = cur_col;
+	editor_set_status_message("Mark exchanged");
+}
+
 /* Get text from region (between mark and point) */
 static char *get_region_text(int *out_len)
 {

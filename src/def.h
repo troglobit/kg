@@ -97,6 +97,7 @@ enum KEY_ACTION {
 	CTRL_L = 12,        /* Ctrl+l */
 	ENTER = 13,         /* Enter */
 	CTRL_N = 14,        /* Ctrl-n */
+	CTRL_O = 15,        /* Ctrl-o */
 	CTRL_P = 16,        /* Ctrl-p */
 	CTRL_Q = 17,        /* Ctrl-q */
 	CTRL_R = 18,        /* Ctrl-r */
@@ -331,6 +332,7 @@ void editor_insert_char(int c);
 void editor_insert_newline_raw(void);
 void editor_insert_text_raw(const char *text, int len);
 void editor_insert_newline(void);
+void editor_open_line(void);
 void editor_del_char(void);
 void editor_del_forward_char(void);
 void editor_kill_line(void);
@@ -400,6 +402,7 @@ void kill_ring_set(char *text, int len);
 void kill_ring_append(char *text, int len);
 char *kill_ring_get(void);
 void editor_set_mark(void);
+void editor_exchange_point_and_mark(void);
 void editor_kill_region(void);
 void editor_copy_region(void);
 void editor_yank(void);

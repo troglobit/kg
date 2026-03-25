@@ -22,11 +22,11 @@ ordered by value vs implementation effort.
       current buffer's syntax.  Requires plumbing comment-start strings
       from the syntax table through to an editing command.
 
-- [ ] **C-x C-x exchange-point-and-mark**: Swap cursor and mark.  Lets
+- [x] **C-x C-x exchange-point-and-mark**: Swap cursor and mark.  Lets
       you visually inspect the other end of a region or bounce between two
       positions.  Trivial to implement.
 
-- [ ] **C-o open-line**: Insert a newline at point without advancing the
+- [x] **C-o open-line**: Insert a newline at point without advancing the
       cursor.  The classic "make room above the next line" command.  One
       liner.
 

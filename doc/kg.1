@@ -60,6 +60,7 @@ Multiple files each open in their own buffer.
 .It Delete Ta Delete character at point
 .It C-d Ta Delete character before point
 .It C-k Ta Kill from point to end of line
+.It C-o Ta Open line (insert newline, keep cursor)
 .It M-\&; Ta Toggle line comment
 .El
 .Pp
@@ -159,6 +160,7 @@ The buffer is marked unmodified when undo returns to the last-saved state.
 .It Sy Key Ta Sy Action
 .It C-x C-s Ta Save current buffer
 .It C-x s Ta Save all modified buffers
+.It C-x C-x Ta Exchange point and mark
 .It C-x C-w Ta Write buffer to a different file (save as)
 .It C-x i Ta Insert file contents at point
 .It C-x C-f Ta Open file in new buffer

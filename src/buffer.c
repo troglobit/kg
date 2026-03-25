@@ -286,6 +286,23 @@ fixcursor:
 	}
 }
 
+/* Insert a newline at point without advancing the cursor (C-o).
+ * Splits the current line and leaves the cursor on the original line. */
+void editor_open_line(void)
+{
+	int cy     = editor.cy;
+	int cx     = editor.cx;
+	int rowoff = editor.rowoff;
+	int coloff = editor.coloff;
+
+	editor_insert_newline();
+
+	editor.cy     = cy;
+	editor.cx     = cx;
+	editor.rowoff = rowoff;
+	editor.coloff = coloff;
+}
+
 /* Delete the char at the current prompt position. */
 void editor_del_char(void)
 {

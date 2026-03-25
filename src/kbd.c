@@ -95,6 +95,9 @@ void editor_process_keypress(int fd)
 		case '1':       /* C-x 1: Delete other windows */
 			win_delete_others();
 			break;
+		case CTRL_X:    /* C-x C-x: Exchange point and mark */
+			editor_exchange_point_and_mark();
+			break;
 		case CTRL_W:    /* C-x C-w: Write file (save as) */
 			editor_write_file(fd);
 			break;
@@ -169,6 +172,9 @@ void editor_process_keypress(int fd)
 		break;
 	case CTRL_K:        /* Kill line */
 		editor_kill_line();
+		break;
+	case CTRL_O:        /* Open line */
+		editor_open_line();
 		break;
 	case CTRL_N:        /* Next line */
 		editor_move_cursor(ARROW_DOWN);
