@@ -58,13 +58,97 @@ fatal:
 	return -1;
 }
 
-/* Read a key from the terminal put in raw mode, trying to handle
- * escape sequences. */
-int editor_read_key(int fd)
+/* Decode an escape sequence (ESC byte already consumed) into a key code. */
+static int parse_escape(int fd)
 {
 	char seq[6];
+
+	if (read(fd, seq, 1) == 0) return ESC;   /* bare ESC */
+
+	/* Alt+key: ESC followed by a single character */
+	if (seq[0] == 'f') return ALT_F;
+	if (seq[0] == 'b') return ALT_B;
+	if (seq[0] == 'd') return ALT_D;
+	if (seq[0] == 'g') return ALT_G;
+	if (seq[0] == 'v') return ALT_V;
+	if (seq[0] == 'w') return ALT_W;
+	if (seq[0] == 'q') return ALT_Q;
+	if (seq[0] == '\x7f' || seq[0] == '\b') return ALT_BACKSPACE;
+	if (seq[0] == '%') return ALT_PCT;
+	if (seq[0] == ';') return ALT_SEMICOLON;
+	if (seq[0] == 'x') return ALT_X;
+
+	if (read(fd, seq+1, 1) == 0) return ESC;
+
+	/* ESC [ sequences */
+	if (seq[0] == '[') {
+		if (seq[1] >= '0' && seq[1] <= '9') {
+			if (read(fd, seq+2, 1) == 0) return ESC;
+			if (seq[2] == '~') {
+				switch (seq[1]) {
+				case '3': return DEL_KEY;
+				case '5': return PAGE_UP;
+				case '6': return PAGE_DOWN;
+				}
+			} else if (seq[2] >= '0' && seq[2] <= '9') {
+				/* Two-digit: ESC[<d1><d2>~ (F3=ESC[13~, F4=ESC[14~) */
+				if (read(fd, seq+3, 1) == 0) return ESC;
+				if (seq[3] == '~' && seq[1] == '1') {
+					switch (seq[2]) {
+					case '3': return KEY_F3;
+					case '4': return KEY_F4;
+					}
+				}
+			} else if (seq[2] == ';') {
+				/* ESC [ 1 ; 5 x  Ctrl+key */
+				if (read(fd, seq+3, 1) == 0) return ESC;
+				if (read(fd, seq+4, 1) == 0) return ESC;
+				if (seq[1] == '1' && seq[3] == '5') {
+					switch (seq[4]) {
+					case 'A': return CTRL_ARROW_UP;
+					case 'B': return CTRL_ARROW_DOWN;
+					case 'C': return CTRL_ARROW_RIGHT;
+					case 'D': return CTRL_ARROW_LEFT;
+					case 'H': return CTRL_HOME;
+					case 'F': return CTRL_END;
+					}
+				}
+			}
+		} else {
+			switch (seq[1]) {
+			case 'A': return ARROW_UP;
+			case 'B': return ARROW_DOWN;
+			case 'C': return ARROW_RIGHT;
+			case 'D': return ARROW_LEFT;
+			case 'H': return HOME_KEY;
+			case 'F': return END_KEY;
+			}
+		}
+	/* ESC O sequences */
+	} else if (seq[0] == 'O') {
+		switch (seq[1]) {
+		case 'H': return HOME_KEY;
+		case 'F': return END_KEY;
+		case 'R': return KEY_F3;
+		case 'S': return KEY_F4;
+		}
+	}
+	return ESC;
+}
+
+/* Read a key from the terminal in raw mode, decoding escape sequences.
+ * During macro replay returns pre-recorded keys; during recording saves
+ * every key so the full sequence (including sub-prompt characters) is
+ * captured in one place. */
+int editor_read_key(int fd)
+{
 	char c;
 	int nread;
+	int key;
+
+	key = macro_next_key();
+	if (key >= 0)
+		return key;
 
 	while ((nread = read(fd, &c, 1)) == 0);
 	if (nread == -1) {
@@ -72,79 +156,9 @@ int editor_read_key(int fd)
 		return 0;
 	}
 
-	while (1) {
-		switch (c) {
-		case ESC:    /* escape sequence */
-			/* If this is just an ESC, we'll timeout here. */
-			if (read(fd, seq, 1) == 0) return ESC;
-
-			/* Alt+key sequences (ESC followed by a character). */
-			if (seq[0] == 'f') return ALT_F;
-			if (seq[0] == 'b') return ALT_B;
-			if (seq[0] == 'd') return ALT_D;
-			if (seq[0] == 'g') return ALT_G;
-			if (seq[0] == 'v') return ALT_V;
-			if (seq[0] == 'w') return ALT_W;
-			if (seq[0] == 'q') return ALT_Q;
-			/* M-Backspace: ESC \x7f (xterm) or ESC \b (some terminals) */
-			if (seq[0] == '\x7f' || seq[0] == '\b') return ALT_BACKSPACE;
-			if (seq[0] == '%') return ALT_PCT;
-			if (seq[0] == ';') return ALT_SEMICOLON;
-			if (seq[0] == 'x') return ALT_X;
-
-			if (read(fd, seq+1, 1) == 0) return ESC;
-
-			/* ESC [ sequences. */
-			if (seq[0] == '[') {
-				if (seq[1] >= '0' && seq[1] <= '9') {
-					/* Extended escape, read additional byte. */
-					if (read(fd, seq+2, 1) == 0) return ESC;
-					if (seq[2] == '~') {
-						switch (seq[1]) {
-						case '3': return DEL_KEY;
-						case '5': return PAGE_UP;
-						case '6': return PAGE_DOWN;
-						}
-					} else if (seq[2] == ';') {
-						/* ESC [ 1 ; modifier key sequences (Ctrl+Arrow/Home/End) */
-						if (read(fd, seq+3, 1) == 0) return ESC;
-						if (read(fd, seq+4, 1) == 0) return ESC;
-						if (seq[1] == '1' && seq[3] == '5') {
-							/* Ctrl modifier */
-							switch (seq[4]) {
-							case 'A': return CTRL_ARROW_UP;
-							case 'B': return CTRL_ARROW_DOWN;
-							case 'C': return CTRL_ARROW_RIGHT;
-							case 'D': return CTRL_ARROW_LEFT;
-							case 'H': return CTRL_HOME;
-							case 'F': return CTRL_END;
-							}
-						}
-					}
-				} else {
-					switch (seq[1]) {
-					case 'A': return ARROW_UP;
-					case 'B': return ARROW_DOWN;
-					case 'C': return ARROW_RIGHT;
-					case 'D': return ARROW_LEFT;
-					case 'H': return HOME_KEY;
-					case 'F': return END_KEY;
-					}
-				}
-			}
-
-			/* ESC O sequences. */
-			else if (seq[0] == 'O') {
-				switch (seq[1]) {
-				case 'H': return HOME_KEY;
-				case 'F': return END_KEY;
-				}
-			}
-			break;
-		default:
-			return c;
-		}
-	}
+	key = (c == ESC) ? parse_escape(fd) : (unsigned char)c;
+	macro_on_key(key);
+	return key;
 }
 
 /* Use the ESC [6n escape sequence to query the horizontal cursor position

@@ -138,7 +138,9 @@ enum KEY_ACTION {
 	ALT_BACKSPACE,
 	ALT_PCT,       /* M-% query-replace */
 	ALT_SEMICOLON, /* M-; comment-dwim */
-	ALT_X          /* M-x named command */
+	ALT_X,         /* M-x named command */
+	KEY_F3,        /* F3: start keyboard macro */
+	KEY_F4         /* F4: stop or replay keyboard macro */
 };
 
 /* Syntax highlight definition */
@@ -365,6 +367,14 @@ void editor_process_keypress(int fd);
 
 /* cmd.c */
 void editor_named_command(int fd);
+
+/* macro.c */
+int  macro_is_recording(void);
+void macro_on_key(int key);
+int  macro_next_key(void);
+void macro_start(void);
+void macro_stop(int trim);
+void macro_replay(int fd);
 
 /* search.c */
 void editor_find(int fd);

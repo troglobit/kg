@@ -36,9 +36,10 @@ ordered by value vs implementation effort.
       to toggles (auto-fill, overwrite-mode) without burning key bindings.
       Significant infrastructure but makes kg extensible.
 
-- [ ] **Keyboard macros  C-x ( / C-x ) / C-x e**: Record and replay a
+- [x] **Keyboard macros  C-x ( / C-x ) / C-x e**: Record and replay a
       sequence of keystrokes.  Even a single-level macro (no nesting)
-      covers the vast majority of real use.
+      covers the vast majority of real use.  F3 and F4 added as aliases
+      for start/stop/execute.
 
 - [ ] **M-u / M-l / M-c  upcase / downcase / capitalize word**: Operate
       on the word from point forward.  word.c already walks words; just

@@ -180,6 +180,28 @@ The buffer is marked unmodified when undo returns to the last-saved state.
 .It C-x 0 Ta Delete current window
 .It C-x 1 Ta Delete all other windows
 .El
+.Ss Keyboard Macros
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-x ( / F3 Ta Start recording a keyboard macro
+.It C-x ) / F4 Ta Stop recording
+.It C-x e / F4 Ta Execute (replay) last macro
+.El
+.Pp
+While recording,
+.Ic C-x )
+or
+.Ic F4
+stops the macro.
+When not recording,
+.Ic F4
+(or
+.Ic C-x e )
+replays it.
+Every keystroke during recording is captured, including characters typed into
+prompts (search strings, goto-line numbers, etc.), so the macro replays
+the full interaction faithfully.
+The macro buffer holds up to 1024 keystrokes.
 .Ss Utility
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

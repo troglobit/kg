@@ -108,6 +108,15 @@ void editor_process_keypress(int fd)
 			editor.readonly = !editor.readonly;
 			editor_set_status_message(editor.readonly ? "Read-only" : "Writable");
 			break;
+		case '(':       /* C-x (: Start keyboard macro */
+			macro_start();
+			break;
+		case ')':       /* C-x ): Stop keyboard macro (trim C-x + ')' from buffer) */
+			macro_stop(2);
+			break;
+		case 'e':       /* C-x e: Execute keyboard macro */
+			macro_replay(fd);
+			break;
 		case CTRL_G:    /* C-x C-g: Cancel C-x prefix */
 			editor_set_status_message("");
 			break;
@@ -295,6 +304,15 @@ void editor_process_keypress(int fd)
 		break;
 	case ALT_X:         /* Named command */
 		editor_named_command(fd);
+		break;
+	case KEY_F3:        /* F3: Start keyboard macro */
+		macro_start();
+		break;
+	case KEY_F4:        /* F4: Stop if recording, else execute */
+		if (macro_is_recording())
+			macro_stop(1);
+		else
+			macro_replay(fd);
 		break;
 	case CTRL_L: {      /* Recenter: cycle center → top → bottom */
 		int filerow = editor.rowoff + editor.cy;
