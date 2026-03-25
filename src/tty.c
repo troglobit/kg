@@ -89,6 +89,7 @@ int editor_read_key(int fd)
 			/* M-Backspace: ESC \x7f (xterm) or ESC \b (some terminals) */
 			if (seq[0] == '\x7f' || seq[0] == '\b') return ALT_BACKSPACE;
 			if (seq[0] == '%') return ALT_PCT;
+			if (seq[0] == ';') return ALT_SEMICOLON;
 
 			if (read(fd, seq+1, 1) == 0) return ESC;
 

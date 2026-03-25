@@ -262,6 +262,84 @@ void editor_move_paragraph_forward(void)
 	editor.coloff = 0;
 }
 
+/* Toggle line comment on the current line, or on every line covered by the
+ * mark region when mark is set (M-;).
+ *
+ * Comment prefix (scs) is taken from the current syntax table.  When adding
+ * a comment the prefix is inserted at column 0 followed by a space.  When
+ * removing one, the prefix (plus the optional trailing space) is deleted from
+ * wherever it sits after leading whitespace. */
+void editor_comment_dwim(void)
+{
+	char *scs;
+	int scslen;
+	int row_start, row_end, r;
+
+	if (!editor.syntax || !editor.syntax->singleline_comment_start[0]) {
+		editor_set_status_message("No comment syntax for this buffer");
+		return;
+	}
+
+	scs    = editor.syntax->singleline_comment_start;
+	scslen = strlen(scs);
+
+	row_start = editor.rowoff + editor.cy;
+	row_end   = row_start;
+	if (editor.mark_set) {
+		int mark = editor.mark_row;
+		int cur  = row_start;
+
+		row_start = (mark < cur) ? mark : cur;
+		row_end   = (mark > cur) ? mark : cur;
+	}
+
+	if (row_start >= editor.numrows) return;
+	if (row_end   >= editor.numrows) row_end = editor.numrows - 1;
+
+	for (r = row_start; r <= row_end; r++) {
+		erow *row = &editor.row[r];
+		int   i   = 0;
+
+		/* Find first non-whitespace character. */
+		while (i < row->size && isspace((unsigned char)row->chars[i]))
+			i++;
+
+		if (row->size - i >= scslen &&
+		    strncmp(row->chars + i, scs, scslen) == 0) {
+			/* Already commented: remove scs and an optional following space. */
+			char removed[8];
+			int  rlen = scslen;
+
+			if (i + scslen < row->size && row->chars[i + scslen] == ' ')
+				rlen++;
+
+			memcpy(removed, row->chars + i, rlen);
+			memmove(row->chars + i, row->chars + i + rlen,
+			        row->size - i - rlen + 1);
+			row->size -= rlen;
+			editor_update_row(row);
+
+			undo_push(UNDO_KILL_TEXT, r, i, 0, removed, rlen);
+		} else {
+			/* Not commented: insert scs + space at column 0. */
+			char prefix[8];
+
+			memcpy(prefix, scs, scslen);
+			prefix[scslen] = ' ';
+
+			row->chars = realloc(row->chars, row->size + scslen + 2);
+			memmove(row->chars + scslen + 1, row->chars, row->size + 1);
+			memcpy(row->chars, scs, scslen);
+			row->chars[scslen] = ' ';
+			row->size += scslen + 1;
+			editor_update_row(row);
+
+			undo_push(UNDO_YANK_TEXT, r, 0, 0, prefix, scslen + 1);
+		}
+	}
+	editor.dirty = 1;
+}
+
 /* Reflow the current paragraph to FILL_COLUMN (M-q).
  * Paragraph boundaries are blank lines.  Indentation from the first
  * line is detected and re-applied to every reflowed line.

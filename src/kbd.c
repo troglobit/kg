@@ -284,6 +284,9 @@ void editor_process_keypress(int fd)
 	case ALT_PCT:       /* Query replace */
 		editor_query_replace(fd);
 		break;
+	case ALT_SEMICOLON: /* Toggle line comment */
+		editor_comment_dwim();
+		break;
 	case CTRL_L: {      /* Recenter: cycle center → top → bottom */
 		int filerow = editor.rowoff + editor.cy;
 		switch (editor.recenter_state) {

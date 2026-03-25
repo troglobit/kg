@@ -135,7 +135,8 @@ enum KEY_ACTION {
 	ALT_W,
 	ALT_Q,
 	ALT_BACKSPACE,
-	ALT_PCT        /* M-% query-replace */
+	ALT_PCT,       /* M-% query-replace */
+	ALT_SEMICOLON  /* M-; comment-dwim */
 };
 
 /* Syntax highlight definition */
@@ -390,6 +391,7 @@ void editor_move_paragraph_backward(void);
 void editor_kill_word_forward(void);
 void editor_kill_word_backward(void);
 void editor_reflow_paragraph(void);
+void editor_comment_dwim(void);
 
 /* yank.c */
 void kill_ring_init(void);

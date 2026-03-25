@@ -60,6 +60,7 @@ Multiple files each open in their own buffer.
 .It Delete Ta Delete character at point
 .It C-d Ta Delete character before point
 .It C-k Ta Kill from point to end of line
+.It M-\&; Ta Toggle line comment
 .El
 .Pp
 .Ic C-k
@@ -67,6 +68,17 @@ at end of line joins it with the next line (Emacs behavior).
 Killed text is appended to the kill ring when
 .Ic C-k
 commands are consecutive.
+.Pp
+.Ic M-\&;
+toggles a line comment on the current line using the comment prefix defined
+by the current syntax (e.g.
+.Sq //
+for C,
+.Sq #
+for Python and Shell).
+If the mark is set, every line between the mark and the cursor is toggled.
+When adding a comment the prefix is inserted at column 0 followed by a space;
+when removing one, the prefix and the optional following space are deleted.
 .Ss Copy and Paste
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

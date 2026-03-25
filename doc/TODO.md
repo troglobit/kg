@@ -18,7 +18,7 @@ ordered by value vs implementation effort.
 
 - [x] **C-x i insert-file**: Insert the contents of a file at point.
 
-- [ ] **M-; comment-dwim**: Toggle or insert a line comment using the
+- [x] **M-; comment-dwim**: Toggle or insert a line comment using the
       current buffer's syntax.  Requires plumbing comment-start strings
       from the syntax table through to an editing command.
 
