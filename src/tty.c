@@ -88,6 +88,7 @@ int editor_read_key(int fd)
 			if (seq[0] == 'q') return ALT_Q;
 			/* M-Backspace: ESC \x7f (xterm) or ESC \b (some terminals) */
 			if (seq[0] == '\x7f' || seq[0] == '\b') return ALT_BACKSPACE;
+			if (seq[0] == '%') return ALT_PCT;
 
 			if (read(fd, seq+1, 1) == 0) return ESC;
 

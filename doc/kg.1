@@ -85,11 +85,12 @@ or copy with
 Paste anywhere with
 .Ic C-y .
 The kill ring is shared across all buffers.
-.Ss Search
+.Ss Search and Replace
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action
 .It C-s Ta Incremental search forward
 .It C-r Ta Incremental search backward
+.It M-% Ta Query replace
 .El
 .Pp
 While searching:
@@ -112,6 +113,26 @@ accepts the match;
 cancels and returns to the original position;
 .Ic Backspace
 removes the last character from the query.
+.Pp
+.Ic M-%
+prompts for a search string and a replacement string, then steps through
+every match from the current position to the end of the buffer.
+At each match:
+.Ic y
+or
+.Ic Enter
+replaces the match and moves to the next;
+.Ic n
+skips the match;
+.Ic \&!
+replaces the current match and all remaining matches without prompting;
+.Ic q ,
+.Ic Esc ,
+or
+.Ic C-g
+stops the search.
+Each replacement is independently reversible with
+.Ic C-_ .
 .Ss Undo
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

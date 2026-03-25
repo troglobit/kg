@@ -134,7 +134,8 @@ enum KEY_ACTION {
 	ALT_V,
 	ALT_W,
 	ALT_Q,
-	ALT_BACKSPACE
+	ALT_BACKSPACE,
+	ALT_PCT        /* M-% query-replace */
 };
 
 /* Syntax highlight definition */
@@ -358,6 +359,7 @@ void editor_process_keypress(int fd);
 
 /* search.c */
 void editor_find(int fd);
+void editor_query_replace(int fd);
 
 /* syntax.c */
 int is_separator(int c);

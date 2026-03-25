@@ -7,7 +7,7 @@ ordered by value vs implementation effort.
 
 ### High value, straightforward
 
-- [ ] **M-% query-replace**: Interactive find-and-replace.  Prompt for
+- [x] **M-% query-replace**: Interactive find-and-replace.  Prompt for
       search string then replacement, step through matches with y/n/!
       (replace all)/q.  The incremental search machinery in search.c is
       a natural starting point.
