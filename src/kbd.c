@@ -305,6 +305,18 @@ void editor_process_keypress(int fd)
 	case ALT_X:         /* Named command */
 		editor_named_command(fd);
 		break;
+	case ALT_CARET:     /* Join current line with previous */
+		editor_join_line();
+		break;
+	case ALT_U:         /* Upcase word forward */
+		editor_upcase_word();
+		break;
+	case ALT_L:         /* Downcase word forward */
+		editor_downcase_word();
+		break;
+	case ALT_C:         /* Capitalize word forward */
+		editor_capitalize_word();
+		break;
 	case KEY_F3:        /* F3: Start keyboard macro */
 		macro_start();
 		break;

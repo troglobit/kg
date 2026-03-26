@@ -77,6 +77,10 @@ static int parse_escape(int fd)
 	if (seq[0] == '%') return ALT_PCT;
 	if (seq[0] == ';') return ALT_SEMICOLON;
 	if (seq[0] == 'x') return ALT_X;
+	if (seq[0] == '^') return ALT_CARET;
+	if (seq[0] == 'u') return ALT_U;
+	if (seq[0] == 'l') return ALT_L;
+	if (seq[0] == 'c') return ALT_C;
 
 	if (read(fd, seq+1, 1) == 0) return ESC;
 

@@ -41,15 +41,18 @@ ordered by value vs implementation effort.
       covers the vast majority of real use.  F3 and F4 added as aliases
       for start/stop/execute.
 
-- [ ] **M-u / M-l / M-c  upcase / downcase / capitalize word**: Operate
+- [x] **M-x revert-buffer**: Re-read the current file from disk, discarding
+      all unsaved changes (with confirmation prompt if dirty).  Useful after
+      an external tool modifies the file.
+
+- [x] **M-^ join-line**: Join current line with the previous one
+      (complement to the C-k-at-EOL join-with-next that kg already has).
+      Also add `join-line` as an M-x command.
+
+- [x] **M-u / M-l / M-c  upcase / downcase / capitalize word**: Operate
       on the word from point forward.  word.c already walks words; just
       add tolower/toupper passes.  Also add `upcase-word`, `downcase-word`,
       and `capitalize-word` as M-x commands.
-
-- [ ] **M-y yank-pop**: After C-y, cycle backwards through the kill ring
-      with repeated M-y presses.  Requires expanding the kill ring from a
-      single slot to a small ring (Emacs default is 60; even 8 would cover
-      most use).
 
 ### Lower priority / larger scope
 
@@ -60,12 +63,13 @@ ordered by value vs implementation effort.
 - [ ] **M-z zap-to-char**: Kill from point up to and including a
       prompted character.
 
+- [ ] **M-y yank-pop**: After C-y, cycle backwards through the kill ring
+      with repeated M-y presses.  Requires expanding the kill ring from a
+      single slot to a small ring (Emacs default is 60; even 8 would cover
+      most use).
+
 - [ ] **Multi-entry kill ring**: Prerequisite for M-y yank-pop.  Keep
       the ring bounded (8–16 entries) to avoid unbounded memory growth.
-
-- [ ] **M-^ join-line**: Join current line with the previous one
-      (complement to the C-k-at-EOL join-with-next that kg already has).
-      Also add `join-line` as an M-x command.
 
 - [ ] **M-\\ delete-horizontal-space** and **M-SPC just-one-space**:
       Delete all whitespace around point, or collapse it to a single
@@ -75,10 +79,6 @@ ordered by value vs implementation effort.
 - [ ] **C-t transpose-chars**: Swap the character before point with the
       one at point.  Indispensable for fixing the most common typing errors.
       Also add `transpose-chars` as an M-x command.
-
-- [ ] **M-x revert-buffer**: Re-read the current file from disk, discarding
-      all unsaved changes (with confirmation prompt if dirty).  Useful after
-      an external tool modifies the file.
 
 ## Important (DONE)
 

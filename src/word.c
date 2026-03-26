@@ -262,6 +262,134 @@ void editor_move_paragraph_forward(void)
 	editor.coloff = 0;
 }
 
+/* Join the current line with the previous one, stripping leading whitespace
+ * from the current line and inserting a single space at the join point when
+ * both sides are non-empty.  Cursor lands at the join point (M-^). */
+void editor_join_line(void)
+{
+	int filerow = editor.rowoff + editor.cy;
+	int prev_row_idx, join_col, add_space;
+	erow *prev, *cur;
+	const char *rest;
+	int rest_len;
+
+	if (filerow == 0) return;   /* nothing above */
+
+	prev_row_idx = filerow - 1;
+	prev = &editor.row[prev_row_idx];
+	cur  = &editor.row[filerow];
+
+	rest     = cur->chars;
+	rest_len = cur->size;
+	while (rest_len > 0 && isspace((unsigned char)*rest)) {
+		rest++;
+		rest_len--;
+	}
+
+	join_col  = prev->size;
+	add_space = (join_col > 0 && rest_len > 0) ? 1 : 0;
+
+	undo_push(UNDO_JOIN_LINE, prev_row_idx, join_col, 0, cur->chars, cur->size);
+
+	{
+		char *newchars = realloc(prev->chars, join_col + add_space + rest_len + 1);
+		if (!newchars) {
+			editor_set_status_message("Out of memory joining lines");
+			return;
+		}
+		prev->chars = newchars;
+	}
+	if (add_space)
+		prev->chars[join_col] = ' ';
+	memcpy(prev->chars + join_col + add_space, rest, rest_len);
+	prev->size = join_col + add_space + rest_len;
+	prev->chars[prev->size] = '\0';
+	editor_update_row(prev);
+
+	suppress_undo = 1;
+	editor_del_row(filerow);
+	suppress_undo = 0;
+
+	/* Move cursor to join point */
+	if (prev_row_idx < editor.rowoff) {
+		editor.rowoff = prev_row_idx;
+		editor.cy = 0;
+	} else {
+		editor.cy = prev_row_idx - editor.rowoff;
+	}
+	if (join_col < editor.coloff) {
+		editor.coloff = join_col;
+		editor.cx = 0;
+	} else {
+		editor.cx = join_col - editor.coloff;
+	}
+
+	editor.dirty++;
+}
+
+/* Apply a case transformation to the word forward from point.
+ * mode: 'u' = upcase, 'l' = downcase, 'c' = capitalize. */
+static void do_word_case(int mode)
+{
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
+	int word_start, word_end, word_len, i;
+	char *orig;
+	erow *row;
+
+	row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
+	if (!row) return;
+
+	word_start = filecol;
+	while (word_start < row->size && isspace((unsigned char)row->chars[word_start]))
+		word_start++;
+	word_end = word_start;
+	while (word_end < row->size && !isspace((unsigned char)row->chars[word_end]))
+		word_end++;
+
+	word_len = word_end - word_start;
+	if (word_len <= 0) return;
+
+	/* Save original for undo, then transform in-place */
+	orig = malloc(word_len + 1);
+	if (!orig) return;
+	memcpy(orig, row->chars + word_start, word_len);
+	orig[word_len] = '\0';
+
+	for (i = 0; i < word_len; i++) {
+		unsigned char ch = (unsigned char)orig[i];
+
+		if (mode == 'u')
+			row->chars[word_start + i] = toupper(ch);
+		else if (mode == 'l')
+			row->chars[word_start + i] = tolower(ch);
+		else /* 'c' */
+			row->chars[word_start + i] = (i == 0) ? toupper(ch) : tolower(ch);
+	}
+	editor_update_row(row);
+	editor.dirty++;
+
+	/* Two undo records (LIFO): first pop deletes transformed text, second re-inserts original */
+	undo_push(UNDO_KILL_TEXT, filerow, word_start, 0, orig, word_len);
+	undo_push(UNDO_YANK_TEXT, filerow, word_start, 0, row->chars + word_start, word_len);
+
+	free(orig);
+
+	if (word_end < editor.coloff) {
+		editor.coloff = word_end;
+		editor.cx = 0;
+	} else if (word_end >= editor.coloff + editor.screencols) {
+		editor.coloff = word_end - editor.screencols + 1;
+		editor.cx = editor.screencols - 1;
+	} else {
+		editor.cx = word_end - editor.coloff;
+	}
+}
+
+void editor_upcase_word(void)     { do_word_case('u'); }
+void editor_downcase_word(void)   { do_word_case('l'); }
+void editor_capitalize_word(void) { do_word_case('c'); }
+
 /* Toggle line comment on the current line, or on every line covered by the
  * mark region when mark is set (M-;).
  *

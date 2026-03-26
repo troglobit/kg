@@ -72,6 +72,61 @@ static int strip_trailing_whitespace(erow *row, int filerow)
 	return removed;
 }
 
+/* Re-read the current file from disk, discarding all unsaved changes. */
+static void cmd_revert_buffer(int fd)
+{
+	char *fname;
+	int i, answer;
+
+	if (is_special_buffer(editor.filename)) {
+		editor_set_status_message("Cannot revert a special buffer");
+		return;
+	}
+	if (editor.dirty) {
+		editor_set_status_message("Buffer modified.  Revert from disk? (y/n) ");
+		editor_refresh_screen();
+		answer = editor_read_key(fd);
+		if (answer != 'y' && answer != 'Y') {
+			editor_set_status_message("");
+			return;
+		}
+	}
+
+	for (i = 0; i < editor.numrows; i++)
+		editor_free_row(&editor.row[i]);
+	free(editor.row);
+	editor.row    = NULL;
+	editor.numrows = 0;
+	editor.cx = editor.cy = editor.rowoff = editor.coloff = 0;
+	editor.mark_set = 0;
+
+	/* editor_open frees editor.filename, so pass a copy */
+	fname = strdup(editor.filename);
+	suppress_undo = 1;
+	editor_open(fname);
+	suppress_undo = 0;
+	free(fname);
+
+	/* Clear undo history — the reverted state is the new baseline */
+	undo_free();
+	undo_init();
+	undo_mark_clean();
+
+	editor_set_status_message("Reverted %s", editor.filename);
+}
+
+/* Join the current line with the previous one (M-^). */
+static void cmd_join_line(int fd)
+{
+	(void)fd;
+	editor_join_line();
+}
+
+/* Upcase, downcase, capitalize word forward from point. */
+static void cmd_upcase_word(int fd)    { (void)fd; editor_upcase_word();     }
+static void cmd_downcase_word(int fd)  { (void)fd; editor_downcase_word();   }
+static void cmd_capitalize_word(int fd){ (void)fd; editor_capitalize_word(); }
+
 /* Remove trailing whitespace from every line in the buffer. */
 static void cmd_whitespace_cleanup(int fd)
 {
@@ -123,11 +178,16 @@ struct named_cmd {
 };
 
 static const struct named_cmd cmdtable[] = {
+	{ "capitalize-word",        cmd_capitalize_word        },
 	{ "delete-trailing-space",  cmd_delete_trailing_space  },
+	{ "downcase-word",          cmd_downcase_word          },
 	{ "goto-line",              cmd_goto_line              },
+	{ "join-line",              cmd_join_line              },
 	{ "not-modified",           cmd_not_modified           },
+	{ "revert-buffer",          cmd_revert_buffer          },
 	{ "save-buffer",            cmd_save_buffer            },
 	{ "toggle-read-only",       cmd_toggle_read_only       },
+	{ "upcase-word",            cmd_upcase_word            },
 	{ "version",                cmd_version                },
 	{ "what-cursor-position",   cmd_what_cursor_position   },
 	{ "whitespace-cleanup",     cmd_whitespace_cleanup     },

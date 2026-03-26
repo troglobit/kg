@@ -139,6 +139,10 @@ enum KEY_ACTION {
 	ALT_PCT,       /* M-% query-replace */
 	ALT_SEMICOLON, /* M-; comment-dwim */
 	ALT_X,         /* M-x named command */
+	ALT_CARET,     /* M-^ join-line */
+	ALT_U,         /* M-u upcase-word */
+	ALT_L,         /* M-l downcase-word */
+	ALT_C,         /* M-c capitalize-word */
 	KEY_F3,        /* F3: start keyboard macro */
 	KEY_F4         /* F4: stop or replay keyboard macro */
 };
@@ -406,6 +410,10 @@ void editor_move_paragraph_forward(void);
 void editor_move_paragraph_backward(void);
 void editor_kill_word_forward(void);
 void editor_kill_word_backward(void);
+void editor_join_line(void);
+void editor_upcase_word(void);
+void editor_downcase_word(void);
+void editor_capitalize_word(void);
 void editor_reflow_paragraph(void);
 void editor_comment_dwim(void);
 

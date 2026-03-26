@@ -61,6 +61,10 @@ Multiple files each open in their own buffer.
 .It C-d Ta Delete character before point
 .It C-k Ta Kill from point to end of line
 .It C-o Ta Open line (insert newline, keep cursor)
+.It M-^ Ta Join current line with the previous one
+.It M-u Ta Upcase word forward from point
+.It M-l Ta Downcase word forward from point
+.It M-c Ta Capitalize word forward from point
 .It M-\&; Ta Toggle line comment
 .El
 .Pp
@@ -215,16 +219,32 @@ The macro buffer holds up to 1024 keystrokes.
 prompts for a command name and executes it.
 Available commands:
 .Bl -tag -width "what-cursor-position"
+.It capitalize-word
+Capitalize the word forward from point (first letter upper, rest lower).
+Equivalent to
+.Ic M-c .
 .It delete-trailing-space
 Remove trailing whitespace from the current line only.
 Reversible with
 .Ic C-_ .
+.It downcase-word
+Convert the word forward from point to lower case.
+Equivalent to
+.Ic M-l .
 .It goto-line
 Go to a specific line (prompts for line or line:col).
 Equivalent to
 .Ic M-g .
+.It join-line
+Join the current line with the previous one, stripping leading whitespace
+from the current line and inserting a space at the join point.
+Equivalent to
+.Ic M-^ .
 .It not-modified
 Clear the modified flag without saving.
+.It revert-buffer
+Re-read the current file from disk, discarding all unsaved changes.
+If the buffer is modified a confirmation prompt is shown.
 .It save-buffer
 Save the current buffer to its file.
 Equivalent to
@@ -233,6 +253,10 @@ Equivalent to
 Toggle read-only mode on the current buffer.
 Equivalent to
 .Ic C-x C-q .
+.It upcase-word
+Convert the word forward from point to upper case.
+Equivalent to
+.Ic M-u .
 .It version
 Print the editor version string in the status bar.
 .It what-cursor-position
