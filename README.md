@@ -77,5 +77,5 @@ minimal implementation with Emacs keybindings.
 [3]: https://github.com/troglobit/kg/actions/workflows/build.yml/
 [4]: https://github.com/troglobit/kg/actions/workflows/build.yml/badge.svg
 [5]: https://github.com/troglobit/kg/releases
-[6]: https://img.shields.io/github/v/release/troglobit/kg
+[6]: https://img.shields.io/github/v/release/troglobit/kg?include_prereleases
 [7]: https://man.troglobit.com/man1/kg.1.html
