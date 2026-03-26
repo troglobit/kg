@@ -127,8 +127,8 @@ void editor_process_keypress(int fd)
 		return;
 	}
 
-	/* q closes special *...* buffers without dirty prompt */
-	if (c == 'q' && is_special_buffer(editor.filename)) {
+	/* q closes special *...* buffers, but only if another buffer exists */
+	if (c == 'q' && is_special_buffer(editor.filename) && buf_count > 1) {
 		buf_kill(fd);
 		return;
 	}
