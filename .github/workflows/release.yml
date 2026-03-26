@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Set release variables
         id: vars
         run: |
@@ -27,21 +29,10 @@ jobs:
           else
             echo "latest=false" >> $GITHUB_OUTPUT
           fi
-      - name: Run tests
-        run: make check
-      - name: Build release tarball
-        run: |
-          ver=${{ steps.vars.outputs.ver }}
-          name=kg-${ver}
-          mkdir -p artifacts
-          git archive --format=tar.gz --prefix=${name}/ HEAD -o artifacts/${name}.tar.gz
-      - name: Build .deb package
+      - name: Build release artifacts
         run: |
           sudo apt-get install -y debhelper build-essential
-          make deb
-          mv ../kg_*.deb artifacts/
-      - name: Extract release notes
-        run: sh utils/genrel.sh doc/ChangeLog.md > artifacts/release.md
+          make release
       - uses: ncipollo/release-action@v1
         with:
           name: kg ${{ steps.vars.outputs.ver }}
