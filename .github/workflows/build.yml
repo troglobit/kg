@@ -23,6 +23,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: Build
         run: make
+      - name: Run tests
+        run: make check
       - name: Install to ~/tmp and inspect
         run: |
           DESTDIR=~/tmp make install

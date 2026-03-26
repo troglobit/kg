@@ -27,6 +27,8 @@ jobs:
           else
             echo "latest=false" >> $GITHUB_OUTPUT
           fi
+      - name: Run tests
+        run: make check
       - name: Build release tarball
         run: |
           ver=${{ steps.vars.outputs.ver }}
