@@ -2,6 +2,13 @@
 
 All relevant changes to the project are documented in this file.
 
+## [v1.0.1][] - 2026-03-26
+
+### Bug Fixes
+
+- Fix `q` quitting the editor when typed in a lone `*scratch*` buffer;
+  `q` now only closes special buffers when another buffer is available
+
 ## [v1.0.0][] - 2026-03-26
 
 First release of kg, a small terminal text editor with Emacs key
@@ -33,6 +40,8 @@ bindings, based on [kilo][] by Salvatore Sanfilippo.
 - Built-in key binding reference (C-h)
 - Man page ([kg.1][]) and `make install` / `make uninstall` support
 
-[UNRELEASED]: https://github.com/troglobit/kg/compare/1.0.0...HEAD
+[UNRELEASED]: https://github.com/troglobit/kg/compare/1.0.1...HEAD
+[v1.0.1]:     https://github.com/troglobit/kg/compare/v1.0.0...v1.0.1
+[v1.0.0]:     https://github.com/troglobit/kg/releases/tag/v1.0.0
 [kg.1]:       https://man.troglobit.com/man1/kg.1.html
 [kilo]:       https://github.com/antirez/kilo
