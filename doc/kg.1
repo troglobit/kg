@@ -273,7 +273,8 @@ Each buffer has its own undo history, dirty flag, and read-only state.
 Special system buffers (such as the buffer list) have names enclosed in
 .Sq *
 and can be closed with
-.Ic q .
+.Ic q
+when another buffer is available to switch to.
 .Pp
 The kill ring is global and shared across all buffers, so text killed in
 one buffer can be yanked in another.
