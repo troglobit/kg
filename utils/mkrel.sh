@@ -30,8 +30,10 @@ fi
 # version.  KG_VERSION in src/def.h holds the GA version (e.g. 1.1.0)
 # even for pre-release tags (e.g. v1.1.0-rc1) — both ship as "the same
 # release" semantically — so strip any -alpha/-beta/-rc suffix from the
-# tag before comparing.
+# tag before comparing.  Fall back to GITHUB_REF when git describe can't
+# see the tag (e.g. CI checkout).
 cur_tag=$(git describe --exact-match HEAD 2>/dev/null || true)
+[ -z "$cur_tag" ] && cur_tag=${GITHUB_REF#refs/tags/}
 basetag=$(echo "${cur_tag}" | sed 's/-\(alpha\|beta\|rc\)[0-9]*$//')
 if [ "v${ver}" = "${basetag}" ]; then
     mode=release
@@ -93,7 +95,12 @@ if [ "$mode" = "prerelease" ]; then
     echo "  git commit -m 'Prepare release v${ver}'"
     echo "  git tag v${ver}"
     echo "  git push && git push --tags"
-    [ "$dirty" -eq 1 ] && echo "" && echo "WARNING: uncommitted changes in working tree:" && echo "$dirty_files"
+    if [ "$dirty" -eq 1 ]; then
+        echo ""
+        echo "WARNING: uncommitted changes in working tree:"
+        echo "$dirty_files"
+	exit 1
+    fi
     exit 0
 fi
 
@@ -115,4 +122,8 @@ echo "Created artifacts/release.md"
 echo ""
 echo "Artifacts ready in artifacts/:"
 ls -1 artifacts/
-[ "$dirty" -eq 1 ] && echo "" && echo "WARNING: uncommitted changes in working tree"
+if [ "$dirty" -eq 1 ]; then
+    echo ""
+    echo "WARNING: uncommitted changes in working tree:"
+    echo "$dirty_files"
+fi

@@ -1,4 +1,4 @@
-kg (1.0.0~rc1-1) unstable; urgency=low
+kg (1.0.0-1) unstable; urgency=low
 
   * Emacs-style key bindings for navigation, editing, search, and file
     operations; see [kg.1][] for the full reference
@@ -24,10 +24,4 @@ kg (1.0.0~rc1-1) unstable; urgency=low
   * Built-in key binding reference (C-h)
   * Man page ([kg.1][]) and `make install` / `make uninstall` support
 
- -- Joachim Wiberg <troglobit@gmail.com>  Thu, 26 Mar 2026 17:07:19 +0100
-
-kg (1.0.0~beta1-1) unstable; urgency=low
-
-  * New upstream release.
-
- -- Joachim Wiberg <troglobit@gmail.com>  Tue, 24 Mar 2026 13:07:51 +0100
+ -- Joachim Wiberg <troglobit@gmail.com>  Thu, 26 Mar 2026 17:21:27 +0100
