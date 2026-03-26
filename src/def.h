@@ -35,7 +35,7 @@
 #ifndef DEF_H
 #define DEF_H
 
-#define KG_VERSION "1.0.0-beta1"
+#define KG_VERSION "1.0.0-rc1"
 
 #if defined(__linux__) || defined(__CYGWIN__)
 #define _POSIX_C_SOURCE 200809L
