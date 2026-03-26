@@ -13,14 +13,23 @@ escape sequences.
 
 ## Features
 
-<a href="doc/screenshot.png"><img align="right" src="doc/screenshot.png" width=270 title="kg in action"></a>
+<a href="doc/screenshot.png"><img align="right" src="doc/screenshot.png" width=360 title="kg in action"></a>
 
 - Pure Emacs-style keybindings
-- Syntax highlighting for many programming languages
+- Syntax highlighting for many programming languages, including
+  hex/binary/octal integer literals
 - Multiple buffers with shared kill ring
 - Split-window support
-- Incremental search
+- Incremental search and query-replace (M-%)
+- Multi-level undo (C-_)
+- Paragraph reflow to 72 columns (M-q)
+- Keyboard macros (C-x ( / C-x ) / C-x e)
+- M-x command dispatcher with interactive completion
+- Comment-dwim (M-;)
+- Word-case bindings (M-u / M-l / M-c)
+- Open line (C-o) and join-line (M-^)
 - Auto-indent and bracket autocomplete
+- Suspend to background (C-z)
 - Built-in help screen (C-h)
 - No dependencies (not even curses)
 - Uses standard VT100 escape sequences
