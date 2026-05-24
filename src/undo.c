@@ -186,10 +186,11 @@ void editor_undo(void)
 	case UNDO_JOIN_LINE:
 		/* Reverse: split the line */
 		if (op->row < editor.numrows && op->text) {
-			erow *row = &editor.row[op->row];
-			/* Insert new line after current */
+			erow *row;
+			/* Insert new line after current; this realloc's editor.row,
+			 * so fetch the row pointer afterwards. */
 			editor_insert_row(op->row + 1, op->text, op->len);
-			/* Truncate current line at split point */
+			row = &editor.row[op->row];
 			row->size = op->col;
 			row->chars[op->col] = '\0';
 			editor_update_row(row);

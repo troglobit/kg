@@ -156,6 +156,7 @@ static void draw_mode_line(struct abuf *ab, int ml_row, int win_x, int win_w,
 	 * basename, so foo and dir/foo can be told apart. */
 	buf_display_name(bufidx, bname, sizeof(bname));
 
+
 	/* Emacs-style position indicator. */
 	if (total_rows <= win_h)
 		snprintf(pos, sizeof(pos), "All");

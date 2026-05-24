@@ -351,6 +351,16 @@ static inline int is_special_buffer(const char *filename)
 	return !filename || filename[0] == '*';
 }
 
+/* Return the basename of a filename (part after last '/'), or the whole
+ * string if no '/' is present.  Falls back to "[new]" for NULL. */
+static inline const char *buf_basename(const char *filename)
+{
+	const char *base;
+	if (!filename) return "[new]";
+	base = strrchr(filename, '/');
+	return base ? base+1 : filename;
+}
+
 /* help.c */
 void editor_toggle_help(void);
 void editor_draw_help(struct abuf *ab, int nrows);

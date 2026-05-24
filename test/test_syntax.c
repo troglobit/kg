@@ -300,16 +300,18 @@ static void test_md_setext_underline(void)
 	teardown();
 }
 
-/* Unmatched ** bold marker must not overflow row->hl.
- * Regression: a line containing a lone "**" used to write one past
- * the end of the highlight buffer (heap-buffer-overflow detected by
- * AddressSanitizer when opening doc/TODO.md). */
+/* Regression: a lone "**" on a line used to write one past the end of
+ * row->hl (heap-buffer-overflow caught by AddressSanitizer when opening
+ * doc/TODO.md).  An unmatched marker must leave the row HL_NORMAL. */
 static void test_md_unmatched_bold(void)
 {
+	int i;
+
 	setup(&HLDB[19]);
 	editor_insert_row(0, "stray '**' marker", 17);
-	/* The line should be HL_NORMAL throughout; the key invariant is
-	 * simply that we did not corrupt the heap. */
+
+	for (i = 0; i < 17; i++)
+		CHECK(editor.row[0].hl[i] == HL_NORMAL);
 	teardown();
 }
 

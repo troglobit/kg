@@ -86,16 +86,6 @@ static void buf_reset(void)
 	undo_init();
 }
 
-/* Return the basename of a filename (part after last '/'), or the whole
- * string if no '/' is present.  Falls back to "[new]" for NULL. */
-static const char *buf_basename(const char *filename)
-{
-	const char *base;
-	if (!filename) return "[new]";
-	base = strrchr(filename, '/');
-	return base ? base+1 : filename;
-}
-
 /* Render a unique display name for buflist[idx] into `out`.  If no other
  * active buffer shares its basename the bare basename is used; otherwise
  * the immediate parent directory is prepended ("dir/foo"), matching

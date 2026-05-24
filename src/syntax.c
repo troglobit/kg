@@ -647,7 +647,7 @@ static void markdown_syntax(erow *row)
 			}
 		} else if (i+1 < len && p[i] == '*' && p[i+1] == '*') {
 			for (j = i+2; j+1 < len && !(p[j] == '*' && p[j+1] == '*'); j++);
-			if (j+1 < len && p[j] == '*' && p[j+1] == '*') {
+			if (j+1 < len) {
 				memset(row->hl+i, HL_KEYWORD2, j-i+2);
 				i = j+1;
 			}
@@ -945,6 +945,9 @@ void editor_update_syntax(erow *row)
 				int klen = strlen(keywords[j]);
 				int kw2 = keywords[j][klen-1] == '|';
 				if (kw2) klen--;
+
+				/* Skip keywords that would read past render[rsize]. */
+				if (i + klen > row->rsize) continue;
 
 				if (!memcmp(p, keywords[j], klen) && is_separator(*(p+klen))) {
 					/* Keyword */
