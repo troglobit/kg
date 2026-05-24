@@ -2,6 +2,35 @@
 
 #include "def.h"
 
+/* Refresh the on-disk metadata snapshot for the active buffer.  Called after
+ * a successful open or save so the auto-revert poll has a baseline to
+ * compare against.  If the file is not present (e.g. a freshly created
+ * buffer that has never been saved) the snapshot is zeroed. */
+void editor_snapshot_disk(void)
+{
+	struct stat st;
+
+	editor.disk_changed = 0;
+	if (editor.filename && stat(editor.filename, &st) == 0) {
+		editor.disk_mtime = st.st_mtime;
+		editor.disk_size  = st.st_size;
+	} else {
+		editor.disk_mtime = 0;
+		editor.disk_size  = 0;
+	}
+}
+
+/* Return 1 if the file at `path` exists and its mtime or size disagrees
+ * with the supplied snapshot.  Used both by editor_save (where the snapshot
+ * comes from the buffer's own last-seen state) and by autorevert_poll. */
+int file_state_differs(const char *path, time_t mtime, off_t size)
+{
+	struct stat st;
+
+	if (stat(path, &st) != 0) return 0;
+	return st.st_mtime != mtime || st.st_size != size;
+}
+
 /* Load the specified program in the editor memory and returns 0 on success
  * or 1 on error. */
 int editor_open(char *filename)
@@ -23,6 +52,7 @@ int editor_open(char *filename)
 			perror("Opening file");
 			exit(1);
 		}
+		editor_snapshot_disk();
 		return 1;
 	}
 
@@ -35,6 +65,7 @@ int editor_open(char *filename)
 	fclose(fp);
 	editor.dirty = 0;
 	undo_mark_clean();  /* Mark initial file state as clean */
+	editor_snapshot_disk();
 	return 0;
 }
 
@@ -42,18 +73,51 @@ int editor_open(char *filename)
  * Special buffers (filename is NULL or starts with '*') prompt for a name. */
 int editor_save(int fd)
 {
+	struct stat st;
+	char *newfilename;
 	char *buf;
 	int len;
 	int filefd;
+	int answer;
 
 	if (is_special_buffer(editor.filename)) {
 		char newname[256];
+
 		if (editor_read_line_path(fd, "Write file: ", newname, sizeof(newname)) < 0
 		    || !newname[0])
 			return 1;
+
+		/* If the entered path already exists, warn before clobbering — and
+		 * do it *before* mutating the buffer's filename or syntax so that
+		 * a "no" answer leaves the buffer untouched. */
+		if (stat(newname, &st) == 0) {
+			editor_set_status_message("File %s exists.  Overwrite? (y/n) ", newname);
+			editor_refresh_screen();
+			answer = editor_read_key(fd);
+			if (answer != 'y' && answer != 'Y') {
+				editor_set_status_message("Save aborted");
+				return 1;
+			}
+		}
+
+		newfilename = strdup(newname);
+		if (!newfilename) {
+			editor_set_status_message("Out of memory");
+			return 1;
+		}
 		free(editor.filename);
-		editor.filename = strdup(newname);
+		editor.filename = newfilename;
 		editor_select_syntax_highlight(editor.filename);
+	} else if (file_state_differs(editor.filename,
+	                              editor.disk_mtime, editor.disk_size)) {
+		editor_set_status_message("File %s changed on disk.  Save anyway? (y/n) ",
+		                          editor.filename);
+		editor_refresh_screen();
+		answer = editor_read_key(fd);
+		if (answer != 'y' && answer != 'Y') {
+			editor_set_status_message("Save aborted");
+			return 1;
+		}
 	}
 
 	buf = editor_rows_to_string(editor.row, editor.numrows, &len);
@@ -69,6 +133,7 @@ int editor_save(int fd)
 	free(buf);
 	editor.dirty = 0;
 	undo_mark_clean();  /* Mark this state as clean for undo tracking */
+	editor_snapshot_disk();
 	editor_set_status_message("Wrote %s (%d bytes)", editor.filename, len);
 	return 0;
 

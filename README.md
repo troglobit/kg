@@ -26,6 +26,7 @@ escape sequences.
 - Keyboard macros (C-x ( / C-x ) / C-x e)
 - M-x command dispatcher with interactive completion
 - Tab completion for file paths in the minibuffer
+- Detects external changes to open files; optional auto-revert
 - Shell commands (M-!) and pipe-region-through-command (M-|)
 - Comment-dwim (M-;)
 - Word-case bindings (M-u / M-l / M-c)

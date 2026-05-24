@@ -54,10 +54,12 @@ ordered by value vs implementation effort.
       `C-x C-w` and any other path-prompting command.  Single biggest
       day-to-day friction once everything else works.
 
-- [ ] **External-modification detection on save**: When editing
+- [x] **External-modification detection on save**: When editing
       `/etc/*` something else may have rewritten the file.  Stat the
       file before save; if mtime/size changed since we read it, prompt
-      "file changed on disk, save anyway?".
+      "file changed on disk, save anyway?".  Also: live `(changed)`
+      marker in the mode line, plus optional `M-x auto-revert-mode` /
+      `global-auto-revert-mode` that silently reload clean buffers.
 
 - [ ] **Backup-on-save / simple autosave**: Write a `file~` (or `#file#`)
       safety net on first save in a session.  Cheap to add, saves grief

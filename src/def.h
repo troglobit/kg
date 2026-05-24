@@ -207,6 +207,10 @@ struct editor_config {
 	int readonly;       /* If 1, buffer is read-only (editing is blocked). */
 	int last_key;       /* Last key processed, for command repetition logic. */
 	int recenter_state; /* Cycle state for C-l: 0=center, 1=top, 2=bottom. */
+	time_t disk_mtime;  /* mtime of `filename` when we last read/wrote it. */
+	off_t disk_size;    /* size of `filename` when we last read/wrote it. */
+	int disk_changed;   /* Set by the auto-revert poll when disk differs. */
+	int auto_revert;    /* Per-buffer auto-revert toggle. */
 };
 
 /* Append buffer for efficient screen rendering */
@@ -281,6 +285,10 @@ struct editor_buffer {
 	struct undo_stack undostack; /* per-buffer undo chain */
 	int active;                 /* 1 if this slot is in use */
 	int readonly;               /* 1 if buffer is read-only */
+	time_t disk_mtime;
+	off_t disk_size;
+	int disk_changed;
+	int auto_revert;
 };
 
 /* Global editor state */
@@ -292,6 +300,7 @@ extern struct undo_stack undostack;
 extern struct editor_buffer buflist[MAX_BUFFERS];
 extern int buf_current; /* index into buflist[] of the active buffer */
 extern int buf_count;   /* number of active buffers */
+extern int global_auto_revert; /* Default auto-revert flag for all buffers. */
 
 extern struct editor_window winlist[MAX_WINDOWS];
 extern int win_current;     /* index into winlist[] of the active window */
@@ -303,6 +312,8 @@ extern int win_total_cols;  /* terminal cols (set by update_window_size) */
 void buf_save_current_state(void);
 int  editor_read_line(int fd, const char *prompt, char *buf, int bufsize);
 int  editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize);
+int  autorevert_poll(void);
+void buf_reload_from_disk(void);
 
 /* path.c */
 void editor_path_split(const char *path, char *dir, int dsize, char *file, int fsize);
@@ -390,6 +401,8 @@ int editor_open(char *filename);
 int editor_save(int fd);
 void editor_write_file(int fd);
 void editor_insert_file(int fd);
+void editor_snapshot_disk(void);
+int  file_state_differs(const char *path, time_t mtime, off_t size);
 
 /* kbd.c */
 void editor_process_keypress(int fd);
@@ -427,6 +440,7 @@ void editor_at_exit(void);
 int enable_raw_mode(int fd);
 void editor_suspend(void);
 int editor_read_key(int fd);
+int editor_read_key_idle(int fd);
 int get_cursor_position(int ifd, int ofd, int *rows, int *cols);
 int get_window_size(int ifd, int ofd, int *rows, int *cols);
 void update_window_size(void);

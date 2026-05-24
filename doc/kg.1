@@ -256,6 +256,11 @@ interactive programs that require a terminal will not work.
 prompts for a command name and executes it.
 Available commands:
 .Bl -tag -width "what-cursor-position"
+.It auto-revert-mode
+Toggle automatic re-reading of the current buffer's file when it changes
+on disk.
+A buffer is only auto-reverted while it is unmodified; a buffer with
+unsaved edits is never silently overwritten.
 .It capitalize-word
 Capitalize the word forward from point (first letter upper, rest lower).
 Equivalent to
@@ -268,6 +273,11 @@ Reversible with
 Convert the word forward from point to lower case.
 Equivalent to
 .Ic M-l .
+.It global-auto-revert-mode
+Toggle automatic re-reading for every buffer at once.
+Equivalent to enabling
+.Ic auto-revert-mode
+in every buffer.
 .It goto-line
 Go to a specific line (prompts for line or line:col).
 Equivalent to
@@ -324,6 +334,29 @@ when another buffer is available to switch to.
 .Pp
 The kill ring is global and shared across all buffers, so text killed in
 one buffer can be yanked in another.
+.Sh EXTERNAL CHANGES
+.Nm
+keeps track of each open file's modification time and size as last seen.
+A background poll catches files that have been rewritten by another
+process and tags the affected buffer with a
+.Sq (changed)
+marker in the mode line.
+On
+.Ic C-x C-s
+against such a buffer the user is prompted to confirm before overwriting.
+.Pp
+With
+.Ic auto-revert-mode
+(or its global counterpart
+.Ic global-auto-revert-mode )
+turned on, a clean buffer whose file has changed on disk is silently
+reloaded so the view always matches the file.
+Modified buffers are never reverted automatically — the
+.Sq (changed)
+marker stays visible until either the user saves (and is prompted) or
+explicitly runs
+.Ic M-x revert-buffer
+to discard local edits.
 .Sh WINDOWS
 The terminal can be divided into multiple windows with
 .Ic C-x 2

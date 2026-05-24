@@ -167,6 +167,35 @@ int editor_read_key(int fd)
 	return key;
 }
 
+/* Top-level main-loop variant of editor_read_key: while waiting for the
+ * next key, run the auto-revert poll on every 100 ms read timeout so
+ * external file changes are noticed without requiring a keystroke.
+ * Minibuffer prompts and y/n confirmations call the plain editor_read_key
+ * instead so they aren't redrawn (or silently reverted) under the user. */
+int editor_read_key_idle(int fd)
+{
+	char c;
+	int nread;
+	int key;
+
+	key = macro_next_key();
+	if (key >= 0)
+		return key;
+
+	while ((nread = read(fd, &c, 1)) == 0) {
+		if (autorevert_poll())
+			editor_refresh_screen();
+	}
+	if (nread == -1) {
+		running = 0;
+		return 0;
+	}
+
+	key = (c == ESC) ? parse_escape(fd) : (unsigned char)c;
+	macro_on_key(key);
+	return key;
+}
+
 /* Use the ESC [6n escape sequence to query the horizontal cursor position
  * and return it. On error -1 is returned, on success the position of the
  * cursor is stored at *rows and *cols and 0 is returned. */

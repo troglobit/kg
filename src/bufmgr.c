@@ -20,6 +20,10 @@ struct editor_buffer buflist[MAX_BUFFERS];
 int buf_current = 0;
 int buf_count   = 0;
 
+#define AUTOREVERT_POLL_INTERVAL_SEC 2
+
+static void silent_revert_current(void);
+
 /* Save live editor state (and global undostack) into buflist[idx]. */
 static void buf_save_to_slot(int idx)
 {
@@ -36,6 +40,10 @@ static void buf_save_to_slot(int idx)
 	b->mark_row = editor.mark_row;   b->mark_col = editor.mark_col;
 	b->undostack = undostack;   /* struct copy — pointer ownership moves here */
 	b->readonly = editor.readonly;
+	b->disk_mtime = editor.disk_mtime;
+	b->disk_size = editor.disk_size;
+	b->disk_changed = editor.disk_changed;
+	b->auto_revert = editor.auto_revert;
 	b->active = 1;
 }
 
@@ -55,10 +63,21 @@ static void buf_restore_from_slot(int idx)
 	editor.mark_row = b->mark_row;   editor.mark_col = b->mark_col;
 	undostack = b->undostack;   /* struct copy */
 	editor.readonly = b->readonly;
+	editor.disk_mtime = b->disk_mtime;
+	editor.disk_size = b->disk_size;
+	editor.disk_changed = b->disk_changed;
+	editor.auto_revert = b->auto_revert;
 	buf_current = idx;
 	/* Keep the active window pointing at the newly-restored buffer. */
 	if (win_count > 0)
 		winlist[win_current].bufidx = idx;
+
+	/* If this buffer was flagged stale while it sat in its slot, reload
+	 * it now — but only when the user has opted in and there are no
+	 * unsaved edits to lose. */
+	if (editor.disk_changed && !editor.dirty &&
+	    (editor.auto_revert || global_auto_revert))
+		silent_revert_current();
 }
 
 /* Save current window view and buffer state before switching away. */
@@ -66,6 +85,154 @@ void buf_save_current_state(void)
 {
 	win_save_active_view();
 	buf_save_to_slot(buf_current);
+}
+
+/* Clamp the current cursor (cx/cy/rowoff/coloff) to whatever the current
+ * buffer can hold, without recentering.  After a reload the file may be
+ * shorter than the old view; this keeps the cursor on a real row and
+ * column while preserving the user's scroll position when possible. */
+static void clamp_cursor_to_buffer(void)
+{
+	int filerow, filecol, rowsize;
+
+	if (editor.numrows == 0) {
+		editor.cx = editor.cy = editor.rowoff = editor.coloff = 0;
+		return;
+	}
+
+	filerow = editor.rowoff + editor.cy;
+	filecol = editor.coloff + editor.cx;
+	if (filerow >= editor.numrows) filerow = editor.numrows - 1;
+	if (filerow < 0) filerow = 0;
+
+	rowsize = editor.row[filerow].size;
+	if (filecol > rowsize) filecol = rowsize;
+	if (filecol < 0) filecol = 0;
+
+	if (editor.rowoff > filerow) editor.rowoff = filerow;
+	if (editor.rowoff + editor.screenrows <= filerow)
+		editor.rowoff = filerow - editor.screenrows + 1;
+	if (editor.rowoff < 0) editor.rowoff = 0;
+	editor.cy = filerow - editor.rowoff;
+
+	if (editor.coloff > filecol) editor.coloff = filecol;
+	if (editor.coloff + editor.screencols <= filecol)
+		editor.coloff = filecol - editor.screencols + 1;
+	if (editor.coloff < 0) editor.coloff = 0;
+	editor.cx = filecol - editor.coloff;
+}
+
+/* Reload the current buffer's file from disk and reset undo history.
+ * Leaves the cursor wherever the caller had it set; callers that want
+ * the post-reload cursor clamped to the new file size should call
+ * clamp_cursor_to_buffer() afterwards.
+ *
+ * Syncs the fresh state back into buflist[buf_current] so other windows
+ * showing the same buffer don't dangle on the old, freed filename pointer
+ * after editor_open's realloc. */
+void buf_reload_from_disk(void)
+{
+	char *fname;
+	int i;
+
+	for (i = 0; i < editor.numrows; i++)
+		editor_free_row(&editor.row[i]);
+	free(editor.row);
+	editor.row = NULL;
+	editor.numrows = 0;
+	editor.mark_set = 0;
+
+	fname = strdup(editor.filename);
+	if (!fname) return;
+
+	suppress_undo = 1;
+	editor_open(fname);
+	suppress_undo = 0;
+	free(fname);
+
+	undo_free();
+	undo_init();
+	undo_mark_clean();
+
+	buf_save_to_slot(buf_current);
+}
+
+/* Auto-revert path: reload the buffer from disk and try to keep the user's
+ * viewport intact (rather than recentering on the cursor as an explicit
+ * M-x revert-buffer would).  Never called against a dirty buffer. */
+static void silent_revert_current(void)
+{
+	int saved_cx = editor.cx;
+	int saved_cy = editor.cy;
+	int saved_rowoff = editor.rowoff;
+	int saved_coloff = editor.coloff;
+
+	buf_reload_from_disk();
+
+	editor.cx = saved_cx;
+	editor.cy = saved_cy;
+	editor.rowoff = saved_rowoff;
+	editor.coloff = saved_coloff;
+	clamp_cursor_to_buffer();
+	buf_save_to_slot(buf_current);
+
+	editor_set_status_message("Reverted %s from disk",
+	                          buf_basename(editor.filename));
+}
+
+/* Walk every active buffer, stat its underlying file, and update the
+ * disk_changed flag when the mtime or size disagrees with our last seen
+ * snapshot.  Cheap on a local FS; we still rate-limit to keep network
+ * stat() latency from compounding across keystrokes.
+ *
+ * Returns 1 if anything visible changed (a flag transitioned, or a buffer
+ * was silently reverted) and the screen wants a redraw.  Returns 0 when
+ * the debounce skipped the scan or nothing of consequence shifted. */
+int autorevert_poll(void)
+{
+	static time_t last_poll;
+	time_t now = time(NULL);
+	int refresh_needed = 0;
+	int i;
+
+	if (now - last_poll < AUTOREVERT_POLL_INTERVAL_SEC) return 0;
+	last_poll = now;
+
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		struct editor_buffer *b = &buflist[i];
+		const char *fname;
+		int *flag;
+		time_t snap_mtime;
+		off_t snap_size;
+		int new_changed;
+
+		if (!b->active) continue;
+
+		fname = (i == buf_current) ? editor.filename : b->filename;
+		if (is_special_buffer(fname)) continue;
+
+		if (i == buf_current) {
+			flag       = &editor.disk_changed;
+			snap_mtime = editor.disk_mtime;
+			snap_size  = editor.disk_size;
+		} else {
+			flag       = &b->disk_changed;
+			snap_mtime = b->disk_mtime;
+			snap_size  = b->disk_size;
+		}
+
+		new_changed = file_state_differs(fname, snap_mtime, snap_size);
+		if (new_changed != *flag) {
+			*flag = new_changed;
+			refresh_needed = 1;
+		}
+		if (i == buf_current && new_changed && !editor.dirty &&
+		    (editor.auto_revert || global_auto_revert)) {
+			silent_revert_current();
+			refresh_needed = 1;
+		}
+	}
+	return refresh_needed;
 }
 
 /* Reset editor to a clean empty state and initialise a fresh undo stack.
@@ -83,6 +250,10 @@ static void buf_reset(void)
 	editor.cx_prefix = 0;
 	editor.paste_mode = 0;
 	editor.readonly = 0;
+	editor.disk_mtime = 0;
+	editor.disk_size = 0;
+	editor.disk_changed = 0;
+	editor.auto_revert = 0;
 	undo_init();
 }
 

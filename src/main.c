@@ -37,6 +37,7 @@
 struct editor_config editor;
 int running = 1;
 int suppress_undo = 0;
+int global_auto_revert = 0;
 
 void init_editor(void)
 {
@@ -56,6 +57,10 @@ void init_editor(void)
 	editor.mark_col = 0;
 	editor.readonly = 0;
 	editor.echo_cursor_col = 0;
+	editor.disk_mtime = 0;
+	editor.disk_size = 0;
+	editor.disk_changed = 0;
+	editor.auto_revert = 0;
 	gettimeofday(&editor.last_char_time, NULL);
 	kill_ring_init();
 	undo_init();
@@ -100,6 +105,7 @@ int main(int argc, char **argv)
 	editor_set_status_message(
 		"HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line | C-h = help");
 	while (running) {
+		autorevert_poll();
 		editor_refresh_screen();
 		editor_process_keypress(STDIN_FILENO);
 	}

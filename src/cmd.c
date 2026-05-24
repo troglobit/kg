@@ -75,8 +75,7 @@ static int strip_trailing_whitespace(erow *row, int filerow)
 /* Re-read the current file from disk, discarding all unsaved changes. */
 static void cmd_revert_buffer(int fd)
 {
-	char *fname;
-	int i, answer;
+	int answer;
 
 	if (is_special_buffer(editor.filename)) {
 		editor_set_status_message("Cannot revert a special buffer");
@@ -92,26 +91,8 @@ static void cmd_revert_buffer(int fd)
 		}
 	}
 
-	for (i = 0; i < editor.numrows; i++)
-		editor_free_row(&editor.row[i]);
-	free(editor.row);
-	editor.row    = NULL;
-	editor.numrows = 0;
 	editor.cx = editor.cy = editor.rowoff = editor.coloff = 0;
-	editor.mark_set = 0;
-
-	/* editor_open frees editor.filename, so pass a copy */
-	fname = strdup(editor.filename);
-	suppress_undo = 1;
-	editor_open(fname);
-	suppress_undo = 0;
-	free(fname);
-
-	/* Clear undo history — the reverted state is the new baseline */
-	undo_free();
-	undo_init();
-	undo_mark_clean();
-
+	buf_reload_from_disk();
 	editor_set_status_message("Reverted %s", editor.filename);
 }
 
@@ -130,6 +111,27 @@ static void cmd_capitalize_word(int fd){ (void)fd; editor_capitalize_word(); }
 /* Shell command (M-!) and shell-command-on-region (M-|). */
 static void cmd_shell_command(int fd)           { editor_shell_command(fd);            }
 static void cmd_shell_command_on_region(int fd) { editor_shell_command_on_region(fd);  }
+
+/* Toggle auto-revert on the current buffer.  When on (or when the global
+ * setting below is on), a clean buffer whose underlying file has changed on
+ * disk is silently reloaded by the next poll. */
+static void cmd_auto_revert_mode(int fd)
+{
+	(void)fd;
+	editor.auto_revert = !editor.auto_revert;
+	editor_set_status_message("Auto-revert for %s is %s",
+	                          buf_basename(editor.filename),
+	                          editor.auto_revert ? "on" : "off");
+}
+
+/* Toggle auto-revert for every buffer at once. */
+static void cmd_global_auto_revert_mode(int fd)
+{
+	(void)fd;
+	global_auto_revert = !global_auto_revert;
+	editor_set_status_message("Global auto-revert is %s",
+	                          global_auto_revert ? "on" : "off");
+}
 
 /* Remove trailing whitespace from every line in the buffer. */
 static void cmd_whitespace_cleanup(int fd)
@@ -182,21 +184,23 @@ struct named_cmd {
 };
 
 static const struct named_cmd cmdtable[] = {
-	{ "capitalize-word",        cmd_capitalize_word        },
-	{ "delete-trailing-space",  cmd_delete_trailing_space  },
-	{ "downcase-word",          cmd_downcase_word          },
-	{ "goto-line",              cmd_goto_line              },
-	{ "join-line",              cmd_join_line              },
-	{ "not-modified",           cmd_not_modified           },
-	{ "revert-buffer",          cmd_revert_buffer          },
-	{ "save-buffer",            cmd_save_buffer            },
-	{ "shell-command",          cmd_shell_command          },
-	{ "shell-command-on-region",cmd_shell_command_on_region},
-	{ "toggle-read-only",       cmd_toggle_read_only       },
-	{ "upcase-word",            cmd_upcase_word            },
-	{ "version",                cmd_version                },
-	{ "what-cursor-position",   cmd_what_cursor_position   },
-	{ "whitespace-cleanup",     cmd_whitespace_cleanup     },
+	{ "auto-revert-mode",         cmd_auto_revert_mode         },
+	{ "capitalize-word",          cmd_capitalize_word          },
+	{ "delete-trailing-space",    cmd_delete_trailing_space    },
+	{ "downcase-word",            cmd_downcase_word            },
+	{ "global-auto-revert-mode",  cmd_global_auto_revert_mode  },
+	{ "goto-line",                cmd_goto_line                },
+	{ "join-line",                cmd_join_line                },
+	{ "not-modified",             cmd_not_modified             },
+	{ "revert-buffer",            cmd_revert_buffer            },
+	{ "save-buffer",              cmd_save_buffer              },
+	{ "shell-command",            cmd_shell_command            },
+	{ "shell-command-on-region",  cmd_shell_command_on_region  },
+	{ "toggle-read-only",         cmd_toggle_read_only         },
+	{ "upcase-word",              cmd_upcase_word              },
+	{ "version",                  cmd_version                  },
+	{ "what-cursor-position",     cmd_what_cursor_position     },
+	{ "whitespace-cleanup",       cmd_whitespace_cleanup       },
 	{ NULL, NULL }
 };
 

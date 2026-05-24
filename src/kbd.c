@@ -7,7 +7,7 @@
 void editor_process_keypress(int fd)
 {
 	struct timeval tv;
-	int c = editor_read_key(fd);
+	int c = editor_read_key_idle(fd);
 	long elapsed;
 
 	/* Paste mode detection: if characters arrive very quickly (< 30ms apart),
