@@ -647,7 +647,7 @@ static void markdown_syntax(erow *row)
 			}
 		} else if (i+1 < len && p[i] == '*' && p[i+1] == '*') {
 			for (j = i+2; j+1 < len && !(p[j] == '*' && p[j+1] == '*'); j++);
-			if (j+1 <= len) {
+			if (j+1 < len && p[j] == '*' && p[j+1] == '*') {
 				memset(row->hl+i, HL_KEYWORD2, j-i+2);
 				i = j+1;
 			}

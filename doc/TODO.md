@@ -30,6 +30,12 @@ ordered by value vs implementation effort.
       cursor.  The classic "make room above the next line" command.  One
       liner.
 
+- [x] Crash when opening doc/TODO.md
+
+        ~/src/kg(master)$ kg doc/TODO.md 
+        malloc(): invalid next size (unsorted)
+        Aborted (core dumped)
+
 ### Medium value
 
 - [x] **M-x named commands**: Execute a command by name.  Opens the door
