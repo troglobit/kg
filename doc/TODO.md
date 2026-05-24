@@ -44,7 +44,7 @@ ordered by value vs implementation effort.
 
 ### Stability / safety (high priority)
 
-- [ ] **`M-!` shell-command** and **`M-|` shell-command-on-region**:
+- [x] **`M-!` shell-command** and **`M-|` shell-command-on-region**:
       Run an external shell command, optionally piping the current region
       through it and replacing the region with the output.  For a remote-shell
       editor this is the highest-leverage missing feature — pipe through

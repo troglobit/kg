@@ -213,7 +213,32 @@ The macro buffer holds up to 1024 keystrokes.
 .It C-l Ta Recenter: cycle current line to center, top, then bottom of window
 .It C-h Ta Toggle built-in help screen
 .It M-x Ta Execute named command
+.It M-\&! Ta Run shell command, insert output at point
+.It M-\&| Ta Pipe region through shell command, replace it with the output
 .El
+.Pp
+.Ic M-\&!
+prompts for a shell command line, runs it with
+.Ql /bin/sh -c ,
+and inserts the command's standard output at the cursor position.
+The command's standard error is discarded so it cannot disturb the editor.
+.Pp
+.Ic M-\&|
+extracts the active region, prompts for a shell command, runs it with the
+region piped to standard input, and replaces the region with the command's
+standard output.
+The original region text is left in the kill ring so
+.Ic C-y
+recovers it if the result was not what was wanted.
+.Pp
+Both commands are intended for non-interactive filters such as
+.Xr sort 1 ,
+.Xr fmt 1 ,
+.Xr column 1 ,
+.Xr jq 1
+or
+.Xr sed 1 ;
+interactive programs that require a terminal will not work.
 .Pp
 .Ic M-x
 prompts for a command name and executes it.
@@ -249,6 +274,15 @@ If the buffer is modified a confirmation prompt is shown.
 Save the current buffer to its file.
 Equivalent to
 .Ic C-x C-s .
+.It shell-command
+Run a shell command and insert its standard output at point.
+Equivalent to
+.Ic M-\&! .
+.It shell-command-on-region
+Pipe the region through a shell command and replace it with the command's
+standard output.
+Equivalent to
+.Ic M-\&| .
 .It toggle-read-only
 Toggle read-only mode on the current buffer.
 Equivalent to

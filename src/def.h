@@ -143,6 +143,8 @@ enum KEY_ACTION {
 	ALT_U,         /* M-u upcase-word */
 	ALT_L,         /* M-l downcase-word */
 	ALT_C,         /* M-c capitalize-word */
+	ALT_BANG,      /* M-! shell-command */
+	ALT_PIPE,      /* M-| shell-command-on-region */
 	KEY_F3,        /* F3: start keyboard macro */
 	KEY_F4         /* F4: stop or replay keyboard macro */
 };
@@ -395,6 +397,11 @@ void macro_replay(int fd);
 void editor_find(int fd);
 void editor_query_replace(int fd);
 
+/* shell.c */
+void editor_shell_command(int fd);
+void editor_shell_command_on_region(int fd);
+char *shell_run(const char *cmd, const char *in, int inlen, int *out_len);
+
 /* syntax.c */
 int is_separator(int c);
 int editor_row_has_open_comment(erow *row);
@@ -438,6 +445,7 @@ void editor_set_mark(void);
 void editor_exchange_point_and_mark(void);
 void editor_kill_region(void);
 void editor_copy_region(void);
+char *editor_get_region_text(int *out_len);
 void editor_yank(void);
 
 /* undo.c */

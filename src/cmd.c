@@ -127,6 +127,10 @@ static void cmd_upcase_word(int fd)    { (void)fd; editor_upcase_word();     }
 static void cmd_downcase_word(int fd)  { (void)fd; editor_downcase_word();   }
 static void cmd_capitalize_word(int fd){ (void)fd; editor_capitalize_word(); }
 
+/* Shell command (M-!) and shell-command-on-region (M-|). */
+static void cmd_shell_command(int fd)           { editor_shell_command(fd);            }
+static void cmd_shell_command_on_region(int fd) { editor_shell_command_on_region(fd);  }
+
 /* Remove trailing whitespace from every line in the buffer. */
 static void cmd_whitespace_cleanup(int fd)
 {
@@ -186,6 +190,8 @@ static const struct named_cmd cmdtable[] = {
 	{ "not-modified",           cmd_not_modified           },
 	{ "revert-buffer",          cmd_revert_buffer          },
 	{ "save-buffer",            cmd_save_buffer            },
+	{ "shell-command",          cmd_shell_command          },
+	{ "shell-command-on-region",cmd_shell_command_on_region},
 	{ "toggle-read-only",       cmd_toggle_read_only       },
 	{ "upcase-word",            cmd_upcase_word            },
 	{ "version",                cmd_version                },

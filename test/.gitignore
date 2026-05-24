@@ -2,6 +2,7 @@ test_autocomplete
 test_basic
 test_buffer
 test_region
+test_shell
 test_syntax
 test_undo
 test_word

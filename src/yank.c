@@ -115,7 +115,7 @@ void editor_exchange_point_and_mark(void)
 }
 
 /* Get text from region (between mark and point) */
-static char *get_region_text(int *out_len)
+char *editor_get_region_text(int *out_len)
 {
 	int start_row, start_col, end_row, end_col;
 	int cur_row = editor.rowoff + editor.cy;
@@ -201,7 +201,7 @@ void editor_kill_region(void)
 		return;
 	}
 
-	text = get_region_text(&len);
+	text = editor_get_region_text(&len);
 	if (!text) {
 		editor_set_status_message("Empty region");
 		return;
@@ -254,7 +254,7 @@ void editor_copy_region(void)
 		return;
 	}
 
-	text = get_region_text(&len);
+	text = editor_get_region_text(&len);
 	if (!text) {
 		editor_set_status_message("Empty region");
 		return;

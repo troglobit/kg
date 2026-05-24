@@ -81,6 +81,8 @@ static int parse_escape(int fd)
 	if (seq[0] == 'u') return ALT_U;
 	if (seq[0] == 'l') return ALT_L;
 	if (seq[0] == 'c') return ALT_C;
+	if (seq[0] == '!') return ALT_BANG;
+	if (seq[0] == '|') return ALT_PIPE;
 
 	if (read(fd, seq+1, 1) == 0) return ESC;
 

@@ -14,7 +14,8 @@ man1dir = $(mandir)/man1
 
 # Source files
 SRCS = main.c tty.c syntax.c autocomplete.c buffer.c fileio.c \
-       display.c search.c basic.c word.c kbd.c yank.c undo.c help.c bufmgr.c winmgr.c cmd.c macro.c
+       display.c search.c basic.c word.c kbd.c yank.c undo.c help.c bufmgr.c winmgr.c cmd.c macro.c \
+       shell.c
 
 # Object and header files
 OBJS = $(addprefix $(OBJDIR)/,$(SRCS:.c=.o))
@@ -25,7 +26,8 @@ TESTDIR  = test
 TESTBINS = $(TESTDIR)/test_undo $(TESTDIR)/test_buffer \
            $(TESTDIR)/test_syntax $(TESTDIR)/test_yank \
            $(TESTDIR)/test_autocomplete $(TESTDIR)/test_word \
-           $(TESTDIR)/test_basic $(TESTDIR)/test_region
+           $(TESTDIR)/test_basic $(TESTDIR)/test_region \
+           $(TESTDIR)/test_shell
 # Source objects needed by tests (subset of OBJS, no main/tty/display/etc.)
 TEST_SRCS_OBJS = $(OBJDIR)/undo.o $(OBJDIR)/buffer.o $(OBJDIR)/syntax.o
 
@@ -89,6 +91,11 @@ $(TESTDIR)/test_basic: $(TESTDIR)/test_basic.o $(TESTDIR)/test.o \
 
 $(TESTDIR)/test_region: $(TESTDIR)/test_region.o $(TESTDIR)/test.o \
         $(TESTDIR)/stubs_noyank.o $(OBJDIR)/yank.o $(TEST_SRCS_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
+
+$(TESTDIR)/test_shell: $(TESTDIR)/test_shell.o $(TESTDIR)/test.o \
+        $(TESTDIR)/stubs_noyank.o $(OBJDIR)/shell.o $(OBJDIR)/yank.o \
+        $(OBJDIR)/buffer.o $(OBJDIR)/undo.o $(OBJDIR)/syntax.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(TESTDIR)/%.o: $(TESTDIR)/%.c $(HDRS)

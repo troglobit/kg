@@ -317,6 +317,12 @@ void editor_process_keypress(int fd)
 	case ALT_C:         /* Capitalize word forward */
 		editor_capitalize_word();
 		break;
+	case ALT_BANG:      /* Shell command */
+		editor_shell_command(fd);
+		break;
+	case ALT_PIPE:      /* Shell command on region */
+		editor_shell_command_on_region(fd);
+		break;
 	case KEY_F3:        /* F3: Start keyboard macro */
 		macro_start();
 		break;
