@@ -96,6 +96,48 @@ static const char *buf_basename(const char *filename)
 	return base ? base+1 : filename;
 }
 
+/* Render a unique display name for buflist[idx] into `out`.  If no other
+ * active buffer shares its basename the bare basename is used; otherwise
+ * the immediate parent directory is prepended ("dir/foo"), matching
+ * Emacs' uniquify "forward" style.  Doesn't try to resolve deeper
+ * collisions where two buffers share both basename and parent dir
+ * (rare; the file name column in C-x C-b still distinguishes them). */
+void buf_display_name(int idx, char *out, size_t outsize)
+{
+	struct editor_buffer *b = &buflist[idx];
+	const char *path = b->filename;
+	const char *base = buf_basename(path);
+	const char *parent_end, *parent_start;
+	int parent_len, i, dup = 0;
+
+	if (path) {
+		for (i = 0; i < MAX_BUFFERS; i++) {
+			if (i == idx || !buflist[i].active || !buflist[i].filename)
+				continue;
+			if (strcmp(buf_basename(buflist[i].filename), base) == 0) {
+				dup = 1;
+				break;
+			}
+		}
+	}
+
+	if (!dup) {
+		snprintf(out, outsize, "%s", base);
+		return;
+	}
+
+	parent_end = strrchr(path, '/');
+	if (!parent_end || parent_end == path) {
+		snprintf(out, outsize, "%s", base);
+		return;
+	}
+	parent_start = parent_end - 1;
+	while (parent_start > path && parent_start[-1] != '/')
+		parent_start--;
+	parent_len = parent_end - parent_start;
+	snprintf(out, outsize, "%.*s/%s", parent_len, parent_start, base);
+}
+
 /* Prompt the user for a line of text in the status bar.  Returns 0 on
  * confirmation (Enter) or -1 if cancelled (ESC / C-g).  buf is always
  * NUL-terminated on return. */
@@ -192,7 +234,8 @@ void buf_select_interactive(int fd)
 	while (1) {
 		off = snprintf(msg, sizeof(msg), "Buffer: ");
 		for (i = 0; i < n; i++) {
-			const char *name = buf_basename(buflist[order[i]].filename);
+			char name[128];
+			buf_display_name(order[i], name, sizeof(name));
 			if (i == sel)
 				off += snprintf(msg+off, sizeof(msg)-off, "[%s]  ", name);
 			else

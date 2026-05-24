@@ -30,6 +30,10 @@ ordered by value vs implementation effort.
       cursor.  The classic "make room above the next line" command.  One
       liner.
 
+- [x] Adjust filename in bar, gets cut off if the path is too long.
+      Same issue applies to long buffer names; need a sensible ellipsis
+      strategy (e.g. shorten leading path components like Emacs does).
+
 - [x] Crash when opening doc/TODO.md
 
         ~/src/kg(master)$ kg doc/TODO.md 

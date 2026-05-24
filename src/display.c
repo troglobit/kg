@@ -142,13 +142,19 @@ static void draw_window_rows(struct abuf *ab,
 static void draw_mode_line(struct abuf *ab, int ml_row, int win_x, int win_w,
 	int bufidx, int is_active, int cur_row, int cur_col, int total_rows, int rowoff, int win_h)
 {
-	char status[120];
+	char status[512];
+	char bname[128];
 	int len;
 	struct editor_buffer *b = &buflist[bufidx];
-	const char *fname    = b->filename ? b->filename : "[new]";
-	const char *modename = b->syntax   ? b->syntax->name : "Fundamental";
+	const char *modename = b->syntax ? b->syntax->name : "Fundamental";
 	int dirty = (is_active || bufidx == buf_current) ? editor.dirty : b->dirty;
 	char pos[8];
+
+	/* Show only the basename in the mode line (Emacs-style); the directory
+	 * part is still available via C-x C-b.  buf_display_name() also
+	 * prepends the parent directory when another open buffer shares the
+	 * basename, so foo and dir/foo can be told apart. */
+	buf_display_name(bufidx, bname, sizeof(bname));
 
 	/* Emacs-style position indicator. */
 	if (total_rows <= win_h)
@@ -163,8 +169,8 @@ static void draw_mode_line(struct abuf *ab, int ml_row, int win_x, int win_w,
 	ab_move_to(ab, ml_row, win_x);
 	ab_append(ab, is_active ? "\x1b[7m" : "\x1b[2m", 4); /* active: reverse; inactive: dim */
 
-	len = snprintf(status, sizeof(status), "%s  %.30s  %s (%d,%d)  (%s)",
-		dirty ? "-**-" : "----", fname,
+	len = snprintf(status, sizeof(status), "%s  %s  %s (%d,%d)  (%s)",
+		dirty ? "-**-" : "----", bname,
 		pos, cur_row, cur_col, modename);
 
 	if (len > win_w) len = win_w;
