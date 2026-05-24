@@ -30,6 +30,8 @@ ordered by value vs implementation effort.
       cursor.  The classic "make room above the next line" command.  One
       liner.
 
+- [ ] Visual mark mode
+
 - [x] Adjust filename in bar, gets cut off if the path is too long.
       Same issue applies to long buffer names; need a sensible ellipsis
       strategy (e.g. shorten leading path components like Emacs does).
@@ -39,6 +41,31 @@ ordered by value vs implementation effort.
         ~/src/kg(master)$ kg doc/TODO.md 
         malloc(): invalid next size (unsorted)
         Aborted (core dumped)
+
+### Stability / safety (high priority)
+
+- [ ] **`M-!` shell-command** and **`M-|` shell-command-on-region**:
+      Run an external shell command, optionally piping the current region
+      through it and replacing the region with the output.  For a remote-shell
+      editor this is the highest-leverage missing feature — pipe through
+      `sort`, `fmt`, `column -t`, `jq`, `sed`, etc.  Mg has it.
+
+- [ ] **Tab completion in the minibuffer**: For `C-x C-f`, `C-x i`,
+      `C-x C-w` and any other path-prompting command.  Single biggest
+      day-to-day friction once everything else works.
+
+- [ ] **External-modification detection on save**: When editing
+      `/etc/*` something else may have rewritten the file.  Stat the
+      file before save; if mtime/size changed since we read it, prompt
+      "file changed on disk, save anyway?".
+
+- [ ] **Backup-on-save / simple autosave**: Write a `file~` (or `#file#`)
+      safety net on first save in a session.  Cheap to add, saves grief
+      when ssh drops mid-edit.
+
+- [ ] **`C-q` quoted-insert**: Insert the next keystroke literally.
+      Currently there is no way to insert a literal Tab, Esc, or other
+      control byte — matters for terminfo, sendmail.cf, Makefiles.
 
 ### Medium value
 
@@ -89,6 +116,29 @@ ordered by value vs implementation effort.
 - [ ] **C-t transpose-chars**: Swap the character before point with the
       one at point.  Indispensable for fixing the most common typing errors.
       Also add `transpose-chars` as an M-x command.
+
+- [ ] **M-t transpose-words**: Companion to `transpose-chars`.
+
+- [ ] **Rectangle operations**: `C-x r k` kill-rectangle, `C-x r y`
+      yank-rectangle, `C-x r t` string-rectangle.  Surprisingly useful
+      for config tables, fstab columns, CSV-ish data.
+
+- [ ] **Registers / bookmarks**: At minimum position registers via
+      `C-x r SPC` (point-to-register) and `C-x r j` (jump-to-register).
+      Text registers (`C-x r s` / `C-x r i`) can follow.
+
+- [ ] **Regex search**, or at least a case-sensitivity toggle in
+      isearch.  Right now isearch is literal-only and case-sensitive.
+
+- [ ] **Verify `M-d` kill-word forward and `M-DEL` kill-word backward**:
+      Pair with `M-f`/`M-b` that already exist; add if missing.
+
+- [ ] **Toggle line numbers**: `M-x linum-mode` or similar.  Frequent
+      ask, low cost.
+
+- [ ] **Minimal config file**: `~/.kgrc` (flat `key=value`, no Lisp)
+      for things like `tab-width`, `indent-tabs-mode`, `make-backup-files`,
+      `auto-fill-column`, etc.
 
 ## Important (DONE)
 
