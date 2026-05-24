@@ -48,7 +48,7 @@ int editor_save(int fd)
 
 	if (is_special_buffer(editor.filename)) {
 		char newname[256];
-		if (editor_read_line(fd, "Write file: ", newname, sizeof(newname)) < 0
+		if (editor_read_line_path(fd, "Write file: ", newname, sizeof(newname)) < 0
 		    || !newname[0])
 			return 1;
 		free(editor.filename);
@@ -88,7 +88,7 @@ void editor_write_file(int fd)
 	char newname[256];
 	char *newfilename;
 
-	if (editor_read_line(fd, "Write file: ", newname, sizeof(newname)) < 0 || !newname[0])
+	if (editor_read_line_path(fd, "Write file: ", newname, sizeof(newname)) < 0 || !newname[0])
 		return;
 	newfilename = strdup(newname);
 	if (!newfilename)
@@ -111,7 +111,7 @@ void editor_insert_file(int fd)
 	int filerow, filecol;
 	FILE *fp;
 
-	if (editor_read_line(fd, "Insert file: ", filename, sizeof(filename)) < 0 || !filename[0])
+	if (editor_read_line_path(fd, "Insert file: ", filename, sizeof(filename)) < 0 || !filename[0])
 		return;
 
 	fp = fopen(filename, "r");

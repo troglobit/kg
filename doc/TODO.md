@@ -50,7 +50,7 @@ ordered by value vs implementation effort.
       editor this is the highest-leverage missing feature — pipe through
       `sort`, `fmt`, `column -t`, `jq`, `sed`, etc.  Mg has it.
 
-- [ ] **Tab completion in the minibuffer**: For `C-x C-f`, `C-x i`,
+- [x] **Tab completion in the minibuffer**: For `C-x C-f`, `C-x i`,
       `C-x C-w` and any other path-prompting command.  Single biggest
       day-to-day friction once everything else works.
 

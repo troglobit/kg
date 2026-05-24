@@ -52,10 +52,13 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/time.h>
+#include <limits.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <signal.h>
 
 /* Write escape sequences to stdout; silently discard errors (best-effort). */
@@ -189,8 +192,10 @@ struct editor_config {
 	erow *row;          /* Rows */
 	int dirty;          /* File modified but not saved. */
 	char *filename;     /* Currently open filename */
-	char statusmsg[160];
+	char statusmsg[512];
 	time_t statusmsg_time;
+	int echo_cursor_col; /* 0 = normal; >0 = 1-based column on the bottom row
+	                      * where the cursor should rest (for minibuffer prompts). */
 	struct editor_syntax *syntax;    /* Current syntax highlight, or NULL. */
 	int cx_prefix;      /* Set to 1 when C-x was pressed, waiting for next key. */
 	int paste_mode;     /* If 1, we're in paste mode - disable autocomplete */
@@ -297,6 +302,13 @@ extern int win_total_cols;  /* terminal cols (set by update_window_size) */
 /* bufmgr.c */
 void buf_save_current_state(void);
 int  editor_read_line(int fd, const char *prompt, char *buf, int bufsize);
+int  editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize);
+
+/* path.c */
+void editor_path_split(const char *path, char *dir, int dsize, char *file, int fsize);
+int  editor_path_complete(const char *dir, const char *prefix,
+                          char *lcp, int lcp_size, int *is_dir,
+                          char *names, int *names_off, int names_size);
 void buf_load_args(int nfiles, char **filenames, int readonly);
 void buf_select_interactive(int fd);
 void buf_open_file(int fd);

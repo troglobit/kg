@@ -25,6 +25,7 @@ escape sequences.
 - Paragraph reflow to 72 columns (M-q)
 - Keyboard macros (C-x ( / C-x ) / C-x e)
 - M-x command dispatcher with interactive completion
+- Tab completion for file paths in the minibuffer
 - Shell commands (M-!) and pipe-region-through-command (M-|)
 - Comment-dwim (M-;)
 - Word-case bindings (M-u / M-l / M-c)

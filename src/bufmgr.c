@@ -128,28 +128,105 @@ void buf_display_name(int idx, char *out, size_t outsize)
 	snprintf(out, outsize, "%.*s/%s", parent_len, parent_start, base);
 }
 
+/* Reset the echo-area cursor state and clear the status line.  Centralises
+ * the "leaving the minibuffer" handshake so every exit path agrees. */
+static int prompt_done(int rc)
+{
+	editor.echo_cursor_col = 0;
+	if (rc < 0)
+		editor_set_status_message("");
+	return rc;
+}
+
+/* Park the cursor at the typed position on the echo area and refresh. */
+static void prompt_refresh(const char *prompt, int plen, const char *buf, int len)
+{
+	editor_set_status_message("%s%s", prompt, buf);
+	editor.echo_cursor_col = plen + len + 1;
+	editor_refresh_screen();
+}
+
 /* Prompt the user for a line of text in the status bar.  Returns 0 on
  * confirmation (Enter) or -1 if cancelled (ESC / C-g).  buf is always
  * NUL-terminated on return. */
 int editor_read_line(int fd, const char *prompt, char *buf, int bufsize)
 {
+	int plen = (int)strlen(prompt);
 	int len = 0, c;
 
 	buf[0] = '\0';
 	while (1) {
-		editor_set_status_message("%s%s", prompt, buf);
-		editor_refresh_screen();
+		prompt_refresh(prompt, plen, buf, len);
 		c = editor_read_key(fd);
 		if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
 			if (len > 0) buf[--len] = '\0';
 		} else if (c == ESC || c == CTRL_G) {
-			editor_set_status_message("");
-			return -1;
+			return prompt_done(-1);
 		} else if (c == ENTER) {
-			return 0;
+			return prompt_done(0);
 		} else if (isprint(c) && len < bufsize - 1) {
 			buf[len++] = c;
 			buf[len] = '\0';
+		}
+	}
+}
+
+/* Prompt for a path.  Same semantics as editor_read_line, plus:
+ *   - matching directory entries are listed live in the echo area, and
+ *   - Tab extends the typed portion to the longest common prefix of those
+ *     matches; if the sole match is a directory the trailing '/' is added.
+ *
+ * The directory is scanned once per keystroke (in this loop, not in a helper);
+ * the resulting `matches`, `lcp` and `is_dir` are reused by the Tab branch
+ * without re-opening the directory. */
+int editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize)
+{
+	char dir[256], file[256], lcp[256], msg[512];
+	int plen = (int)strlen(prompt);
+	int len = 0, c;
+	int matches = 0, is_dir = 0;
+	int flen = 0;
+
+	buf[0] = '\0';
+	while (1) {
+		int off;
+
+		editor_path_split(buf, dir, sizeof(dir), file, sizeof(file));
+		flen = (int)strlen(file);
+		off  = snprintf(msg, sizeof(msg), "%s%s  ", prompt, buf);
+		matches = editor_path_complete(dir, file, lcp, sizeof(lcp), &is_dir,
+		                               msg, &off, sizeof(msg));
+		if (matches <= 0)
+			snprintf(msg + off, sizeof(msg) - off, "[no match]");
+
+		editor_set_status_message("%s", msg);
+		editor.echo_cursor_col = plen + len + 1;
+		editor_refresh_screen();
+
+		c = editor_read_key(fd);
+		if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
+			if (len > 0) buf[--len] = '\0';
+		} else if (c == ESC || c == CTRL_G) {
+			return prompt_done(-1);
+		} else if (c == ENTER) {
+			return prompt_done(0);
+		} else if (c == TAB && matches > 0) {
+			int llen = (int)strlen(lcp);
+			if (llen > flen) {
+				int extend = llen - flen;
+				if (len + extend < bufsize) {
+					memcpy(buf + len, lcp + flen, extend);
+					len += extend;
+					buf[len] = '\0';
+				}
+			} else if (matches == 1 && is_dir && len < bufsize - 1 &&
+			           (len == 0 || buf[len-1] != '/')) {
+				buf[len++] = '/';
+				buf[len]   = '\0';
+			}
+		} else if (isprint(c) && len < bufsize - 1) {
+			buf[len++] = c;
+			buf[len]   = '\0';
 		}
 	}
 }
@@ -260,7 +337,7 @@ static void buf_open_file_ro(int fd, int readonly)
 	int i, slot;
 	const char *prompt = readonly ? "Open file read-only: " : "Open file: ";
 
-	if (editor_read_line(fd, prompt, query, sizeof(query)) < 0 || query[0] == '\0')
+	if (editor_read_line_path(fd, prompt, query, sizeof(query)) < 0 || query[0] == '\0')
 		return;
 
 	/* Switch to existing buffer if the file is already open. */

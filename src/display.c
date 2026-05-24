@@ -270,8 +270,14 @@ void editor_refresh_screen(void)
 		ab_append(&ab, editor.statusmsg,
 			msglen <= win_total_cols ? msglen : win_total_cols);
 
-	/* ---- Place cursor in active window ---- */
-	{
+	/* ---- Place cursor ---- */
+	if (editor.echo_cursor_col > 0) {
+		/* Minibuffer prompt active: park the cursor on the echo area so the
+		 * user can see what they're typing. */
+		int col = editor.echo_cursor_col;
+		if (col > win_total_cols) col = win_total_cols;
+		ab_move_to(&ab, win_total_rows, col);
+	} else {
 		struct editor_window *w = &winlist[win_current];
 		erow *row = (editor.rowoff + editor.cy < editor.numrows) ? &editor.row[editor.rowoff + editor.cy] : NULL;
 

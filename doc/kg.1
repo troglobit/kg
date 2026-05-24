@@ -175,6 +175,18 @@ The buffer is marked unmodified when undo returns to the last-saved state.
 .It C-x C-b Ta Open buffer list
 .It C-x C-c Ta Quit
 .El
+.Pp
+The filename prompts for
+.Ic C-x C-f ,
+.Ic C-x C-r ,
+.Ic C-x C-w
+and
+.Ic C-x i
+list matching directory entries live in the echo area as the user types.
+Press Tab to extend the typed portion to the longest common prefix of those
+matches; when the sole match is a directory a trailing
+.Sq /
+is appended so the next Tab descends into it.
 .Ss Window Commands
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

@@ -55,6 +55,7 @@ void init_editor(void)
 	editor.mark_row = 0;
 	editor.mark_col = 0;
 	editor.readonly = 0;
+	editor.echo_cursor_col = 0;
 	gettimeofday(&editor.last_char_time, NULL);
 	kill_ring_init();
 	undo_init();
