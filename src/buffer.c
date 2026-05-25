@@ -5,8 +5,8 @@
 /* Update the rendered version and the syntax highlight of a row. */
 void editor_update_row(erow *row)
 {
-	unsigned long long allocsize;
 	unsigned int tabs = 0, nonprint = 0;
+	unsigned long long allocsize;
 	int j, idx;
 
 	/* Create a version of the row we can directly print on the screen,
@@ -43,12 +43,16 @@ void editor_update_row(erow *row)
  * if required. */
 void editor_insert_row(int at, char *s, size_t len)
 {
-	if (at > editor.numrows) return;
+	if (at > editor.numrows)
+		return;
+
 	editor.row = realloc(editor.row, sizeof(erow) * (editor.numrows+1));
 	if (at != editor.numrows) {
 		memmove(editor.row+at+1, editor.row+at, sizeof(editor.row[0]) * (editor.numrows-at));
-		for (int j = at+1; j <= editor.numrows; j++) editor.row[j].idx++;
+		for (int j = at+1; j <= editor.numrows; j++)
+			editor.row[j].idx++;
 	}
+
 	editor.row[at].size = len;
 	editor.row[at].chars = malloc(len+1);
 	memcpy(editor.row[at].chars, s, len+1);
@@ -184,20 +188,28 @@ void editor_insert_char(int c)
 }
 
 /* Split the current line at the cursor without auto-indent.
- * Used by yank and kill-undo to re-insert newlines exactly as copied. */
+ * Used by yank, kill-undo, and the paste-mode short-circuit in
+ * editor_insert_newline to re-insert newlines exactly as typed.
+ * Pushes the same UNDO_SPLIT_LINE / UNDO_INSERT_LINE records as
+ * editor_insert_newline so a terminal paste stays reversible — yank
+ * and undo replay both raise suppress_undo so the record is dropped
+ * when they don't want it. */
 void editor_insert_newline_raw(void)
 {
 	int filerow = editor.rowoff + editor.cy;
 	int filecol = editor.coloff + editor.cx;
-	erow *row;
 	int rest_len;
+	erow *row;
 
 	if (filerow >= editor.numrows) {
+		undo_push(UNDO_INSERT_LINE, filerow, 0, 0, NULL, 0);
 		editor_insert_row(filerow, "", 0);
 	} else {
 		row = &editor.row[filerow];
 		if (filecol > row->size) filecol = row->size;
 		rest_len = row->size - filecol;
+		undo_push(UNDO_SPLIT_LINE, filerow, filecol, 0,
+		          row->chars + filecol, rest_len);
 		editor_insert_row(filerow + 1, row->chars + filecol, rest_len);
 		row = &editor.row[filerow];
 		row->chars[filecol] = '\0';
@@ -216,6 +228,7 @@ void editor_insert_text_raw(const char *text, int len)
 {
 	int saved = suppress_undo;
 	int i;
+
 	suppress_undo = 1;
 	for (i = 0; i < len; i++) {
 		if (text[i] == '\n')
@@ -227,14 +240,28 @@ void editor_insert_text_raw(const char *text, int len)
 }
 
 /* Inserting a newline is slightly complex as we have to handle inserting a
- * newline in the middle of a line, splitting the line as needed. */
+ * newline in the middle of a line, splitting the line as needed.
+ *
+ * During a paste the source already carries its own indentation, so inheriting
+ * the current line's indent on top of it produces an ever-deepening staircase.
+ * Delegate to the raw variant in that case. */
 void editor_insert_newline(void)
 {
-	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
-	char *new_content;
-	int filerow = editor.rowoff + editor.cy;
-	int filecol = editor.coloff + editor.cx;
 	int rest_len, indent = 0;
+	char *new_content;
+	int filerow;
+	int filecol;
+	erow *row;
+
+	if (editor.paste_mode) {
+		editor_insert_newline_raw();
+		return;
+	}
+
+	row = (editor.rowoff + editor.cy >= editor.numrows)
+		? NULL : &editor.row[editor.rowoff + editor.cy];
+	filerow = editor.rowoff + editor.cy;
+	filecol = editor.coloff + editor.cx;
 
 	if (!row) {
 		if (filerow == editor.numrows) {
