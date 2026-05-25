@@ -144,13 +144,26 @@ when removing one, the prefix and the optional following space are deleted.
 .El
 .Pp
 Set the mark with
-.Ic C-Space ,
-move the cursor to define the region, then cut with
-.Ic C-w
-or copy with
-.Ic M-w .
-Paste anywhere with
+.Ic C-Space ;
+the region between point and mark renders in reverse video and
+tracks the cursor as it moves.
+Cut it with
+.Ic C-w ,
+copy with
+.Ic M-w ,
+or paste from the kill ring anywhere with
 .Ic C-y .
+The highlight is per-buffer; it survives a
+.Ic C-x b
+switch and reappears when you come back, and it follows Emacs'
+transient-mark convention:
+the region deactivates on
+.Ic C-g ,
+on the first edit, and after a region command
+.Pq Ic C-w , M-w
+has consumed it.
+The mark itself stays set for the next
+.Ic C-x C-x .
 The kill ring is shared across all buffers.
 .Ss Search and Replace
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact

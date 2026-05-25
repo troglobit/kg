@@ -69,6 +69,7 @@ void editor_set_mark(void)
 	editor.mark_set = 1;
 	editor.mark_row = editor.rowoff + editor.cy;
 	editor.mark_col = editor.coloff + editor.cx;
+	editor.mark_highlight = 1;
 	editor_set_status_message("Mark set");
 }
 
@@ -111,6 +112,7 @@ void editor_exchange_point_and_mark(void)
 
 	editor.mark_row = cur_row;
 	editor.mark_col = cur_col;
+	editor.mark_highlight = 1;
 	editor_set_status_message("Mark exchanged");
 }
 
@@ -238,7 +240,11 @@ void editor_kill_region(void)
 	}
 	suppress_undo = 0;
 
-	editor.mark_set = 0;
+	/* Drop the highlight and any transient-region machinery, but keep
+	 * mark_set so C-x C-x after a region command can still bounce back
+	 * to where the region started (matches Emacs, the C-g teardown,
+	 * and the first-edit teardown in kbd.c). */
+	editor.mark_highlight = 0;
 	free(text);
 	editor_set_status_message("Region killed");
 }
@@ -261,7 +267,7 @@ void editor_copy_region(void)
 	}
 
 	kill_ring_set(text, len);
-	editor.mark_set = 0;
+	editor.mark_highlight = 0;
 	free(text);
 	editor_set_status_message("Region copied");
 }

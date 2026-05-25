@@ -55,6 +55,7 @@ void init_editor(void)
 	editor.mark_set = 0;
 	editor.mark_row = 0;
 	editor.mark_col = 0;
+	editor.mark_highlight = 0;
 	editor.readonly = 0;
 	editor.echo_cursor_col = 0;
 	editor.disk_mtime = 0;

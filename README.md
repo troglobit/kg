@@ -20,6 +20,7 @@ escape sequences.
   hex/binary/octal integer literals
 - Multiple buffers with shared kill ring
 - Split-window support
+- Visual mark mode: the region renders in reverse video as you move
 - Incremental search and query-replace (M-%)
 - Multi-level undo (C-_)
 - Paragraph reflow to 72 columns (M-q)

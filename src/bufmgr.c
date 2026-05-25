@@ -38,6 +38,7 @@ static void buf_save_to_slot(int idx)
 	b->syntax = editor.syntax;
 	b->mark_set = editor.mark_set;
 	b->mark_row = editor.mark_row;   b->mark_col = editor.mark_col;
+	b->mark_highlight = editor.mark_highlight;
 	b->undostack = undostack;   /* struct copy — pointer ownership moves here */
 	b->readonly = editor.readonly;
 	b->disk_mtime = editor.disk_mtime;
@@ -61,6 +62,7 @@ static void buf_restore_from_slot(int idx)
 	editor.syntax = b->syntax;
 	editor.mark_set = b->mark_set;
 	editor.mark_row = b->mark_row;   editor.mark_col = b->mark_col;
+	editor.mark_highlight = b->mark_highlight;
 	undostack = b->undostack;   /* struct copy */
 	editor.readonly = b->readonly;
 	editor.disk_mtime = b->disk_mtime;
@@ -141,6 +143,7 @@ void buf_reload_from_disk(void)
 	editor.row = NULL;
 	editor.numrows = 0;
 	editor.mark_set = 0;
+	editor.mark_highlight = 0;
 
 	fname = strdup(editor.filename);
 	if (!fname) return;
@@ -247,6 +250,7 @@ static void buf_reset(void)
 	editor.filename = NULL;
 	editor.syntax = NULL;
 	editor.mark_set = editor.mark_row = editor.mark_col = 0;
+	editor.mark_highlight = 0;
 	editor.cx_prefix = 0;
 	editor.prefix_pending = 0;
 	editor.prefix_arg = 0;

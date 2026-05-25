@@ -41,22 +41,64 @@ static void ab_fill(struct abuf *ab, char c, int n)
 
 static void ab_append_spaces(struct abuf *ab, int n) { ab_fill(ab, ' ', n); }
 
+/* Convert a `chars`-column index to its rendered (post-tab-expansion)
+ * column on the same row, matching editor_update_row's expansion rule
+ * (each TAB widens to the next 8-column stop). */
+static int chars_to_render_col(erow *row, int chars_col)
+{
+	int j, idx = 0;
+
+	if (chars_col > row->size) chars_col = row->size;
+	for (j = 0; j < chars_col; j++) {
+		if (row->chars[j] == TAB) {
+			idx++;
+			while ((idx + 1) % 8 != 0) idx++;
+		} else {
+			idx++;
+		}
+	}
+	return idx;
+}
+
 /* Render the text rows of one window into ab.
  * win_y, win_x, win_h, win_w describe the window's position/size.
  * rowoff/coloff/numrows/rows describe the buffer viewport.
+ * is_active: the window currently has the user's focus; only this one
+ * shows the visual-mark region overlay.
  * is_full_width: if true we can use \x1b[0K (erase to EOL) to clear the
  * rest of each row; if false (vertical split) we must space-pad to stay
  * within the window's column range. */
 static void draw_window_rows(struct abuf *ab,
 	int win_y, int win_x, int win_h, int win_w,
 	int rowoff, int coloff, int numrows, erow *rows,
-	int is_full_width)
+	int is_active, int is_full_width)
 {
 	int y, j;
+	int region_active = 0;
+	int region_s_row = 0, region_s_col = 0;
+	int region_e_row = 0, region_e_col = 0;
+
+	if (is_active && editor.mark_highlight && editor.mark_set) {
+		int p_row = editor.rowoff + editor.cy;
+		int p_col = editor.coloff + editor.cx;
+		int m_row = editor.mark_row;
+		int m_col = editor.mark_col;
+		if (m_row < p_row || (m_row == p_row && m_col < p_col)) {
+			region_s_row = m_row; region_s_col = m_col;
+			region_e_row = p_row; region_e_col = p_col;
+		} else {
+			region_s_row = p_row; region_s_col = p_col;
+			region_e_row = m_row; region_e_col = m_col;
+		}
+		region_active = (region_s_row != region_e_row ||
+		                 region_s_col != region_e_col);
+	}
 
 	for (y = 0; y < win_h; y++) {
 		int fr = rowoff + y;
 		int current_color = -1;
+		int current_reverse = 0;
+		int hi_lo = -1, hi_hi = -1;   /* highlight bounds in render-col, half-open */
 		int len;
 
 		ab_move_to(ab, win_y + y, win_x);
@@ -99,13 +141,35 @@ static void draw_window_rows(struct abuf *ab,
 			c  = r->render + coloff;
 			hl = r->hl    + coloff;
 
+			if (region_active && fr >= region_s_row && fr <= region_e_row) {
+				hi_lo = (fr == region_s_row) ?
+					chars_to_render_col(r, region_s_col) : 0;
+				hi_hi = (fr == region_e_row) ?
+					chars_to_render_col(r, region_e_col) : r->rsize;
+			}
+
 			for (j = 0; j < len; j++) {
+				int render_col = coloff + j;
+				int want_rev = (render_col >= hi_lo && render_col < hi_hi);
+				/* Defer the reverse-video toggle on UTF-8 continuation
+				 * bytes so an escape can never split a multi-byte
+				 * glyph; the next start byte will catch up. */
+				if (want_rev != current_reverse && !utf8_is_cont(c[j])) {
+					if (want_rev) ab_append(ab, "\x1b[7m",  4);
+					else          ab_append(ab, "\x1b[27m", 5);
+					current_reverse = want_rev;
+				}
 				if (hl[j] == HL_NONPRINT) {
 					char sym;
 					ab_append(ab, "\x1b[7m", 4);
 					sym = (c[j] <= 26) ? ('@' + c[j]) : '?';
 					ab_append(ab, &sym, 1);
 					ab_append(ab, "\x1b[0m", 4);
+					/* The [0m reset just cleared every attribute, so the
+					 * next iteration must re-establish whatever color and
+					 * reverse state it actually wants. */
+					current_color = -1;
+					current_reverse = 0;
 				} else if (hl[j] == HL_NORMAL) {
 					if (current_color != -1) {
 						ab_append(ab, "\x1b[39m", 5);
@@ -123,6 +187,8 @@ static void draw_window_rows(struct abuf *ab,
 					ab_append(ab, c+j, 1);
 				}
 			}
+			if (current_reverse)
+				ab_append(ab, "\x1b[27m", 5);
 		}
 		ab_append(ab, "\x1b[39m", 5);
 		if (is_full_width) {
@@ -239,7 +305,7 @@ void editor_refresh_screen(void)
 		}
 
 		draw_window_rows(&ab, w->y, w->x, w->h, w->w,
-			rowoff, coloff, numrows, rows, is_full_width);
+			rowoff, coloff, numrows, rows, is_active, is_full_width);
 
 		ml_row = w->y + w->h;
 		{
@@ -286,9 +352,12 @@ void editor_refresh_screen(void)
 
 		cx = 1;
 		if (row) {
+			/* editor.cx is a byte offset into row->chars, but the cursor
+			 * must be placed at the visible column.  Tabs widen to the
+			 * next 8-stop; UTF-8 continuation bytes carry no width. */
 			for (j = editor.coloff; j < (editor.cx + editor.coloff) && j < row->size; j++) {
 				if (row->chars[j] == TAB) cx += 7 - ((cx) % 8);
-				cx++;
+				if (!utf8_is_cont((unsigned char)row->chars[j])) cx++;
 			}
 		}
 		ab_move_to(&ab, w->y + editor.cy, w->x + cx - 1);

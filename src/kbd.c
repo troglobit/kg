@@ -55,6 +55,8 @@ void editor_process_keypress(int fd)
 {
 	struct timeval tv;
 	int c = editor_read_key_idle(fd);
+	char *fname_before = editor.filename;
+	int dirty_before = editor.dirty;
 	long elapsed;
 	int n;
 
@@ -243,6 +245,7 @@ void editor_process_keypress(int fd)
 		while (n--) editor_move_cursor(ARROW_RIGHT);
 		break;
 	case CTRL_G:        /* Keyboard quit / cancel */
+		editor.mark_highlight = 0;
 		editor_set_status_message("");
 		break;
 	case CTRL_K:        /* Kill line */
@@ -508,4 +511,12 @@ void editor_process_keypress(int fd)
 		/* Silently ignore all other control/non-printable characters */
 		break;
 	}
+
+	/* Any command that modified the buffer (insertion, deletion, undo,
+	 * etc.) deactivates the visual mark region — matching Emacs'
+	 * transient-mark-mode convention.  The filename guard avoids
+	 * stomping the highlight that was just restored from a buffer slot
+	 * when the user switched buffers (C-x b, C-x C-f). */
+	if (editor.filename == fname_before && editor.dirty != dirty_before)
+		editor.mark_highlight = 0;
 }

@@ -60,7 +60,7 @@ void editor_draw_help(struct abuf *ab, int nrows)
 			const char *p = s;
 			int cols = 0;
 			while (*p && cols < editor.screencols) {
-				if (((unsigned char)*p & 0xC0) != 0x80) cols++;
+				if (!utf8_is_cont(*p)) cols++;
 				p++;
 			}
 			ab_append(ab, s, p - s);

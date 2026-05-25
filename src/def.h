@@ -214,6 +214,7 @@ struct editor_config {
 	int mark_set;       /* Is mark set for region selection? */
 	int mark_row;       /* Mark row position */
 	int mark_col;       /* Mark column position */
+	int mark_highlight; /* 1 when the region should render with reverse video. */
 	int show_help;      /* If 1, display help screen instead of file content. */
 	int readonly;       /* If 1, buffer is read-only (editing is blocked). */
 	int last_key;       /* Last key processed, for command repetition logic. */
@@ -294,6 +295,7 @@ struct editor_buffer {
 	struct editor_syntax *syntax;
 	int mark_set;
 	int mark_row, mark_col;
+	int mark_highlight;
 	struct undo_stack undostack; /* per-buffer undo chain */
 	int active;                 /* 1 if this slot is in use */
 	int readonly;               /* 1 if buffer is read-only */
@@ -388,6 +390,13 @@ void editor_kill_line(void);
 static inline int is_special_buffer(const char *filename)
 {
 	return !filename || filename[0] == '*';
+}
+
+/* True for UTF-8 continuation bytes (0x80–0xBF).  Useful when iterating
+ * a raw byte stream and needing to skip past or land on glyph boundaries. */
+static inline int utf8_is_cont(unsigned char b)
+{
+	return (b & 0xC0) == 0x80;
 }
 
 /* Return the basename of a filename (part after last '/'), or the whole

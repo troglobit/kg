@@ -54,8 +54,11 @@ static void test_copy_region_single_line(void)
 
 	CHECK(kill_ring_get() != NULL);
 	CHECK(memcmp(kill_ring_get(), "hello", 5) == 0);
-	/* mark is cleared after copy */
-	CHECK(editor.mark_set == 0);
+	/* Highlight goes away but the mark itself stays put so the next
+	 * C-x C-x bounces back to where the region started (Emacs'
+	 * transient-mark convention; matches the C-g teardown). */
+	CHECK(editor.mark_set == 1);
+	CHECK(editor.mark_highlight == 0);
 	teardown();
 }
 

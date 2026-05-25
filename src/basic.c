@@ -27,29 +27,48 @@ void editor_move_cursor(int key)
 		}
 		break;
 	case ARROW_LEFT:
-		if (editor.cx == 0) {
-			if (editor.coloff) {
-				editor.coloff--;
-			} else {
-				if (filerow > 0) {
-					editor.cy--;
-					editor.cx = editor.row[filerow-1].size;
-					if (editor.cx > editor.screencols - 1) {
-						editor.coloff = editor.cx - editor.screencols + 1;
-						editor.cx = editor.screencols - 1;
-					}
+		if (filecol == 0) {
+			if (filerow > 0) {
+				editor.cy--;
+				editor.cx = editor.row[filerow-1].size;
+				if (editor.cx > editor.screencols - 1) {
+					editor.coloff = editor.cx - editor.screencols + 1;
+					editor.cx = editor.screencols - 1;
 				}
 			}
 		} else {
-			editor.cx -= 1;
+			/* Step back a whole glyph (1 byte for ASCII, 2-4 for
+			 * UTF-8 multi-byte) by counting continuation bytes
+			 * trailing the previous start byte. */
+			int n = 1, pos = filecol - 1;
+			while (pos > 0 && row &&
+			       utf8_is_cont((unsigned char)row->chars[pos])) {
+				n++;
+				pos--;
+			}
+			while (n--) {
+				if (editor.cx == 0) {
+					if (editor.coloff) editor.coloff--;
+					else break;
+				} else {
+					editor.cx -= 1;
+				}
+			}
 		}
 		break;
 	case ARROW_RIGHT:
 		if (row && filecol < row->size) {
-			if (editor.cx == editor.screencols - 1) {
-				editor.coloff++;
-			} else {
-				editor.cx += 1;
+			/* Step forward a whole glyph: 1 + however many
+			 * continuation bytes follow the current start byte. */
+			int n = 1;
+			while (filecol + n < row->size &&
+			       utf8_is_cont((unsigned char)row->chars[filecol + n]))
+				n++;
+			while (n--) {
+				if (editor.cx == editor.screencols - 1)
+					editor.coloff++;
+				else
+					editor.cx += 1;
 			}
 		} else if (row && filecol == row->size) {
 			editor.cx = 0;

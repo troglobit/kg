@@ -30,7 +30,7 @@ ordered by value vs implementation effort.
       cursor.  The classic "make room above the next line" command.  One
       liner.
 
-- [ ] Visual mark mode
+- [x] Visual mark mode
 
 - [x] Adjust filename in bar, gets cut off if the path is too long.
       Same issue applies to long buffer names; need a sensible ellipsis
@@ -170,3 +170,13 @@ ordered by value vs implementation effort.
 - [ ] Send alt screen sequences if TERM=xterm: "\033[?1049h" and "\033[?1049l"
 - [ ] Add support for modes.  E.g., c-mode with bindings for
       compile/make which opens a compile buffer in a window below
+- [ ] **Proper UTF-8 handling**.  `editor.cx` and `mark_col` are byte
+      indices, so the cursor can sit inside a multi-byte glyph and
+      Right/Left advances one byte at a time through box-drawing or
+      accented characters.  The visual-mark renderer now defers its
+      reverse-video toggle to glyph boundaries (display-time fix), but
+      the cursor, region extraction, word motion, and syntax classifier
+      (`syntax.c`, where `!isprint()` on high-bit bytes tags every byte
+      of a UTF-8 glyph as `HL_NONPRINT` and substitutes `?`) all still
+      treat each byte as one column.  A real fix means walking by
+      `mblen()` / a small UTF-8 decoder everywhere we step through chars.
