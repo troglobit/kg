@@ -1,7 +1,28 @@
+kg (1.1.0-1) unstable; urgency=low
+
+  * Visual mark mode: the region between point and mark is drawn
+    in reverse video and tracks the cursor as it moves, with
+    shift-select, CUA clipboard bindings (Shift+Insert/Delete,
+    Ctrl+Insert), and rectangle mark mode (C-x SPC) with
+    operations under C-x r
+  * Emacs ido-style picker for M-x, file, and buffer operations.
+  * Run external shell commands and pipe regions through them
+    (M-! and M-|)
+  * Detect external changes to open files; optional auto-revert
+  * C-u universal-argument prefix, C-q quoted-insert
+  * Tab completion in filename minibuffer prompts
+  * More Emacs-style cursor motion (M-< / M-> / M-{ / M-} /
+    M-m / M-a / M-e / M-r) and basename-only mode line
+  * Bug fixes: Markdown highlighter crash on unmatched `**`,
+    memory-safety issues surfaced by AddressSanitizer, paste
+    auto-indent staircase
+
+ -- Joachim Wiberg <troglobit@gmail.com>  Mon, 26 May 2026 17:36:19 +0200
+
 kg (1.0.0-1) unstable; urgency=low
 
   * Emacs-style key bindings for navigation, editing, search, and file
-    operations; see [kg.1][] for the full reference
+    operations; see 'man kg' for the full reference
   * Multiple buffers (C-x b, C-x C-b) with a shared kill ring
   * Split-window support (C-x 2 / C-x 3, cycle with C-x o)
   * Syntax highlighting for C/C++, Python, Shell, Ruby, Lua, JavaScript,
@@ -22,6 +43,5 @@ kg (1.0.0-1) unstable; urgency=low
   * Exchange-point-and-mark (C-x C-x) and open-line (C-o)
   * Write-file (C-x C-w), insert-file (C-x i), revert-buffer (M-x revert-buffer)
   * Built-in key binding reference (C-h)
-  * Man page ([kg.1][]) and `make install` / `make uninstall` support
 
  -- Joachim Wiberg <troglobit@gmail.com>  Thu, 26 Mar 2026 17:21:27 +0100
