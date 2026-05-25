@@ -31,6 +31,7 @@ escape sequences.
 - Comment-dwim (M-;)
 - Word-case bindings (M-u / M-l / M-c)
 - Open line (C-o) and join-line (M-^)
+- Quoted-insert (C-q) for literal Tab/Esc/control bytes
 - Auto-indent and bracket autocomplete
 - Suspend to background (C-z)
 - Built-in help screen (C-h)

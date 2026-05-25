@@ -65,7 +65,7 @@ ordered by value vs implementation effort.
       safety net on first save in a session.  Cheap to add, saves grief
       when ssh drops mid-edit.
 
-- [ ] **`C-q` quoted-insert**: Insert the next keystroke literally.
+- [x] **`C-q` quoted-insert**: Insert the next keystroke literally.
       Currently there is no way to insert a literal Tab, Esc, or other
       control byte — matters for terminfo, sendmail.cf, Makefiles.
 

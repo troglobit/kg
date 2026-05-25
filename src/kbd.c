@@ -141,6 +141,7 @@ void editor_process_keypress(int fd)
 		}
 		if (c == BACKSPACE || c == DEL_KEY || c == CTRL_D ||
 		    c == CTRL_K    || c == CTRL_W  || c == CTRL_Y ||
+		    c == CTRL_Q    ||
 		    c == CTRL_UNDERSCORE || c == TAB ||
 		    (c >= 32 && c < 127)) {
 			editor_set_status_message("Buffer is read-only");
@@ -197,6 +198,12 @@ void editor_process_keypress(int fd)
 	case CTRL_R:        /* Incremental search */
 		editor_find(fd);
 		break;
+	case CTRL_Q: {
+		int key = editor_read_raw_byte(fd);
+		if (running)
+			editor_insert_char(key);
+		break;
+	}
 	case CTRL_V:        /* Page down */
 		if (editor.cy != editor.screenrows - 1)
 			editor.cy = editor.screenrows - 1;

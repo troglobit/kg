@@ -167,6 +167,31 @@ int editor_read_key(int fd)
 	return key;
 }
 
+/* Read a single byte from the terminal without decoding escape sequences.
+ * Used by quoted-insert so that an ESC, an arrow-key prefix, or any other
+ * byte the user is trying to embed literally ends up in the buffer as
+ * itself rather than being interpreted as the start of a meta key. */
+int editor_read_raw_byte(int fd)
+{
+	char c;
+	int nread;
+	int key;
+
+	key = macro_next_key();
+	if (key >= 0)
+		return key;
+
+	while ((nread = read(fd, &c, 1)) == 0);
+	if (nread == -1) {
+		running = 0;
+		return 0;
+	}
+
+	key = (unsigned char)c;
+	macro_on_key(key);
+	return key;
+}
+
 /* Top-level main-loop variant of editor_read_key: while waiting for the
  * next key, run the auto-revert poll on every 100 ms read timeout so
  * external file changes are noticed without requiring a keystroke.

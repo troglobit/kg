@@ -61,6 +61,7 @@ Multiple files each open in their own buffer.
 .It C-d Ta Delete character before point
 .It C-k Ta Kill from point to end of line
 .It C-o Ta Open line (insert newline, keep cursor)
+.It C-q Ta Quoted-insert: insert the next byte literally
 .It M-^ Ta Join current line with the previous one
 .It M-u Ta Upcase word forward from point
 .It M-l Ta Downcase word forward from point
@@ -73,6 +74,13 @@ at end of line joins it with the next line (Emacs behavior).
 Killed text is appended to the kill ring when
 .Ic C-k
 commands are consecutive.
+.Pp
+.Ic C-q
+reads the next byte from the terminal verbatim and inserts it,
+bypassing auto-indent and bracket completion.  Used to embed a
+literal Tab, Escape, or other control byte — handy when editing
+terminfo, sendmail.cf or similar files that need a specific byte
+the regular key bindings would otherwise consume.
 .Pp
 .Ic M-\&;
 toggles a line comment on the current line using the comment prefix defined

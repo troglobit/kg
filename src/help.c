@@ -36,7 +36,7 @@ static const char *help_lines[] = {
 	"│ C-x ( F3 beg macro      │ M-q      reflow para    │ C-x ) F4 end macro      │",
 	"│ C-x e F4 exec macro     │ M-!      shell cmd      │                         │",
 	"│ M-^      join line      │ M-u      upcase word    │ M-l      dncase word    │",
-	"│ M-|      sh on region   │ M-c      cap word       │                         │",
+	"│ M-|      sh on region   │ M-c      cap word       │ C-q      quoted insert  │",
 	"└─────────────────────────┴─────────────────────────┴─────────────────────────┘",
 	NULL
 };
