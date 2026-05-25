@@ -35,11 +35,15 @@
 #ifndef DEF_H
 #define DEF_H
 
-#define KG_VERSION "1.0.1"
+#define KG_VERSION "1.1.0"
 
 #if defined(__linux__) || defined(__CYGWIN__)
+#ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
+#endif
+#ifndef _DEFAULT_SOURCE
 #define _DEFAULT_SOURCE
+#endif
 #endif
 
 #include <termios.h>

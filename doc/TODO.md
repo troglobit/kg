@@ -41,6 +41,8 @@ ordered by value vs implementation effort.
         ~/src/kg(master)$ kg doc/TODO.md 
         malloc(): invalid next size (unsorted)
         Aborted (core dumped)
+- [x] Let C-x C-f use the directory of the current buffer as starting point.
+
 
 ### Stability / safety (high priority)
 
@@ -93,6 +95,19 @@ ordered by value vs implementation effort.
       add tolower/toupper passes.  Also add `upcase-word`, `downcase-word`,
       and `capitalize-word` as M-x commands.
 
+- [ ] **Git commit mode (and the wider EDITOR-server crowd)**: When kg
+      runs as `GIT_EDITOR` — filename matches `COMMIT_EDITMSG`,
+      `MERGE_MSG`, `TAG_EDITMSG`, etc. — enter a small dedicated mode
+      with Emacs-style `C-c C-c` to finalize (save and exit 0) and
+      `C-c C-k` to abort (exit non-zero so git cancels the commit
+      with an empty message).  `C-x #` does the same as `C-c C-c`
+      for the broader EDITOR-server flow that crontab, sudoedit, hg,
+      and friends share.  Pair with syntax highlighting that dims
+      comment lines (`#` prefix), warns past column 50 on the
+      subject, and a `M-q` that respects column 72 in the body but
+      leaves the subject alone.  Lands kg in the "what's your
+      $EDITOR" conversation alongside `emacs -nw` and `vim`.
+
 ### Lower priority / larger scope
 
 - [x] **C-u universal-argument**: Numeric prefix for repeating commands
@@ -121,8 +136,9 @@ ordered by value vs implementation effort.
 
 - [ ] **M-t transpose-words**: Companion to `transpose-chars`.
 
-- [ ] **Rectangle operations**: `C-x r k` kill-rectangle, `C-x r y`
-      yank-rectangle, `C-x r t` string-rectangle.  Surprisingly useful
+- [x] **Rectangle operations**: `C-x r k` kill-rectangle, `C-x r y`
+      yank-rectangle, plus `C-x r d` delete and `C-x r c` clear.
+      `C-x r t` string-rectangle is still TODO.  Surprisingly useful
       for config tables, fstab columns, CSV-ish data.
 
 - [ ] **Registers / bookmarks**: At minimum position registers via
@@ -180,3 +196,17 @@ ordered by value vs implementation effort.
       of a UTF-8 glyph as `HL_NONPRINT` and substitutes `?`) all still
       treat each byte as one column.  A real fix means walking by
       `mblen()` / a small UTF-8 decoder everywhere we step through chars.
+
+- [ ] **Horizontal-scroll + tab units mismatch in display.c**.
+      `editor.coloff` is used both as a chars-byte offset
+      (`editor.coloff + editor.cx == filecol`) and as a render-byte
+      offset (the row-render loop indexes `r->render + coloff`).  These
+      agree only for rows with no tabs.  Once a row is long enough to
+      scroll horizontally and contains a tab, the cursor placement and
+      the rendered viewport disagree.  Pre-existing, no user reports;
+      fix would unify on render-col units throughout the cursor maths.
+
+- [ ] **mandoc -T lint nits in doc/kg.1**.  Three pre-existing
+      "new sentence, new line" warnings (e.g. around `M-a/M-e`'s
+      `Mr.\&` and `e.g.\&`).  Cosmetic; mdoc convention says each
+      sentence should begin on its own line.

@@ -2,6 +2,10 @@
 
 # Light Weight UTF-8 Terminal Text Editor
 
+A spiritual descendant of [mg][mg] (Micro Emacs) — same Emacs heritage,
+about half the lines of code.  See mg's README for the wider
+Emacs-in-a-terminal family kg comes from.
+
 kg is a small, fast terminal text editor with pure Emacs keybindings.
 Suitable for editing system files or quick fixes on remote systems where
 a full GUI editor is not available.
@@ -86,10 +90,12 @@ kg is based on [kilo][0] by Salvatore Sanfilippo (antirez), the original
 minimal text editor that demonstrates how to build a functional editor
 without dependencies in about 1000 lines of C code.
 
-The name "kg" is a nod to "mg" (Micro Emacs), suggesting "kilo-gram" - a
-minimal implementation with Emacs keybindings.
+The name "kg" is a nod to [mg][mg] (Micro Emacs), suggesting "kilo-gram"
+— a minimal implementation with Emacs keybindings.  mg's README is the
+place to read up on the broader lineage if the heritage matters to you.
 
-[0]: https://github.com/antirez/kilo
+[0]:  https://github.com/antirez/kilo
+[mg]: https://github.com/troglobit/mg
 [1]: https://en.wikipedia.org/wiki/BSD_licenses
 [2]: https://img.shields.io/badge/License-BSD%202--Clause-green.svg
 [3]: https://github.com/troglobit/kg/actions/workflows/build.yml/

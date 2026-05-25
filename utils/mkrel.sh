@@ -30,10 +30,14 @@ fi
 # version.  KG_VERSION in src/def.h holds the GA version (e.g. 1.1.0)
 # even for pre-release tags (e.g. v1.1.0-rc1) — both ship as "the same
 # release" semantically — so strip any -alpha/-beta/-rc suffix from the
-# tag before comparing.  Fall back to GITHUB_REF when git describe can't
-# see the tag (e.g. CI checkout).
-cur_tag=$(git describe --exact-match HEAD 2>/dev/null || true)
-[ -z "$cur_tag" ] && cur_tag=${GITHUB_REF#refs/tags/}
+# tag before comparing.  Prefer GITHUB_REF over git describe: when two
+# tags sit on the same commit (e.g. v1.1.0 and v1.1.0-rc1), git
+# describe picks one arbitrarily, while GITHUB_REF unambiguously names
+# the tag that triggered the workflow.
+case "$GITHUB_REF" in
+    refs/tags/*) cur_tag=${GITHUB_REF#refs/tags/} ;;
+    *)           cur_tag=$(git describe --exact-match HEAD 2>/dev/null || true) ;;
+esac
 basetag=$(echo "${cur_tag}" | sed 's/-\(alpha\|beta\|rc\)[0-9]*$//')
 if [ "v${ver}" = "${basetag}" ]; then
     mode=release
