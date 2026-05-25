@@ -4,6 +4,25 @@
 
 #define ABUF_INIT {NULL,0}
 
+/* Welcome banner shown on an empty buffer.  An apothecary's cylindrical
+ * brass knob weight stamped with a lower-case "kg", drawn with Unicode
+ * box-drawing characters, with a small slogan to its right.  Every row
+ * is padded to KG_LOGO_COLS visual columns so the whole block centres
+ * at the same column. */
+static const char *kg_logo[] = {
+	"   ╭────╮    ",
+	"   ╰╮  ╭╯    ",
+	"╭───╯  ╰───╮ ",
+	"│          │ ",
+	"│  │       │ ",
+	"│  │╱ ╭─╮  │ Your fingers know this",
+	"│  │╲ ╰─┤  │   Just enough Emacs",
+	"│     ╰─╯  │ ",
+	"╰──────────╯ ",
+};
+#define KG_LOGO_LINES ((int)(sizeof(kg_logo) / sizeof(kg_logo[0])))
+#define KG_LOGO_COLS  32
+
 void ab_append(struct abuf *ab, const char *s, int len)
 {
 	char *new = realloc(ab->b, ab->len+len);
@@ -118,21 +137,45 @@ static void draw_window_rows(struct abuf *ab,
 		ab_move_to(ab, win_y + y, win_x);
 
 		if (fr >= numrows) {
-			int filled;
-			if (numrows == 0 && y == win_h/3) {
-				char welcome[80];
-				int wlen = snprintf(welcome, sizeof(welcome),
-					"kg editor -- version %s", KG_VERSION);
-				int padding = (win_w - wlen) / 2;
-				if (padding > 0) {
-					ab_append(ab, "~", 1);
-					padding--;
+			int filled = 0;
+			if (numrows == 0) {
+				int start = (win_h - KG_LOGO_LINES) / 2;
+				int line  = y - start;
+
+				if (line >= 0 && line < KG_LOGO_LINES) {
+					const char *str = kg_logo[line];
+					int padding     = (win_w - KG_LOGO_COLS) / 2;
+					int budget;
+					int k = 0, vcols = 0;
+
+					if (padding < 0) padding = 0;
+					if (padding > 0) {
+						ab_append(ab, "~", 1);
+						filled++;
+						padding--;
+					}
+					while (padding-- > 0) {
+						ab_append(ab, " ", 1);
+						filled++;
+					}
+					/* Glyph-aware clip so wider slogan rows on a
+					 * narrow or vertically-split pane don't overflow
+					 * the window's right edge into the next pane. */
+					budget = win_w - filled;
+					if (budget < 0) budget = 0;
+					while (str[k]) {
+						unsigned char b = (unsigned char)str[k];
+						if (!utf8_is_cont(b)) {
+							if (vcols >= budget) break;
+							vcols++;
+						}
+						k++;
+					}
+					ab_append(ab, str, k);
+					filled += vcols;
 				}
-				while (padding-- > 0) ab_append(ab, " ", 1);
-				if (wlen > win_w) wlen = win_w;
-				ab_append(ab, welcome, wlen);
-				filled = win_w; /* welcome block fills the window */
-			} else {
+			}
+			if (filled == 0) {
 				ab_append(ab, "~", 1);
 				filled = 1;
 			}
