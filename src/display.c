@@ -389,9 +389,31 @@ void editor_refresh_screen(void)
 	ab_move_to(&ab, win_total_rows, 1);
 	ab_append(&ab, "\x1b[0K", 4);
 	msglen = strlen(editor.statusmsg);
-	if (msglen && time(NULL) - editor.statusmsg_time < 5)
-		ab_append(&ab, editor.statusmsg,
-			msglen <= win_total_cols ? msglen : win_total_cols);
+	if (msglen && time(NULL) - editor.statusmsg_time < 5) {
+		/* Cap by display width, not byte count, so embedded ANSI escapes
+		 * (e.g. reverse video around a selected completion) pass through
+		 * intact and aren't sliced mid-sequence. */
+		int p = 0, visible = 0;
+
+		while (p < msglen && visible < win_total_cols) {
+			if (editor.statusmsg[p] == '\x1b') {
+				p++;
+				if (p < msglen && editor.statusmsg[p] == '[') {
+					p++;
+					while (p < msglen &&
+					       (editor.statusmsg[p] < 0x40 ||
+					        editor.statusmsg[p] > 0x7e))
+						p++;
+					if (p < msglen) p++;   /* the final letter */
+				}
+				continue;
+			}
+			p++;
+			visible++;
+		}
+		ab_append(&ab, editor.statusmsg, p);
+		ab_append(&ab, "\x1b[0m", 4);   /* close any open attribute */
+	}
 
 	/* ---- Place cursor ---- */
 	if (editor.echo_cursor_col > 0) {
