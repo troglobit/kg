@@ -148,6 +148,14 @@ enum KEY_ACTION {
 	ALT_C,         /* M-c capitalize-word */
 	ALT_BANG,      /* M-! shell-command */
 	ALT_PIPE,      /* M-| shell-command-on-region */
+	ALT_LT,        /* M-< beginning-of-buffer */
+	ALT_GT,        /* M-> end-of-buffer */
+	ALT_LBRACE,    /* M-{ backward paragraph */
+	ALT_RBRACE,    /* M-} forward paragraph */
+	ALT_M,         /* M-m back-to-indentation */
+	ALT_A,         /* M-a backward sentence */
+	ALT_E,         /* M-e forward sentence */
+	ALT_R,         /* M-r move-to-window-line */
 	KEY_F3,        /* F3: start keyboard macro */
 	KEY_F4         /* F4: stop or replay keyboard macro */
 };
@@ -210,6 +218,7 @@ struct editor_config {
 	int readonly;       /* If 1, buffer is read-only (editing is blocked). */
 	int last_key;       /* Last key processed, for command repetition logic. */
 	int recenter_state; /* Cycle state for C-l: 0=center, 1=top, 2=bottom. */
+	int window_line_state; /* Cycle state for M-r: 0=top, 1=middle, 2=bottom. */
 	time_t disk_mtime;  /* mtime of `filename` when we last read/wrote it. */
 	off_t disk_size;    /* size of `filename` when we last read/wrote it. */
 	int disk_changed;   /* Set by the auto-revert poll when disk differs. */
@@ -352,6 +361,8 @@ void editor_insert_char_auto_complete(int c);
 void editor_move_cursor(int key);
 void editor_move_to_beginning(void);
 void editor_move_to_end(void);
+void editor_move_to_indentation(void);
+void editor_move_to_window_line(void);
 void editor_goto_line_direct(int line, int col);
 void editor_goto_line(int fd);
 
@@ -456,6 +467,8 @@ void editor_move_word_forward(void);
 void editor_move_word_backward(void);
 void editor_move_paragraph_forward(void);
 void editor_move_paragraph_backward(void);
+void editor_move_sentence_forward(void);
+void editor_move_sentence_backward(void);
 void editor_kill_word_forward(void);
 void editor_kill_word_backward(void);
 void editor_join_line(void);

@@ -45,10 +45,14 @@ Multiple files each open in their own buffer.
 .It M-v / PgUp Ta Scroll up one page
 .It M-f / C-\(-> Ta Move forward one word
 .It M-b / C-\(<- Ta Move backward one word
-.It C-\(ua Ta Move to previous paragraph
-.It C-\(da Ta Move to next paragraph
-.It C-Home Ta Move to beginning of buffer
-.It C-End Ta Move to end of buffer
+.It M-e Ta Move forward one sentence
+.It M-a Ta Move backward one sentence
+.It C-\(ua / M-\&{ Ta Move to previous paragraph
+.It C-\(da / M-\&} Ta Move to next paragraph
+.It C-Home / M-\&< Ta Move to beginning of buffer
+.It C-End / M-\&> Ta Move to end of buffer
+.It M-m Ta Back to indentation on current line
+.It M-r Ta Cycle cursor through top/middle/bottom of window
 .It M-g Ta Go to line (prompts for line or line:col)
 .It C-u Ta Numeric prefix for the next command (see below)
 .El
@@ -75,6 +79,20 @@ count;
 .Sq C-u 80 -
 inserts eighty dashes, handy for header rules.
 Commands without a meaningful repeat semantics ignore the count silently.
+.Pp
+.Ic M-a
+and
+.Ic M-e
+use a deliberately simple sentence-boundary heuristic: a sentence ends at
+.Sq \&. ,
+.Sq \&? ,
+or
+.Sq \&!
+immediately followed by whitespace.  Mid-text periods such as
+.Dq Mr. Smith
+or
+.Dq e.g.\&
+will be mis-detected as sentence ends.
 .Ss Editing
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

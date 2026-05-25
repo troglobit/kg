@@ -64,6 +64,7 @@ void init_editor(void)
 	editor.prefix_pending = 0;
 	editor.prefix_arg = 0;
 	editor.prefix_no_digits = 0;
+	editor.window_line_state = 0;
 	gettimeofday(&editor.last_char_time, NULL);
 	kill_ring_init();
 	undo_init();

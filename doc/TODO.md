@@ -132,7 +132,7 @@ ordered by value vs implementation effort.
 - [ ] **Regex search**, or at least a case-sensitivity toggle in
       isearch.  Right now isearch is literal-only and case-sensitive.
 
-- [ ] **Verify `M-d` kill-word forward and `M-DEL` kill-word backward**:
+- [x] **Verify `M-d` kill-word forward and `M-DEL` kill-word backward**:
       Pair with `M-f`/`M-b` that already exist; add if missing.
 
 - [ ] **Toggle line numbers**: `M-x linum-mode` or similar.  Frequent

@@ -101,6 +101,52 @@ void editor_move_to_beginning(void)
 	editor.coloff = 0;
 }
 
+/* Move the cursor to the first non-whitespace character on the current
+ * line (M-m).  Lands at end-of-line if the line is blank or all whitespace.
+ * Doesn't toggle back to column 0 — C-a already does that. */
+void editor_move_to_indentation(void)
+{
+	erow *row;
+	int col;
+
+	if (editor.rowoff + editor.cy >= editor.numrows) return;
+
+	editor_move_cursor(HOME_KEY);
+
+	row = &editor.row[editor.rowoff + editor.cy];
+	col = editor.coloff + editor.cx;
+	while (col < row->size && isspace((unsigned char)row->chars[col])) {
+		editor_move_cursor(ARROW_RIGHT);
+		col = editor.coloff + editor.cx;
+	}
+}
+
+/* Park the cursor at the top, middle, or bottom of the visible window
+ * (M-r), cycling through those three on consecutive presses.  Doesn't
+ * scroll — only moves the cursor within the existing viewport, clamped
+ * to actual content. */
+void editor_move_to_window_line(void)
+{
+	int target;
+	int last_visible_row;
+
+	switch (editor.window_line_state) {
+	case 0:  target = 0; break;
+	case 1:  target = editor.screenrows / 2; break;
+	default: target = editor.screenrows - 1; break;
+	}
+
+	last_visible_row = editor.numrows - editor.rowoff - 1;
+	if (last_visible_row < 0) last_visible_row = 0;
+	if (target > last_visible_row) target = last_visible_row;
+	if (target < 0) target = 0;
+
+	editor.cy = target;
+	editor.cx = 0;
+	editor.coloff = 0;
+	editor.window_line_state = (editor.window_line_state + 1) % 3;
+}
+
 /* Jump to a specific line (1-based) and column (1-based, 0 = start). */
 void editor_goto_line_direct(int line, int col)
 {

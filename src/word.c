@@ -262,6 +262,125 @@ void editor_move_paragraph_forward(void)
 	editor.coloff = 0;
 }
 
+/* Sentence boundary helpers.  A sentence ends at '.', '?', or '!' that is
+ * followed in the source text by whitespace (including newline / EOF). */
+static int is_sentence_end(char c)
+{
+	return c == '.' || c == '?' || c == '!';
+}
+
+/* Move past the next sentence-ending punctuation (M-e). */
+void editor_move_sentence_forward(void)
+{
+	while (1) {
+		int filerow = editor.rowoff + editor.cy;
+		int filecol = editor.coloff + editor.cx;
+		erow *row;
+		char c;
+		int next_is_ws;
+
+		if (filerow >= editor.numrows) return;
+		row = &editor.row[filerow];
+
+		if (filecol >= row->size) {
+			if (filerow + 1 >= editor.numrows) return;
+			editor_move_cursor(ARROW_RIGHT);
+			continue;
+		}
+
+		c = row->chars[filecol];
+		if (is_sentence_end(c)) {
+			if (filecol + 1 >= row->size)
+				next_is_ws = 1;
+			else
+				next_is_ws = isspace((unsigned char)row->chars[filecol + 1]);
+			if (next_is_ws) {
+				editor_move_cursor(ARROW_RIGHT);
+				return;
+			}
+		}
+		editor_move_cursor(ARROW_RIGHT);
+	}
+}
+
+/* Move to the start of the current sentence — i.e. just past the previous
+ * sentence-end punctuation and any whitespace that followed it (M-a).
+ * If the cursor is already at a sentence start, move to the start of the
+ * previous sentence.  Lands at beginning-of-buffer if no earlier sentence
+ * boundary exists.
+ *
+ * Walks backward from the cursor and stops at the first sentence boundary
+ * found, so the cost is proportional to the distance moved rather than to
+ * the size of the prefix of the buffer. */
+void editor_move_sentence_backward(void)
+{
+	int orig_r = editor.rowoff + editor.cy;
+	int orig_c = editor.coloff + editor.cx;
+	int r = orig_r, c = orig_c;
+	int target_r = 0, target_c = 0;
+
+	if (orig_r == 0 && orig_c == 0) goto place;
+
+	/* Step back once so we don't immediately re-discover the boundary we're
+	 * already standing on (when cursor is at a sentence start, we want the
+	 * previous sentence, not the current one). */
+	if (c > 0) c--;
+	else { r--; c = editor.row[r].size; }
+
+	while (1) {
+		if (c < editor.row[r].size) {
+			char ch = editor.row[r].chars[c];
+			if (is_sentence_end(ch)) {
+				/* A sentence end is [.?!] immediately followed in source
+				 * by whitespace.  An end-of-line right after the period
+				 * counts (the implicit newline is whitespace). */
+				int is_break = (c + 1 >= editor.row[r].size) ||
+				               isspace((unsigned char)editor.row[r].chars[c + 1]);
+				if (is_break) {
+					/* Walk forward over the whitespace gap to land on the
+					 * first non-whitespace char — that is the start of the
+					 * sentence we want. */
+					int tr = r, tc = c + 1;
+					while (tr < editor.numrows) {
+						if (tc >= editor.row[tr].size) {
+							tr++;
+							tc = 0;
+							continue;
+						}
+						if (!isspace((unsigned char)editor.row[tr].chars[tc])) break;
+						tc++;
+					}
+					/* Accept the target only if it sits strictly before the
+					 * original cursor — otherwise it's the start of the
+					 * sentence we were already in, and we want the one
+					 * before that. */
+					if (tr < orig_r || (tr == orig_r && tc < orig_c)) {
+						target_r = tr;
+						target_c = tc;
+						goto place;
+					}
+				}
+			}
+		}
+		if (r == 0 && c == 0) break;
+		if (c > 0) c--;
+		else { r--; c = editor.row[r].size; }
+	}
+
+place:
+	if (target_r < editor.rowoff) editor.rowoff = target_r;
+	if (target_r >= editor.rowoff + editor.screenrows)
+		editor.rowoff = target_r - editor.screenrows + 1;
+	if (editor.rowoff < 0) editor.rowoff = 0;
+	editor.cy = target_r - editor.rowoff;
+
+	if (target_c < editor.coloff) editor.coloff = target_c;
+	if (target_c >= editor.coloff + editor.screencols)
+		editor.coloff = target_c - editor.screencols + 1;
+	if (editor.coloff < 0) editor.coloff = 0;
+	editor.cx = target_c - editor.coloff;
+}
+
 /* Join the current line with the previous one, stripping leading whitespace
  * from the current line and inserting a single space at the join point when
  * both sides are non-empty.  Cursor lands at the join point (M-^). */

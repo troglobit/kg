@@ -212,9 +212,11 @@ void editor_process_keypress(int fd)
 		}
 	}
 
-	/* Reset recenter cycle if the previous key was not C-l. */
+	/* Reset cycle states if the previous key wasn't the cycling command. */
 	if (editor.last_key != CTRL_L)
 		editor.recenter_state = 0;
+	if (editor.last_key != ALT_R)
+		editor.window_line_state = 0;
 	editor.last_key = c;
 
 	/* Regular key processing */
@@ -377,9 +379,11 @@ void editor_process_keypress(int fd)
 		editor_move_cursor(c);
 		break;
 	case CTRL_HOME:
+	case ALT_LT:
 		editor_move_to_beginning();
 		break;
 	case CTRL_END:
+	case ALT_GT:
 		editor_move_to_end();
 		break;
 	case ALT_G:         /* Goto line */
@@ -400,10 +404,24 @@ void editor_process_keypress(int fd)
 		while (n--) editor_kill_word_backward();
 		break;
 	case CTRL_ARROW_UP:
+	case ALT_LBRACE:
 		while (n--) editor_move_paragraph_backward();
 		break;
 	case CTRL_ARROW_DOWN:
+	case ALT_RBRACE:
 		while (n--) editor_move_paragraph_forward();
+		break;
+	case ALT_M:         /* M-m: back-to-indentation */
+		editor_move_to_indentation();
+		break;
+	case ALT_A:         /* M-a: backward sentence */
+		while (n--) editor_move_sentence_backward();
+		break;
+	case ALT_E:         /* M-e: forward sentence */
+		while (n--) editor_move_sentence_forward();
+		break;
+	case ALT_R:         /* M-r: top/middle/bottom of window cycle */
+		editor_move_to_window_line();
 		break;
 	case ALT_V:         /* Page up */
 		if (editor.cy != 0)
