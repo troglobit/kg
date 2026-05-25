@@ -95,7 +95,7 @@ ordered by value vs implementation effort.
 
 ### Lower priority / larger scope
 
-- [ ] **C-u universal-argument**: Numeric prefix for repeating commands
+- [x] **C-u universal-argument**: Numeric prefix for repeating commands
       (e.g. C-u 8 C-f moves forward 8 chars).  Moderate plumbing work
       but unlocks power-user workflows.
 

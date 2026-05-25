@@ -198,6 +198,9 @@ struct editor_config {
 	                      * where the cursor should rest (for minibuffer prompts). */
 	struct editor_syntax *syntax;    /* Current syntax highlight, or NULL. */
 	int cx_prefix;      /* Set to 1 when C-x was pressed, waiting for next key. */
+	int prefix_pending; /* Set while accumulating a C-u numeric argument. */
+	int prefix_arg;     /* The numeric argument under construction. */
+	int prefix_no_digits; /* 1 between C-u and the first digit, so a digit replaces 4. */
 	int paste_mode;     /* If 1, we're in paste mode - disable autocomplete */
 	struct timeval last_char_time; /* Time of last character for paste detection */
 	int mark_set;       /* Is mark set for region selection? */

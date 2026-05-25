@@ -2,6 +2,53 @@
 
 #include "def.h"
 
+/* C-u universal-argument: accumulate a numeric prefix.  Returns 1 if `c`
+ * was part of the in-progress prefix (digit, another C-u, or C-g cancel)
+ * and the caller should stop processing this key.  Returns 0 if `c` is a
+ * real command — by then editor.prefix_pending is cleared and the count
+ * is committed in editor.prefix_arg, waiting to be picked up. */
+static int handle_universal_arg(int c)
+{
+	if (!editor.prefix_pending) {
+		if (c == CTRL_U) {
+			editor.prefix_pending   = 1;
+			editor.prefix_arg       = 4;
+			editor.prefix_no_digits = 1;
+			editor_set_status_message("C-u");
+			return 1;
+		}
+		return 0;
+	}
+
+	if (c == CTRL_U) {
+		editor.prefix_arg *= 4;
+		editor_set_status_message("C-u %d", editor.prefix_arg);
+		return 1;
+	}
+	if (c >= '0' && c <= '9') {
+		int digit = c - '0';
+		if (editor.prefix_no_digits) {
+			editor.prefix_arg       = digit;
+			editor.prefix_no_digits = 0;
+		} else {
+			editor.prefix_arg = editor.prefix_arg * 10 + digit;
+		}
+		editor_set_status_message("C-u %d", editor.prefix_arg);
+		return 1;
+	}
+	if (c == CTRL_G) {
+		editor.prefix_pending   = 0;
+		editor.prefix_arg       = 0;
+		editor.prefix_no_digits = 0;
+		editor_set_status_message("");
+		return 1;
+	}
+
+	editor.prefix_pending   = 0;
+	editor.prefix_no_digits = 0;
+	return 0;
+}
+
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
 void editor_process_keypress(int fd)
@@ -9,6 +56,7 @@ void editor_process_keypress(int fd)
 	struct timeval tv;
 	int c = editor_read_key_idle(fd);
 	long elapsed;
+	int n;
 
 	/* Paste mode detection: if characters arrive very quickly (< 30ms apart),
 	 * we're likely in a paste operation, so disable autocompletion */
@@ -127,6 +175,21 @@ void editor_process_keypress(int fd)
 		return;
 	}
 
+	if (handle_universal_arg(c))
+		return;
+
+	/* Consume the pending C-u count now, before any of the early-return
+	 * filters below have a chance to drop the key.  Whichever branch ends
+	 * up handling this keystroke either uses `n` or implicitly discards
+	 * it; either way the next keypress starts fresh. */
+	if (editor.prefix_arg > 0) {
+		n = editor.prefix_arg;
+		editor.prefix_arg = 0;
+		editor_set_status_message("");
+	} else {
+		n = 1;
+	}
+
 	/* q closes special *...* buffers, but only if another buffer exists */
 	if (c == 'q' && is_special_buffer(editor.filename) && buf_count > 1) {
 		buf_kill(fd);
@@ -160,37 +223,65 @@ void editor_process_keypress(int fd)
 		editor_set_mark();
 		break;
 	case ENTER:         /* Enter */
-		editor_insert_newline();
+		while (n--) editor_insert_newline();
 		break;
 	case CTRL_A:        /* Beginning of line */
 		editor_move_cursor(HOME_KEY);
 		break;
 	case CTRL_B:        /* Backward char */
-		editor_move_cursor(ARROW_LEFT);
+		while (n--) editor_move_cursor(ARROW_LEFT);
 		break;
 	case CTRL_D:        /* Delete char forward */
-		editor_del_forward_char();
+		while (n--) editor_del_forward_char();
 		break;
 	case CTRL_E:        /* End of line */
 		editor_move_cursor(END_KEY);
 		break;
 	case CTRL_F:        /* Forward char */
-		editor_move_cursor(ARROW_RIGHT);
+		while (n--) editor_move_cursor(ARROW_RIGHT);
 		break;
 	case CTRL_G:        /* Keyboard quit / cancel */
 		editor_set_status_message("");
 		break;
 	case CTRL_K:        /* Kill line */
-		editor_kill_line();
+		if (n > 1) {
+			/* Kill N logical lines (each = content-to-EOL + newline),
+			 * matching Emacs' C-u N C-k.  editor_kill_line() is a half-
+			 * step primitive, so we count *newlines* removed (numrows
+			 * dropped) rather than iterations.  A stalled kill_ring tells
+			 * us we hit EOF and should stop. */
+			int start_row     = editor.rowoff + editor.cy;
+			int start_col     = editor.coloff + editor.cx;
+			int prev_kill_len = killring.len;
+			int newlines_left = n;
+			int killed_len;
+			suppress_undo = 1;
+			while (newlines_left > 0) {
+				int before_numrows  = editor.numrows;
+				int before_ring_len = killring.len;
+				editor_kill_line();
+				if (killring.len == before_ring_len)
+					break;
+				if (editor.numrows < before_numrows)
+					newlines_left--;
+			}
+			suppress_undo = 0;
+			killed_len = killring.len - prev_kill_len;
+			if (killed_len > 0)
+				undo_push(UNDO_KILL_TEXT, start_row, start_col, 0,
+					  killring.text + prev_kill_len, killed_len);
+		} else {
+			editor_kill_line();
+		}
 		break;
 	case CTRL_O:        /* Open line */
-		editor_open_line();
+		while (n--) editor_open_line();
 		break;
 	case CTRL_N:        /* Next line */
-		editor_move_cursor(ARROW_DOWN);
+		while (n--) editor_move_cursor(ARROW_DOWN);
 		break;
 	case CTRL_P:        /* Previous line */
-		editor_move_cursor(ARROW_UP);
+		while (n--) editor_move_cursor(ARROW_UP);
 		break;
 	case CTRL_S:        /* Incremental search */
 		editor_find(fd);
@@ -221,10 +312,34 @@ void editor_process_keypress(int fd)
 		editor_set_status_message("C-x-");
 		return;
 	case CTRL_Y:        /* Yank (paste) */
-		editor_yank();
+		if (n > 1 && killring.text && killring.len > 0) {
+			/* Batch N yanks under one undo: UNDO_YANK_TEXT reverses by
+			 * deleting len chars forward, so the record must carry the
+			 * full N-copy payload size for the reversal to be complete. */
+			int start_row = editor.rowoff + editor.cy;
+			int start_col = editor.coloff + editor.cx;
+			int total_len = n * killring.len;
+			char *combined = malloc(total_len);
+			if (combined) {
+				int i;
+				for (i = 0; i < n; i++)
+					memcpy(combined + i * killring.len,
+					       killring.text, killring.len);
+				undo_push(UNDO_YANK_TEXT, start_row, start_col, 0,
+					  combined, total_len);
+				free(combined);
+				suppress_undo = 1;
+				while (n--) editor_yank();
+				suppress_undo = 0;
+			} else {
+				while (n--) editor_yank();
+			}
+		} else {
+			editor_yank();
+		}
 		break;
 	case CTRL_UNDERSCORE: /* Undo (C-_ or C-/) */
-		editor_undo();
+		while (n--) editor_undo();
 		break;
 	case CTRL_H:        /* Help */
 		editor_toggle_help();
@@ -233,10 +348,10 @@ void editor_process_keypress(int fd)
 		editor_suspend();
 		break;
 	case BACKSPACE:     /* Backspace */
-		editor_del_char();
+		while (n--) editor_del_char();
 		break;
 	case DEL_KEY:       /* Forward delete */
-		editor_del_forward_char();
+		while (n--) editor_del_forward_char();
 		break;
 	case PAGE_UP:
 	case PAGE_DOWN:
@@ -255,6 +370,8 @@ void editor_process_keypress(int fd)
 	case ARROW_DOWN:
 	case ARROW_LEFT:
 	case ARROW_RIGHT:
+		while (n--) editor_move_cursor(c);
+		break;
 	case HOME_KEY:
 	case END_KEY:
 		editor_move_cursor(c);
@@ -270,23 +387,23 @@ void editor_process_keypress(int fd)
 		break;
 	case CTRL_ARROW_LEFT:
 	case ALT_B:
-		editor_move_word_backward();
+		while (n--) editor_move_word_backward();
 		break;
 	case CTRL_ARROW_RIGHT:
 	case ALT_F:
-		editor_move_word_forward();
+		while (n--) editor_move_word_forward();
 		break;
 	case ALT_D:             /* Kill word forward */
-		editor_kill_word_forward();
+		while (n--) editor_kill_word_forward();
 		break;
 	case ALT_BACKSPACE:     /* Kill word backward */
-		editor_kill_word_backward();
+		while (n--) editor_kill_word_backward();
 		break;
 	case CTRL_ARROW_UP:
-		editor_move_paragraph_backward();
+		while (n--) editor_move_paragraph_backward();
 		break;
 	case CTRL_ARROW_DOWN:
-		editor_move_paragraph_forward();
+		while (n--) editor_move_paragraph_forward();
 		break;
 	case ALT_V:         /* Page up */
 		if (editor.cy != 0)
@@ -313,16 +430,16 @@ void editor_process_keypress(int fd)
 		editor_named_command(fd);
 		break;
 	case ALT_CARET:     /* Join current line with previous */
-		editor_join_line();
+		while (n--) editor_join_line();
 		break;
 	case ALT_U:         /* Upcase word forward */
-		editor_upcase_word();
+		while (n--) editor_upcase_word();
 		break;
 	case ALT_L:         /* Downcase word forward */
-		editor_downcase_word();
+		while (n--) editor_downcase_word();
 		break;
 	case ALT_C:         /* Capitalize word forward */
-		editor_capitalize_word();
+		while (n--) editor_capitalize_word();
 		break;
 	case ALT_BANG:      /* Shell command */
 		editor_shell_command(fd);
@@ -365,17 +482,11 @@ void editor_process_keypress(int fd)
 		break;
 	default:
 		/* Filter out control characters and non-printable characters.
-		 * Only allow printable ASCII (32-126) and TAB/ENTER.
-		 * This prevents weird characters from appearing when pressing
-		 * unhandled key combinations. In the future, we can add a compose
-		 * key for UTF-8 input. */
-		if (c == TAB || c == ENTER) {
-			/* Allow TAB and ENTER */
-			editor_insert_char_auto_complete(c);
-		} else if (c >= 32 && c < 127) {
-			/* Printable ASCII characters */
-			editor_insert_char_auto_complete(c);
-		}
+		 * Only allow printable ASCII (32-126) and TAB.  (ENTER is handled
+		 * as its own case above and would never reach here.)  Repeats N
+		 * times when a C-u prefix preceded the key. */
+		if (c == TAB || (c >= 32 && c < 127))
+			while (n--) editor_insert_char_auto_complete(c);
 		/* Silently ignore all other control/non-printable characters */
 		break;
 	}

@@ -50,7 +50,31 @@ Multiple files each open in their own buffer.
 .It C-Home Ta Move to beginning of buffer
 .It C-End Ta Move to end of buffer
 .It M-g Ta Go to line (prompts for line or line:col)
+.It C-u Ta Numeric prefix for the next command (see below)
 .El
+.Pp
+.Ic C-u
+captures a count that the next command runs that many times.
+Type
+.Ic C-u
+alone for 4, repeat
+.Ic C-u
+to multiply by 4 each time
+.Pq Sq C-u C-u No \(rA 16, Sq C-u C-u C-u No \(rA 64 ,
+or follow
+.Ic C-u
+with digits to set an explicit count
+.Pq Sq C-u 8 No \(rA 8 , Sq C-u 1 0 0 No \(rA 100 .
+.Ic C-g
+cancels an in-progress prefix.
+The accumulated count is shown in the echo area while it is being built.
+.Pp
+Cursor motion, character and word deletion, word-case commands, opening
+lines, inserting newlines and inserting plain characters all honour the
+count;
+.Sq C-u 80 -
+inserts eighty dashes, handy for header rules.
+Commands without a meaningful repeat semantics ignore the count silently.
 .Ss Editing
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

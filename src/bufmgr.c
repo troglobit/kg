@@ -248,6 +248,9 @@ static void buf_reset(void)
 	editor.syntax = NULL;
 	editor.mark_set = editor.mark_row = editor.mark_col = 0;
 	editor.cx_prefix = 0;
+	editor.prefix_pending = 0;
+	editor.prefix_arg = 0;
+	editor.prefix_no_digits = 0;
 	editor.paste_mode = 0;
 	editor.readonly = 0;
 	editor.disk_mtime = 0;

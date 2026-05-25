@@ -214,6 +214,7 @@ void editor_insert_newline_raw(void)
  * newlines (no auto-indent).  Used by editor_yank and UNDO_KILL_TEXT. */
 void editor_insert_text_raw(const char *text, int len)
 {
+	int saved = suppress_undo;
 	int i;
 	suppress_undo = 1;
 	for (i = 0; i < len; i++) {
@@ -222,7 +223,7 @@ void editor_insert_text_raw(const char *text, int len)
 		else
 			editor_insert_char(text[i]);
 	}
-	suppress_undo = 0;
+	suppress_undo = saved;
 }
 
 /* Inserting a newline is slightly complex as we have to handle inserting a
@@ -366,7 +367,12 @@ void editor_del_forward_char(void)
 	editor.dirty++;
 }
 
-/* Kill (delete) from cursor to end of line (C-k). */
+/* Kill (delete) from cursor to end of line (C-k).
+ *
+ * Invariant relied on by the C-u-batched kill in kbd.c: every byte removed
+ * from the buffer here is also kill_ring_append()-ed in the same step.
+ * Keep them in lock-step — diverging would silently corrupt undo replay
+ * for `C-u N C-k`. */
 void editor_kill_line(void)
 {
 	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
