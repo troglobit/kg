@@ -15,7 +15,7 @@ man1dir = $(mandir)/man1
 # Source files
 SRCS = main.c tty.c syntax.c autocomplete.c buffer.c fileio.c \
        display.c search.c basic.c word.c kbd.c yank.c undo.c help.c bufmgr.c winmgr.c cmd.c macro.c \
-       shell.c path.c
+       shell.c path.c rect.c
 
 # Object and header files
 OBJS = $(addprefix $(OBJDIR)/,$(SRCS:.c=.o))
@@ -72,7 +72,7 @@ $(TESTDIR)/test_syntax: $(TESTDIR)/test_syntax.o $(TESTDIR)/test.o $(TESTDIR)/st
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(TESTDIR)/test_yank: $(TESTDIR)/test_yank.o $(TESTDIR)/test.o $(TESTDIR)/stubs_noyank.o \
-        $(OBJDIR)/yank.o $(TEST_SRCS_OBJS)
+        $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(TEST_SRCS_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(TESTDIR)/test_autocomplete: $(TESTDIR)/test_autocomplete.o $(TESTDIR)/test.o \
@@ -90,12 +90,12 @@ $(TESTDIR)/test_basic: $(TESTDIR)/test_basic.o $(TESTDIR)/test.o \
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(TESTDIR)/test_region: $(TESTDIR)/test_region.o $(TESTDIR)/test.o \
-        $(TESTDIR)/stubs_noyank.o $(OBJDIR)/yank.o $(TEST_SRCS_OBJS)
+        $(TESTDIR)/stubs_noyank.o $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(TEST_SRCS_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(TESTDIR)/test_shell: $(TESTDIR)/test_shell.o $(TESTDIR)/test.o \
         $(TESTDIR)/stubs_noyank.o $(OBJDIR)/shell.o $(OBJDIR)/yank.o \
-        $(OBJDIR)/buffer.o $(OBJDIR)/undo.o $(OBJDIR)/syntax.o
+        $(OBJDIR)/rect.o $(OBJDIR)/buffer.o $(OBJDIR)/undo.o $(OBJDIR)/syntax.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(TESTDIR)/test_complete: $(TESTDIR)/test_complete.o $(TESTDIR)/test.o \

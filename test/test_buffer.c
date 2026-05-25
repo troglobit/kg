@@ -231,6 +231,103 @@ static void test_update_row_no_tabs(void)
 	teardown();
 }
 
+/* ---- editor_visual_col / editor_chars_col_at_visual ---- */
+
+/* ASCII rows: visual col equals byte col. */
+static void test_visual_col_ascii(void)
+{
+	setup();
+	editor_insert_row(0, "hello", 5);
+
+	CHECK(editor_visual_col(&editor.row[0], 0) == 0);
+	CHECK(editor_visual_col(&editor.row[0], 3) == 3);
+	CHECK(editor_visual_col(&editor.row[0], 5) == 5);
+	teardown();
+}
+
+/* Tab at col 0 advances vcol to 7 (kg's "next 8-stop minus 1"). */
+static void test_visual_col_tab(void)
+{
+	setup();
+	editor_insert_row(0, "\tabc", 4);
+
+	CHECK(editor_visual_col(&editor.row[0], 0) == 0);
+	CHECK(editor_visual_col(&editor.row[0], 1) == 7);   /* past tab */
+	CHECK(editor_visual_col(&editor.row[0], 2) == 8);   /* +'a' */
+	CHECK(editor_visual_col(&editor.row[0], 4) == 10);  /* past 'abc' */
+	teardown();
+}
+
+/* UTF-8 continuation bytes contribute zero visual width. */
+static void test_visual_col_utf8(void)
+{
+	setup();
+	/* "a…b" — 'a' + 3-byte ellipsis + 'b' = 5 bytes, 3 visual cols. */
+	editor_insert_row(0, "a\xe2\x80\xa6""b", 5);
+
+	CHECK(editor_visual_col(&editor.row[0], 0) == 0);
+	CHECK(editor_visual_col(&editor.row[0], 1) == 1);   /* past 'a' */
+	CHECK(editor_visual_col(&editor.row[0], 4) == 2);   /* past '…' */
+	CHECK(editor_visual_col(&editor.row[0], 5) == 3);   /* past 'b' */
+	teardown();
+}
+
+/* Past end of row: byte offset becomes (row->size + virtual offset). */
+static void test_visual_col_past_eol(void)
+{
+	setup();
+	editor_insert_row(0, "abc", 3);
+
+	CHECK(editor_visual_col(&editor.row[0], 5) == 5);   /* 3 + 2 virtual */
+	CHECK(editor_visual_col(&editor.row[0], 10) == 10);
+	teardown();
+}
+
+/* chars_col_at_visual round-trips with visual_col on glyph boundaries. */
+static void test_chars_col_round_trip(void)
+{
+	int byte;
+
+	setup();
+	editor_insert_row(0, "a\tb", 3);
+
+	/* For each byte boundary in the row, visual_col→chars_col_at_visual
+	 * round-trips back to the same byte. */
+	for (byte = 0; byte <= 3; byte++) {
+		int vcol = editor_visual_col(&editor.row[0], byte);
+		CHECK(editor_chars_col_at_visual(&editor.row[0], vcol) == byte);
+	}
+	teardown();
+}
+
+/* A target that falls inside a tab's expansion rounds down to the
+ * tab's start byte (closest representable position when cx is a byte). */
+static void test_chars_col_inside_tab(void)
+{
+	setup();
+	editor_insert_row(0, "\tabc", 4);   /* tab fills vcols 0..6, 'a' at 7 */
+
+	CHECK(editor_chars_col_at_visual(&editor.row[0], 0) == 0);   /* tab start */
+	CHECK(editor_chars_col_at_visual(&editor.row[0], 3) == 0);   /* mid-tab → start */
+	CHECK(editor_chars_col_at_visual(&editor.row[0], 7) == 1);   /* 'a' */
+	CHECK(editor_chars_col_at_visual(&editor.row[0], 8) == 2);   /* 'b' */
+	teardown();
+}
+
+/* Past the row's visual end, chars_col_at_visual returns row->size plus
+ * the virtual offset — supports the rect-mode "cursor in virtual space"
+ * convention. */
+static void test_chars_col_past_eol(void)
+{
+	setup();
+	editor_insert_row(0, "abc", 3);
+
+	CHECK(editor_chars_col_at_visual(&editor.row[0], 3) == 3);
+	CHECK(editor_chars_col_at_visual(&editor.row[0], 5) == 5);   /* +2 virtual */
+	CHECK(editor_chars_col_at_visual(&editor.row[0], 10) == 10);
+	teardown();
+}
+
 /* ---- Main ---- */
 
 int main(void)
@@ -249,5 +346,12 @@ int main(void)
 	RUN(test_update_row_tab_at_col0);
 	RUN(test_update_row_tab_mid);
 	RUN(test_update_row_no_tabs);
+	RUN(test_visual_col_ascii);
+	RUN(test_visual_col_tab);
+	RUN(test_visual_col_utf8);
+	RUN(test_visual_col_past_eol);
+	RUN(test_chars_col_round_trip);
+	RUN(test_chars_col_inside_tab);
+	RUN(test_chars_col_past_eol);
 	return test_summary();
 }

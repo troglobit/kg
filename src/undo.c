@@ -107,25 +107,7 @@ void editor_undo(void)
 	undostack.size--;
 
 	/* Position cursor at operation location */
-	if (op->row < editor.rowoff) {
-		editor.rowoff = op->row;
-		editor.cy = 0;
-	} else if (op->row >= editor.rowoff + editor.screenrows) {
-		editor.rowoff = op->row - editor.screenrows + 1;
-		editor.cy = editor.screenrows - 1;
-	} else {
-		editor.cy = op->row - editor.rowoff;
-	}
-
-	if (op->col < editor.coloff) {
-		editor.coloff = op->col;
-		editor.cx = 0;
-	} else if (op->col >= editor.coloff + editor.screencols) {
-		editor.coloff = op->col - editor.screencols + 1;
-		editor.cx = editor.screencols - 1;
-	} else {
-		editor.cx = op->col - editor.coloff;
-	}
+	editor_cursor_goto(op->row, op->col);
 
 	/* Perform the reverse operation */
 	switch (op->type) {
@@ -216,6 +198,39 @@ void editor_undo(void)
 			suppress_undo = 0;
 		}
 		break;
+
+	case UNDO_RECT_OVERWRITE: {
+		/* op->row = first row affected
+		 * op->c   = numrows before the operation
+		 * op->text = original content of rows [row, row+N), '\n'-joined,
+		 *            where N = lines in op->text (0 if empty).
+		 * Replay: trim back to original numrows, then restore each row. */
+		int orig_numrows = op->c;
+		char *p = op->text;
+		char *end = op->text ? op->text + op->len : NULL;
+		int i = 0;
+
+		suppress_undo = 1;
+		while (editor.numrows > orig_numrows)
+			editor_del_row(editor.numrows - 1);
+		if (op->text && op->len > 0) {
+			while (p <= end) {
+				char *nl = (p < end) ? memchr(p, '\n', end - p) : NULL;
+				int line_len = nl ? (nl - p) : (end - p);
+				int target = op->row + i;
+
+				if (target < editor.numrows)
+					editor_del_row(target);
+				editor_insert_row(target, p, line_len);
+				if (!nl) break;
+				p = nl + 1;
+				i++;
+			}
+		}
+		suppress_undo = 0;
+		editor.dirty++;
+		break;
+	}
 
 	case UNDO_REFLOW_PARA: {
 		/* op->row = paragraph start row

@@ -200,6 +200,36 @@ for their own clipboard handling; unbind them in the terminal
 preferences if you want
 .Nm
 to see them.
+.Ss Rectangles
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It C-x Space Ta Rectangle mark mode
+.It C-x r k Ta Kill rectangle (cut)
+.It C-x r y Ta Yank rectangle (paste at point)
+.It C-x r d Ta Delete rectangle (no save)
+.It C-x r c Ta Clear rectangle (spaces)
+.El
+.Pp
+.Ic C-x Space
+sets a rectangle mark at point and turns the highlight rectangular:
+every row in the row range gets reverse-video on the same visual
+column span, lined up across tabs and UTF-8 content.
+The same transient-mark tear-down rules apply:
+.Ic C-g ,
+an edit, or a region command ends the mode.
+.Pp
+.Ic C-x r y
+pastes the last killed rectangle at point, padding short target rows
+with spaces and appending new rows when the buffer is too short.
+.Ic C-x r c
+overwrites every char in the rectangle with a space, padding short
+rows out to the right edge so the rectangle
+.Dq exists
+everywhere it should.
+Each rectangle command is one undo step;
+.Ic C-_
+restores the entire affected range, including any padding or row
+appends.
 .Ss Search and Replace
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

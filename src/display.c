@@ -83,7 +83,21 @@ static void draw_window_rows(struct abuf *ab,
 		int p_col = editor.coloff + editor.cx;
 		int m_row = editor.mark_row;
 		int m_col = editor.mark_col;
-		if (m_row < p_row || (m_row == p_row && m_col < p_col)) {
+		if (editor.rect_mode) {
+			/* Rectangle bounds live in VISUAL-column space.  Each
+			 * row in range maps that visual range back to its own
+			 * byte / render range — matches what the kill/clear
+			 * operations cut, and stays rectangular across rows
+			 * with different tab and UTF-8 content. */
+			int p_vcol = (p_row < numrows)
+				? editor_visual_col(&rows[p_row], p_col) : p_col;
+			int m_vcol = (m_row < numrows)
+				? editor_visual_col(&rows[m_row], m_col) : m_col;
+			region_s_row = (p_row < m_row) ? p_row : m_row;
+			region_e_row = (p_row > m_row) ? p_row : m_row;
+			region_s_col = (p_vcol < m_vcol) ? p_vcol : m_vcol;
+			region_e_col = (p_vcol > m_vcol) ? p_vcol : m_vcol;
+		} else if (m_row < p_row || (m_row == p_row && m_col < p_col)) {
 			region_s_row = m_row; region_s_col = m_col;
 			region_e_row = p_row; region_e_col = p_col;
 		} else {
@@ -142,10 +156,19 @@ static void draw_window_rows(struct abuf *ab,
 			hl = r->hl    + coloff;
 
 			if (region_active && fr >= region_s_row && fr <= region_e_row) {
-				hi_lo = (fr == region_s_row) ?
-					chars_to_render_col(r, region_s_col) : 0;
-				hi_hi = (fr == region_e_row) ?
-					chars_to_render_col(r, region_e_col) : r->rsize;
+				if (editor.rect_mode) {
+					int byte_lo = editor_chars_col_at_visual(r, region_s_col);
+					int byte_hi = editor_chars_col_at_visual(r, region_e_col);
+					if (byte_lo > r->size) byte_lo = r->size;
+					if (byte_hi > r->size) byte_hi = r->size;
+					hi_lo = chars_to_render_col(r, byte_lo);
+					hi_hi = chars_to_render_col(r, byte_hi);
+				} else {
+					hi_lo = (fr == region_s_row) ?
+						chars_to_render_col(r, region_s_col) : 0;
+					hi_hi = (fr == region_e_row) ?
+						chars_to_render_col(r, region_e_col) : r->rsize;
+				}
 			}
 
 			for (j = 0; j < len; j++) {
@@ -185,6 +208,37 @@ static void draw_window_rows(struct abuf *ab,
 						ab_append(ab, cbuf, clen);
 					}
 					ab_append(ab, c+j, 1);
+				}
+			}
+			/* When rect mode's right edge is past this row's
+			 * visual content, extend the highlight into virtual
+			 * space with reverse-video spaces — so a rectangle
+			 * pulled out past short rows still looks rectangular. */
+			if (editor.rect_mode && region_active &&
+			    fr >= region_s_row && fr <= region_e_row) {
+				int row_vwidth = editor_visual_col(r, r->size);
+
+				if (region_e_col > row_vwidth) {
+					int virt_e = region_e_col - row_vwidth;
+					int virt_s = region_s_col > row_vwidth
+					                ? region_s_col - row_vwidth : 0;
+					int skip = virt_s;
+					int rev  = virt_e - virt_s;
+
+					if (skip > 0) {
+						if (current_reverse) {
+							ab_append(ab, "\x1b[27m", 5);
+							current_reverse = 0;
+						}
+						ab_append_spaces(ab, skip);
+					}
+					if (rev > 0) {
+						if (!current_reverse) {
+							ab_append(ab, "\x1b[7m", 4);
+							current_reverse = 1;
+						}
+						ab_append_spaces(ab, rev);
+					}
 				}
 			}
 			if (current_reverse)
@@ -355,10 +409,15 @@ void editor_refresh_screen(void)
 			/* editor.cx is a byte offset into row->chars, but the cursor
 			 * must be placed at the visible column.  Tabs widen to the
 			 * next 8-stop; UTF-8 continuation bytes carry no width. */
-			for (j = editor.coloff; j < (editor.cx + editor.coloff) && j < row->size; j++) {
+			int target = editor.cx + editor.coloff;
+
+			for (j = editor.coloff; j < target && j < row->size; j++) {
 				if (row->chars[j] == TAB) cx += 7 - ((cx) % 8);
 				if (!utf8_is_cont((unsigned char)row->chars[j])) cx++;
 			}
+			/* Past EOL — rect mode allows the cursor to live in virtual
+			 * space; each virtual byte renders as one extra column. */
+			if (target > row->size) cx += target - row->size;
 		}
 		ab_move_to(&ab, w->y + editor.cy, w->x + cx - 1);
 	}

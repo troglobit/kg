@@ -79,6 +79,27 @@ void editor_process_keypress(int fd)
 		return;
 	}
 
+	/* Handle C-x r rectangle ops (second key after C-x r).  Every op
+	 * here mutates the buffer, so a read-only buffer rejects them
+	 * outright; only C-g (cancel) still has any business reaching
+	 * the inner switch. */
+	if (editor.rect_prefix) {
+		editor.rect_prefix = 0;
+		if (editor.readonly && c != CTRL_G) {
+			editor_set_status_message("Buffer is read-only");
+			return;
+		}
+		switch (c) {
+		case 'k': case CTRL_K: editor_kill_rect();   break;
+		case 'd':              editor_delete_rect(); break;
+		case 'c':              editor_clear_rect();  break;
+		case 'y': case CTRL_Y: editor_yank_rect();   break;
+		case CTRL_G:           editor_set_status_message(""); break;
+		default:               editor_set_status_message("C-x r %c is undefined", c); break;
+		}
+		return;
+	}
+
 	/* Handle C-x prefix commands */
 	if (editor.cx_prefix) {
 		editor.cx_prefix = 0;
@@ -168,6 +189,13 @@ void editor_process_keypress(int fd)
 		case 'e':       /* C-x e: Execute keyboard macro */
 			macro_replay(fd);
 			break;
+		case ' ':       /* C-x SPC: rectangle-mark-mode */
+			editor_rect_mode_toggle();
+			break;
+		case 'r':       /* C-x r-: rectangle operation prefix */
+			editor.rect_prefix = 1;
+			editor_set_status_message("C-x r-");
+			break;
 		case CTRL_G:    /* C-x C-g: Cancel C-x prefix */
 			editor_set_status_message("");
 			break;
@@ -248,6 +276,8 @@ void editor_process_keypress(int fd)
 		break;
 	case CTRL_G:        /* Keyboard quit / cancel */
 		editor.mark_highlight = 0;
+		editor.rect_mode = 0;
+		editor_snap_cx_to_row();
 		editor_set_status_message("");
 		break;
 	case CTRL_K:        /* Kill line */
@@ -359,8 +389,11 @@ void editor_process_keypress(int fd)
 	case BACKSPACE:     /* Backspace */
 		while (n--) editor_del_char();
 		break;
-	case DEL_KEY:       /* Forward delete */
-		while (n--) editor_del_forward_char();
+	case DEL_KEY:       /* Forward delete; consumes an active region first. */
+		if (editor.mark_set && editor.mark_highlight)
+			editor_delete_region_or_char();
+		else
+			while (n--) editor_del_forward_char();
 		break;
 	case PAGE_UP:
 	case PAGE_DOWN:
@@ -547,8 +580,11 @@ void editor_process_keypress(int fd)
 	 * transient-mark-mode convention.  The filename guard avoids
 	 * stomping the highlight that was just restored from a buffer slot
 	 * when the user switched buffers (C-x b, C-x C-f). */
-	if (editor.filename == fname_before && editor.dirty != dirty_before)
+	if (editor.filename == fname_before && editor.dirty != dirty_before) {
 		editor.mark_highlight = 0;
+		editor.rect_mode = 0;
+		editor_snap_cx_to_row();
+	}
 
 	/* Tear down a shift-selected region after the command has had its
 	 * say.  Done last so C-w / M-w / C-x C-x can still see the mark
@@ -562,5 +598,17 @@ void editor_process_keypress(int fd)
 		editor.shift_select = 0;
 		editor.mark_set = 0;
 		editor.mark_highlight = 0;
+		editor.rect_mode = 0;
+		editor_snap_cx_to_row();
 	}
+
+	/* Goal column is only valid between consecutive vertical motions —
+	 * any other key invalidates it.  Keep-list mirrors every key that
+	 * eventually routes through editor_move_cursor(ARROW_UP/DOWN). */
+	if (c != ARROW_UP       && c != ARROW_DOWN       &&
+	    c != SHIFT_ARROW_UP && c != SHIFT_ARROW_DOWN &&
+	    c != PAGE_UP        && c != PAGE_DOWN        &&
+	    c != CTRL_N         && c != CTRL_P           &&
+	    c != CTRL_V         && c != ALT_V)
+		editor.desired_visual_col = -1;
 }

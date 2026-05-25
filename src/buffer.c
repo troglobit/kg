@@ -2,6 +2,106 @@
 
 #include "def.h"
 
+/* Visual column at byte offset `chars_col` in `row`.  Tabs use kg's
+ * own stop convention (advance until (vcol+1) % 8 == 0) — same as the
+ * render in editor_update_row and the cursor-placement loop in
+ * editor_refresh_screen, so the two metrics agree.  UTF-8 continuation
+ * bytes contribute zero width.  `chars_col` past row's end maps to
+ * (row's visual width) plus the virtual offset, so cursors that sit
+ * in virtual space (rect mode) get a well-defined visual column too. */
+int editor_visual_col(erow *row, int chars_col)
+{
+	int j, vcol = 0;
+	int limit = chars_col < row->size ? chars_col : row->size;
+
+	for (j = 0; j < limit; j++) {
+		if (row->chars[j] == TAB) {
+			vcol++;
+			while ((vcol + 1) % 8 != 0) vcol++;
+		} else if (!utf8_is_cont((unsigned char)row->chars[j])) {
+			vcol++;
+		}
+	}
+	if (chars_col > row->size)
+		vcol += chars_col - row->size;
+	return vcol;
+}
+
+/* Inverse of editor_visual_col(): byte offset into row->chars whose
+ * visual position lands at or just before `target_vcol`.  A target
+ * that falls inside a tab's expansion snaps to the tab's start byte
+ * (closest representable position when cx is a byte offset).  When
+ * target is past the row's visual end, returns row->size plus the
+ * matching virtual offset (the cursor lives in virtual space). */
+int editor_chars_col_at_visual(erow *row, int target_vcol)
+{
+	int j = 0, vcol = 0;
+
+	while (j < row->size) {
+		int next_vcol = vcol;
+		if (row->chars[j] == TAB) {
+			next_vcol = vcol + 1;
+			while ((next_vcol + 1) % 8 != 0) next_vcol++;
+		} else if (!utf8_is_cont((unsigned char)row->chars[j])) {
+			next_vcol = vcol + 1;
+		}
+		if (next_vcol > target_vcol) break;
+		vcol = next_vcol;
+		j++;
+	}
+	/* Past-EOL only fires when we walked the whole row without hitting
+	 * target_vcol.  Breaking early means we hit a glyph (typically a
+	 * tab) whose expansion would overshoot — round down to j. */
+	if (j >= row->size && vcol < target_vcol)
+		return row->size + (target_vcol - vcol);
+	return j;
+}
+
+/* Bring cx back into a row-valid position.  rect_mode lets cx wander
+ * past EOL during virtual-column rectangle navigation; this is the
+ * matching snap-back used whenever rect_mode is cleared. */
+void editor_snap_cx_to_row(void)
+{
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
+	int rowlen;
+
+	if (filerow >= editor.numrows) return;
+	rowlen = editor.row[filerow].size;
+	if (filecol > rowlen) {
+		editor.cx -= filecol - rowlen;
+		if (editor.cx < 0) {
+			editor.coloff += editor.cx;
+			editor.cx = 0;
+		}
+	}
+}
+
+/* Scroll the viewport just enough to put (row, col) into view, then
+ * land cursor on it.  Used by undo replay and region commands that need
+ * to land on a target without otherwise centring the view. */
+void editor_cursor_goto(int row, int col)
+{
+	if (row < editor.rowoff) {
+		editor.rowoff = row;
+		editor.cy = 0;
+	} else if (row >= editor.rowoff + editor.screenrows) {
+		editor.rowoff = row - editor.screenrows + 1;
+		editor.cy = editor.screenrows - 1;
+	} else {
+		editor.cy = row - editor.rowoff;
+	}
+	if (col < editor.coloff) {
+		editor.coloff = col;
+		editor.cx = 0;
+	} else if (col >= editor.coloff + editor.screencols) {
+		editor.coloff = col - editor.screencols + 1;
+		editor.cx = editor.screencols - 1;
+	} else {
+		editor.cx = col - editor.coloff;
+	}
+}
+
 /* Update the rendered version and the syntax highlight of a row. */
 void editor_update_row(erow *row)
 {

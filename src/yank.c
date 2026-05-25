@@ -98,25 +98,7 @@ void editor_exchange_point_and_mark(void)
 	mark_row = editor.mark_row;
 	mark_col = editor.mark_col;
 
-	if (mark_row < editor.rowoff) {
-		editor.rowoff = mark_row;
-		editor.cy = 0;
-	} else if (mark_row >= editor.rowoff + editor.screenrows) {
-		editor.rowoff = mark_row - editor.screenrows + 1;
-		editor.cy = editor.screenrows - 1;
-	} else {
-		editor.cy = mark_row - editor.rowoff;
-	}
-
-	if (mark_col < editor.coloff) {
-		editor.coloff = mark_col;
-		editor.cx = 0;
-	} else if (mark_col >= editor.coloff + editor.screencols) {
-		editor.coloff = mark_col - editor.screencols + 1;
-		editor.cx = editor.screencols - 1;
-	} else {
-		editor.cx = mark_col - editor.coloff;
-	}
+	editor_cursor_goto(mark_row, mark_col);
 
 	editor.mark_row = cur_row;
 	editor.mark_col = cur_col;
@@ -197,14 +179,15 @@ char *editor_get_region_text(int *out_len)
 	return text;
 }
 
-/* Kill (cut) region - removes text and saves to kill ring */
-void editor_kill_region(void)
+/* Cut (save==1) or delete (save==0) the linear region.  Cursor lands at
+ * the start of the region; undo restores it as a single step. */
+static void region_kill_or_delete(int save)
 {
 	int start_row, start_col;
 	int cur_row = editor.rowoff + editor.cy;
 	int cur_col = editor.coloff + editor.cx;
 	char *text;
-	int len;
+	int len, i;
 
 	if (!editor.mark_set) {
 		editor_set_status_message("No mark set");
@@ -217,9 +200,9 @@ void editor_kill_region(void)
 		return;
 	}
 
-	kill_ring_set(text, len);
+	if (save)
+		kill_ring_set(text, len);
 
-	/* Delete the region */
 	if (editor.mark_row < cur_row || (editor.mark_row == cur_row && editor.mark_col < cur_col)) {
 		start_row = editor.mark_row;
 		start_col = editor.mark_col;
@@ -228,24 +211,15 @@ void editor_kill_region(void)
 		start_col = cur_col;
 	}
 
-	/* Position cursor at start of region */
-	if (start_row < editor.rowoff) {
-		editor.rowoff = start_row;
-		editor.cy = 0;
-	} else {
-		editor.cy = start_row - editor.rowoff;
-	}
-	editor.cx = start_col;
+	editor_cursor_goto(start_row, start_col);
 	editor.coloff = 0;
+	editor.cx = start_col;
 
-	/* Record single undo operation for entire region kill */
 	undo_push(UNDO_KILL_TEXT, start_row, start_col, 0, text, len);
 
-	/* Delete character by character, but suppress individual undo records */
 	suppress_undo = 1;
-	for (int i = 0; i < len; i++) {
+	for (i = 0; i < len; i++)
 		editor_del_forward_char();
-	}
 	suppress_undo = 0;
 
 	/* Drop the highlight and any transient-region machinery, but keep
@@ -253,9 +227,14 @@ void editor_kill_region(void)
 	 * to where the region started (matches Emacs, the C-g teardown,
 	 * and the first-edit teardown in kbd.c). */
 	editor.mark_highlight = 0;
+	editor.rect_mode = 0;
+	editor.shift_select = 0;
 	free(text);
-	editor_set_status_message("Region killed");
+	editor_set_status_message(save ? "Region killed" : "Region deleted");
 }
+
+void editor_kill_region(void)   { region_kill_or_delete(1); }
+void editor_delete_region(void) { region_kill_or_delete(0); }
 
 /* Copy region - saves to kill ring without removing */
 void editor_copy_region(void)
@@ -276,8 +255,25 @@ void editor_copy_region(void)
 
 	kill_ring_set(text, len);
 	editor.mark_highlight = 0;
+	editor.rect_mode = 0;
+	editor.shift_select = 0;
+	editor_snap_cx_to_row();
 	free(text);
 	editor_set_status_message("Region copied");
+}
+
+/* Delete key dispatch: consume an active region (rect or linear) without
+ * saving, otherwise just delete the character ahead. */
+void editor_delete_region_or_char(void)
+{
+	if (editor.mark_set && editor.mark_highlight) {
+		if (editor.rect_mode)
+			editor_delete_rect();
+		else
+			editor_delete_region();
+		return;
+	}
+	editor_del_forward_char();
 }
 
 /* Yank (paste) from kill ring */

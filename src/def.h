@@ -225,6 +225,9 @@ struct editor_config {
 	int mark_col;       /* Mark column position */
 	int mark_highlight; /* 1 when the region should render with reverse video. */
 	int shift_select;   /* 1 when the active region was started by shift+motion. */
+	int rect_mode;      /* 1 when the region should render as a rectangle. */
+	int rect_prefix;    /* 1 after C-x r, waiting for the rectangle op key. */
+	int desired_visual_col; /* goal column across vertical motion; -1 = unset. */
 	int show_help;      /* If 1, display help screen instead of file content. */
 	int readonly;       /* If 1, buffer is read-only (editing is blocked). */
 	int last_key;       /* Last key processed, for command repetition logic. */
@@ -258,7 +261,8 @@ enum undo_type {
 	UNDO_JOIN_LINE,
 	UNDO_KILL_TEXT,   /* Kill line or region */
 	UNDO_YANK_TEXT,   /* Yank (paste) */
-	UNDO_REFLOW_PARA  /* M-q paragraph reflow */
+	UNDO_REFLOW_PARA, /* M-q paragraph reflow */
+	UNDO_RECT_OVERWRITE  /* Rectangle kill/delete/clear/yank: restore rows */
 };
 
 /* Single undo operation */
@@ -307,6 +311,7 @@ struct editor_buffer {
 	int mark_row, mark_col;
 	int mark_highlight;
 	int shift_select;
+	int rect_mode;
 	struct undo_stack undostack; /* per-buffer undo chain */
 	int active;                 /* 1 if this slot is in use */
 	int readonly;               /* 1 if buffer is read-only */
@@ -378,6 +383,10 @@ void editor_move_to_indentation(void);
 void editor_move_to_window_line(void);
 void editor_goto_line_direct(int line, int col);
 void editor_goto_line(int fd);
+void editor_cursor_goto(int row, int col);
+void editor_snap_cx_to_row(void);
+int  editor_visual_col(erow *row, int chars_col);
+int  editor_chars_col_at_visual(erow *row, int target_vcol);
 
 /* buffer.c */
 void editor_update_row(erow *row);
@@ -507,6 +516,18 @@ char *kill_ring_get(void);
 void editor_set_mark(void);
 void editor_set_mark_silent(void);
 void editor_exchange_point_and_mark(void);
+
+/* Generic region delete-without-save (Delete key).  Falls through to
+ * editor_del_forward_char when no region is active. */
+void editor_delete_region_or_char(void);
+
+/* Rectangle operations (src/rect.c) */
+void editor_rect_mode_toggle(void);
+void editor_kill_rect(void);
+void editor_delete_rect(void);
+void editor_clear_rect(void);
+void editor_yank_rect(void);
+void rect_kill_ring_free(void);
 void editor_kill_region(void);
 void editor_copy_region(void);
 char *editor_get_region_text(int *out_len);

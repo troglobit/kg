@@ -8,7 +8,14 @@ void editor_move_cursor(int key)
 	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
 	int filerow = editor.rowoff + editor.cy;
 	int filecol = editor.coloff + editor.cx;
+	int is_vertical = (key == ARROW_UP || key == ARROW_DOWN);
 	int rowlen;
+
+	/* Capture the visual goal column on the first vertical move so a
+	 * run of C-n/C-p stays at the same visible column across rows of
+	 * mixed UTF-8/tab content. */
+	if (is_vertical && editor.desired_visual_col < 0 && row)
+		editor.desired_visual_col = editor_visual_col(row, filecol);
 
 	switch (key) {
 	case HOME_KEY:
@@ -35,6 +42,13 @@ void editor_move_cursor(int key)
 					editor.coloff = editor.cx - editor.screencols + 1;
 					editor.cx = editor.screencols - 1;
 				}
+			}
+		} else if (row && filecol > row->size) {
+			/* Virtual space past EOL (rect mark mode): plain step. */
+			if (editor.cx == 0) {
+				if (editor.coloff) editor.coloff--;
+			} else {
+				editor.cx -= 1;
 			}
 		} else {
 			/* Step back a whole glyph (1 byte for ASCII, 2-4 for
@@ -70,6 +84,14 @@ void editor_move_cursor(int key)
 				else
 					editor.cx += 1;
 			}
+		} else if (row && editor.rect_mode) {
+			/* In rect mark mode, extend the cursor into virtual
+			 * space past EOL so a rectangle can span columns that
+			 * some rows don't reach. */
+			if (editor.cx == editor.screencols - 1)
+				editor.coloff++;
+			else
+				editor.cx += 1;
 		} else if (row && filecol == row->size) {
 			editor.cx = 0;
 			editor.coloff = 0;
@@ -97,12 +119,31 @@ void editor_move_cursor(int key)
 		}
 		break;
 	}
-	/* Fix cx if the current line has not enough chars. */
+	/* After vertical motion, snap cx to the byte position that lands
+	 * at the saved goal column on the new row.  In rect mode the
+	 * cursor is allowed to stay past EOL; the trailing clamp below
+	 * only fires for non-rect-mode. */
 	filerow = editor.rowoff + editor.cy;
-	filecol = editor.coloff + editor.cx;
 	row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
+	if (is_vertical && row && editor.desired_visual_col >= 0) {
+		int target = editor_chars_col_at_visual(row, editor.desired_visual_col);
+		editor.cx = target - editor.coloff;
+		if (editor.cx < 0) {
+			editor.coloff = target;
+			editor.cx = 0;
+		} else if (editor.cx > editor.screencols - 1) {
+			editor.coloff += editor.cx - (editor.screencols - 1);
+			editor.cx = editor.screencols - 1;
+		}
+	}
+
+	/* Fix cx if the current line has not enough chars.  In rect mark
+	 * mode the cursor is allowed to stay past EOL so the user can
+	 * extend a rectangle whose right edge crosses shorter lines —
+	 * editor_snap_cx_to_row() snaps it back when rect mode ends. */
+	filecol = editor.coloff + editor.cx;
 	rowlen = row ? row->size : 0;
-	if (filecol > rowlen) {
+	if (filecol > rowlen && !editor.rect_mode) {
 		editor.cx -= filecol - rowlen;
 		if (editor.cx < 0) {
 			editor.coloff += editor.cx;
