@@ -63,13 +63,21 @@ char *kill_ring_get(void)
 	return killring.text;
 }
 
-/* Set mark at current cursor position */
-void editor_set_mark(void)
+/* Set mark at current cursor position without echoing to the minibuffer.
+ * Used by shift-select and rectangle commands where a status message
+ * would be noisy. */
+void editor_set_mark_silent(void)
 {
 	editor.mark_set = 1;
 	editor.mark_row = editor.rowoff + editor.cy;
 	editor.mark_col = editor.coloff + editor.cx;
 	editor.mark_highlight = 1;
+}
+
+/* Set mark at current cursor position (C-Space, explicit set-mark). */
+void editor_set_mark(void)
+{
+	editor_set_mark_silent();
 	editor_set_status_message("Mark set");
 }
 

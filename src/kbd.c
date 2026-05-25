@@ -57,6 +57,7 @@ void editor_process_keypress(int fd)
 	int c = editor_read_key_idle(fd);
 	char *fname_before = editor.filename;
 	int dirty_before = editor.dirty;
+	int was_shift_select = editor.shift_select;
 	long elapsed;
 	int n;
 
@@ -204,9 +205,10 @@ void editor_process_keypress(int fd)
 			buf_ibuffer_select();
 			return;
 		}
-		if (c == BACKSPACE || c == DEL_KEY || c == CTRL_D ||
-		    c == CTRL_K    || c == CTRL_W  || c == CTRL_Y ||
-		    c == CTRL_Q    ||
+		if (c == BACKSPACE   || c == DEL_KEY     || c == CTRL_D ||
+		    c == CTRL_K      || c == CTRL_W      || c == CTRL_Y ||
+		    c == CTRL_Q      ||
+		    c == SHIFT_DELETE|| c == SHIFT_INSERT||
 		    c == CTRL_UNDERSCORE || c == TAB ||
 		    (c >= 32 && c < 127)) {
 			editor_set_status_message("Buffer is read-only");
@@ -310,6 +312,7 @@ void editor_process_keypress(int fd)
 		}
 		break;
 	case CTRL_W:        /* Kill region (cut) */
+	case SHIFT_DELETE:  /* CUA cut */
 		editor_kill_region();
 		break;
 	case CTRL_X:        /* C-x prefix */
@@ -317,6 +320,7 @@ void editor_process_keypress(int fd)
 		editor_set_status_message("C-x-");
 		return;
 	case CTRL_Y:        /* Yank (paste) */
+	case SHIFT_INSERT:  /* CUA paste */
 		if (n > 1 && killring.text && killring.len > 0) {
 			/* Batch N yanks under one undo: UNDO_YANK_TEXT reverses by
 			 * deleting len chars forward, so the record must carry the
@@ -381,6 +385,31 @@ void editor_process_keypress(int fd)
 	case END_KEY:
 		editor_move_cursor(c);
 		break;
+	case SHIFT_ARROW_LEFT:
+	case SHIFT_ARROW_RIGHT:
+	case SHIFT_ARROW_UP:
+	case SHIFT_ARROW_DOWN:
+	case SHIFT_HOME:
+	case SHIFT_END: {
+		int motion;
+		/* Drop the mark at the current position the first time the user
+		 * starts a shift-selected region, so subsequent shift+motion
+		 * extends it.  If a region is already on-screen we just extend. */
+		if (!editor.mark_highlight) {
+			editor_set_mark_silent();
+			editor.shift_select = 1;
+		}
+		switch (c) {
+		case SHIFT_ARROW_LEFT:  motion = ARROW_LEFT;  break;
+		case SHIFT_ARROW_RIGHT: motion = ARROW_RIGHT; break;
+		case SHIFT_ARROW_UP:    motion = ARROW_UP;    break;
+		case SHIFT_ARROW_DOWN:  motion = ARROW_DOWN;  break;
+		case SHIFT_HOME:        motion = HOME_KEY;    break;
+		default:                motion = END_KEY;     break;
+		}
+		while (n--) editor_move_cursor(motion);
+		break;
+	}
 	case CTRL_HOME:
 	case ALT_LT:
 		editor_move_to_beginning();
@@ -436,6 +465,7 @@ void editor_process_keypress(int fd)
 		}
 		break;
 	case ALT_W:         /* Copy region */
+	case CTRL_INSERT:   /* CUA copy */
 		editor_copy_region();
 		break;
 	case ALT_Q:         /* Reflow paragraph */
@@ -519,4 +549,18 @@ void editor_process_keypress(int fd)
 	 * when the user switched buffers (C-x b, C-x C-f). */
 	if (editor.filename == fname_before && editor.dirty != dirty_before)
 		editor.mark_highlight = 0;
+
+	/* Tear down a shift-selected region after the command has had its
+	 * say.  Done last so C-w / M-w / C-x C-x can still see the mark
+	 * during their dispatch.  Extender keys keep the region alive; a
+	 * C-x prefix keystroke also keeps it (the follow-up may consume
+	 * the region). */
+	if (was_shift_select && !editor.cx_prefix &&
+	    c != SHIFT_ARROW_LEFT  && c != SHIFT_ARROW_RIGHT &&
+	    c != SHIFT_ARROW_UP    && c != SHIFT_ARROW_DOWN  &&
+	    c != SHIFT_HOME        && c != SHIFT_END) {
+		editor.shift_select = 0;
+		editor.mark_set = 0;
+		editor.mark_highlight = 0;
+	}
 }

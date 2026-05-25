@@ -21,6 +21,8 @@ escape sequences.
 - Multiple buffers with shared kill ring
 - Split-window support
 - Visual mark mode: the region renders in reverse video as you move
+- Shift-select and the CUA clipboard trio (Shift-Delete / Ctrl-Insert
+  / Shift-Insert) alongside the Emacs C-w / M-w / C-y
 - Incremental search and query-replace (M-%)
 - Multi-level undo (C-_)
 - Paragraph reflow to 72 columns (M-q)

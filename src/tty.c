@@ -114,7 +114,7 @@ static int parse_escape(int fd)
 					}
 				}
 			} else if (seq[2] == ';') {
-				/* ESC [ 1 ; 5 x  Ctrl+key */
+				/* ESC [ 1 ; N x  modified-key, N=2 Shift, N=5 Ctrl */
 				if (read(fd, seq+3, 1) == 0) return ESC;
 				if (read(fd, seq+4, 1) == 0) return ESC;
 				if (seq[1] == '1' && seq[3] == '5') {
@@ -126,6 +126,20 @@ static int parse_escape(int fd)
 					case 'H': return CTRL_HOME;
 					case 'F': return CTRL_END;
 					}
+				} else if (seq[1] == '1' && seq[3] == '2') {
+					switch (seq[4]) {
+					case 'A': return SHIFT_ARROW_UP;
+					case 'B': return SHIFT_ARROW_DOWN;
+					case 'C': return SHIFT_ARROW_RIGHT;
+					case 'D': return SHIFT_ARROW_LEFT;
+					case 'H': return SHIFT_HOME;
+					case 'F': return SHIFT_END;
+					}
+				} else if (seq[4] == '~') {
+					/* ESC [ N ; M ~  modified Insert/Delete (CUA clipboard) */
+					if (seq[1] == '2' && seq[3] == '2') return SHIFT_INSERT;
+					if (seq[1] == '2' && seq[3] == '5') return CTRL_INSERT;
+					if (seq[1] == '3' && seq[3] == '2') return SHIFT_DELETE;
 				}
 			}
 		} else {

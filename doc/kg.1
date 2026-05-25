@@ -165,6 +165,41 @@ has consumed it.
 The mark itself stays set for the next
 .Ic C-x C-x .
 The kill ring is shared across all buffers.
+.Ss Shift Selection and CUA Clipboard
+.Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
+.It Sy Key Ta Sy Action
+.It S-\(<- / S-\(-> Ta Extend region one character
+.It S-\(ua / S-\(da Ta Extend region one line
+.It S-Home / S-End Ta Extend region to line bounds
+.It Shift-Delete Ta Cut region
+.It Shift-Insert Ta Paste from kill ring
+.It Ctrl-Insert Ta Copy region
+.It Delete Ta Delete active region (or character if none)
+.El
+.Pp
+Shift+motion drops the mark at point and extends the region as the
+cursor moves, so anyone coming from a modern GUI editor no longer
+has to remember
+.Ic C-Space
+first.
+The region is transient: a non-shifted key tears it down after the
+command runs, while region-consuming commands
+.Pq Ic C-w , M-w , C-x C-x
+still see the mark intact during their dispatch.
+Mixing styles works: an explicit
+.Ic C-Space
+mark stays sticky when extended with shift+motion.
+.Pp
+The CUA clipboard trio maps to the same kill ring as
+.Ic C-w / M-w / C-y .
+Note that some terminals (Terminator, gnome-terminal, ...) intercept
+.Ic Shift-Insert
+and
+.Ic Ctrl-Insert
+for their own clipboard handling; unbind them in the terminal
+preferences if you want
+.Nm
+to see them.
 .Ss Search and Replace
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

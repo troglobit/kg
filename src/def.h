@@ -131,6 +131,15 @@ enum KEY_ACTION {
 	CTRL_ARROW_DOWN,
 	CTRL_HOME,
 	CTRL_END,
+	SHIFT_ARROW_LEFT,
+	SHIFT_ARROW_RIGHT,
+	SHIFT_ARROW_UP,
+	SHIFT_ARROW_DOWN,
+	SHIFT_HOME,
+	SHIFT_END,
+	SHIFT_INSERT,    /* CUA paste */
+	SHIFT_DELETE,    /* CUA cut */
+	CTRL_INSERT,     /* CUA copy */
 	ALT_F,
 	ALT_B,
 	ALT_D,
@@ -215,6 +224,7 @@ struct editor_config {
 	int mark_row;       /* Mark row position */
 	int mark_col;       /* Mark column position */
 	int mark_highlight; /* 1 when the region should render with reverse video. */
+	int shift_select;   /* 1 when the active region was started by shift+motion. */
 	int show_help;      /* If 1, display help screen instead of file content. */
 	int readonly;       /* If 1, buffer is read-only (editing is blocked). */
 	int last_key;       /* Last key processed, for command repetition logic. */
@@ -296,6 +306,7 @@ struct editor_buffer {
 	int mark_set;
 	int mark_row, mark_col;
 	int mark_highlight;
+	int shift_select;
 	struct undo_stack undostack; /* per-buffer undo chain */
 	int active;                 /* 1 if this slot is in use */
 	int readonly;               /* 1 if buffer is read-only */
@@ -494,6 +505,7 @@ void kill_ring_set(char *text, int len);
 void kill_ring_append(char *text, int len);
 char *kill_ring_get(void);
 void editor_set_mark(void);
+void editor_set_mark_silent(void);
 void editor_exchange_point_and_mark(void);
 void editor_kill_region(void);
 void editor_copy_region(void);
