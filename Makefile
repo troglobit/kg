@@ -62,44 +62,21 @@ check: $(TESTBINS)
 	echo "============================================================================"; \
 	[ $$fail -eq 0 ]
 
-$(TESTDIR)/test_undo: $(TESTDIR)/test_undo.o $(TESTDIR)/test.o $(TESTDIR)/stubs.o $(TEST_SRCS_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
+# Per-test linker prerequisites beyond the common test_%.o + test.o.
+# The static pattern rule below pulls these in via secondary expansion.
+EXTRA_undo         := $(TESTDIR)/stubs.o          $(TEST_SRCS_OBJS)
+EXTRA_buffer       := $(TESTDIR)/stubs.o          $(TEST_SRCS_OBJS)
+EXTRA_syntax       := $(TESTDIR)/stubs.o          $(TEST_SRCS_OBJS)
+EXTRA_yank         := $(TESTDIR)/stubs_noyank.o   $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(TEST_SRCS_OBJS)
+EXTRA_autocomplete := $(TESTDIR)/stubs.o $(TESTDIR)/stubs_extra.o $(OBJDIR)/autocomplete.o $(TEST_SRCS_OBJS)
+EXTRA_word         := $(TESTDIR)/stubs.o $(TESTDIR)/stubs_extra.o $(OBJDIR)/word.o $(TEST_SRCS_OBJS)
+EXTRA_basic        := $(TESTDIR)/stubs.o          $(OBJDIR)/basic.o $(TEST_SRCS_OBJS)
+EXTRA_region       := $(TESTDIR)/stubs_noyank.o   $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(TEST_SRCS_OBJS)
+EXTRA_shell        := $(TESTDIR)/stubs_noyank.o   $(OBJDIR)/shell.o $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(OBJDIR)/buffer.o $(OBJDIR)/undo.o $(OBJDIR)/syntax.o
+EXTRA_complete     := $(TESTDIR)/stubs.o          $(OBJDIR)/path.o $(TEST_SRCS_OBJS)
 
-$(TESTDIR)/test_buffer: $(TESTDIR)/test_buffer.o $(TESTDIR)/test.o $(TESTDIR)/stubs.o $(TEST_SRCS_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(TESTDIR)/test_syntax: $(TESTDIR)/test_syntax.o $(TESTDIR)/test.o $(TESTDIR)/stubs.o $(TEST_SRCS_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(TESTDIR)/test_yank: $(TESTDIR)/test_yank.o $(TESTDIR)/test.o $(TESTDIR)/stubs_noyank.o \
-        $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(TEST_SRCS_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(TESTDIR)/test_autocomplete: $(TESTDIR)/test_autocomplete.o $(TESTDIR)/test.o \
-        $(TESTDIR)/stubs.o $(TESTDIR)/stubs_extra.o \
-        $(OBJDIR)/autocomplete.o $(TEST_SRCS_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(TESTDIR)/test_word: $(TESTDIR)/test_word.o $(TESTDIR)/test.o \
-        $(TESTDIR)/stubs.o $(TESTDIR)/stubs_extra.o \
-        $(OBJDIR)/word.o $(TEST_SRCS_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(TESTDIR)/test_basic: $(TESTDIR)/test_basic.o $(TESTDIR)/test.o \
-        $(TESTDIR)/stubs.o $(OBJDIR)/basic.o $(TEST_SRCS_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(TESTDIR)/test_region: $(TESTDIR)/test_region.o $(TESTDIR)/test.o \
-        $(TESTDIR)/stubs_noyank.o $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(TEST_SRCS_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(TESTDIR)/test_shell: $(TESTDIR)/test_shell.o $(TESTDIR)/test.o \
-        $(TESTDIR)/stubs_noyank.o $(OBJDIR)/shell.o $(OBJDIR)/yank.o \
-        $(OBJDIR)/rect.o $(OBJDIR)/buffer.o $(OBJDIR)/undo.o $(OBJDIR)/syntax.o
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(TESTDIR)/test_complete: $(TESTDIR)/test_complete.o $(TESTDIR)/test.o \
-        $(TESTDIR)/stubs.o $(OBJDIR)/path.o $(TEST_SRCS_OBJS)
+.SECONDEXPANSION:
+$(TESTBINS): $(TESTDIR)/test_%: $(TESTDIR)/test_%.o $(TESTDIR)/test.o $$(EXTRA_$$*)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(TESTDIR)/%.o: $(TESTDIR)/%.c $(HDRS)
@@ -122,7 +99,7 @@ release:
 
 install: $(TARGET)
 	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(TARGET) $(DESTDIR)$(bindir)/$(PROG)
+	install -m 755 -s $(TARGET) $(DESTDIR)$(bindir)/$(PROG)
 	install -d $(DESTDIR)$(man1dir)
 	install -m 644 $(MAN1) $(DESTDIR)$(man1dir)/$(PROG).1
 
