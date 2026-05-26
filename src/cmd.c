@@ -211,75 +211,52 @@ void editor_named_command(int fd)
 	const int  plen     = sizeof(prompt) - 1;
 	char name[64];
 	char msg[512];
-	int  match_idx[64];
+	int  match_idx[PICKER_MAX_ENTRIES];
+	const char *names[PICKER_MAX_ENTRIES];
 	int  len = 0, c, i, off;
-	int  sel = 0;   /* index in cmdtable of highlighted entry */
+	int  sel = 0;   /* index within match_idx[] of the highlighted entry */
 
 	name[0] = '\0';
 
 	while (1) {
-		/* One pass: find first matching index, count matches, record
-		 * each match's cmdtable position, and locate sel within the
-		 * match sequence. */
-		int first = -1, nmatches = 0, sel_pos = -1;
-		int budget, used, win_start, win_end, j;
+		int total = 0, shown, first_cmd = -1;
 
+		/* Prefix matches first, then mid-name substring matches.
+		 * Two passes preserve cmdtable's alphabetical order within
+		 * each rank, and keep TAB-completion's longest-common-prefix
+		 * over the prefix group only (substring matches share no
+		 * prefix worth extending to). */
 		for (i = 0; cmdtable[i].name; i++) {
-			if (strncmp(cmdtable[i].name, name, len) != 0) continue;
-			if (first < 0)  first = i;
-			if (i == sel)   sel_pos = nmatches;
-			if (nmatches < (int)(sizeof(match_idx)/sizeof(match_idx[0])))
-				match_idx[nmatches] = i;
-			nmatches++;
-		}
-
-		/* Keep sel pointing at a matching entry. */
-		if (sel < 0 || !cmdtable[sel].name ||
-		    strncmp(cmdtable[sel].name, name, len) != 0) {
-			sel = first;
-			sel_pos = (first >= 0) ? 0 : -1;
-		}
-
-		/* "M-x <typed>  <maybe ...> ... <sel(reverse)> ... " */
-		off = snprintf(msg, sizeof(msg), "%s%s  ", prompt, name);
-		if (nmatches == 0) {
-			off += snprintf(msg + off, sizeof(msg) - off, "[no match]");
-		} else {
-			/* Window the match list around sel so it stays on
-			 * screen even after the user cycles past the right
-			 * edge.  Budget is whatever space the prompt leaves
-			 * us on the status row. */
-			budget = win_total_cols - off;
-			if (budget < 0) budget = 0;
-			used      = 0;
-			win_start = sel_pos;
-			win_end   = sel_pos;
-
-			for (j = sel_pos; j < nmatches; j++) {
-				int w = (int)strlen(cmdtable[match_idx[j]].name) + 1;
-				if (j > sel_pos && used + w > budget) break;
-				used   += w;
-				win_end = j + 1;
+			if (editor_picker_match_rank(cmdtable[i].name, name) != 0)
+				continue;
+			if (first_cmd < 0) first_cmd = i;
+			if (total < PICKER_MAX_ENTRIES) {
+				match_idx[total] = i;
+				names[total]     = cmdtable[i].name;
 			}
-			for (j = sel_pos - 1; j >= 0; j--) {
-				int w = (int)strlen(cmdtable[match_idx[j]].name) + 1;
-				if (used + w > budget) break;
-				win_start = j;
-				used     += w;
-			}
-
-			if (win_start > 0)
-				off += snprintf(msg + off, sizeof(msg) - off, "... ");
-			for (i = win_start; i < win_end; i++) {
-				int ci = match_idx[i];
-				if (ci == sel)
-					off += snprintf(msg + off, sizeof(msg) - off,
-					                "\x1b[7m%s\x1b[27m ", cmdtable[ci].name);
-				else
-					off += snprintf(msg + off, sizeof(msg) - off,
-					                "%s ", cmdtable[ci].name);
+			total++;
+		}
+		/* Skip the substring pass when nothing's typed: every entry
+		 * already ranked as a prefix match above, so a second scan
+		 * looking for rank==1 would just walk the table for nothing. */
+		if (len > 0) {
+			for (i = 0; cmdtable[i].name; i++) {
+				if (editor_picker_match_rank(cmdtable[i].name, name) != 1)
+					continue;
+				if (total < PICKER_MAX_ENTRIES) {
+					match_idx[total] = i;
+					names[total]     = cmdtable[i].name;
+				}
+				total++;
 			}
 		}
+		shown = total > PICKER_MAX_ENTRIES ? PICKER_MAX_ENTRIES : total;
+		if (sel >= shown) sel = shown > 0 ? shown - 1 : 0;
+
+		off = 0;
+		editor_msg_appendf(msg, sizeof(msg), &off, "%s%s ", prompt, name);
+		editor_picker_render(msg, sizeof(msg), &off, names, shown, total, sel);
+
 		editor_set_status_message("%s", msg);
 		editor.echo_cursor_col = plen + len + 1;
 		editor_refresh_screen();
@@ -288,6 +265,7 @@ void editor_named_command(int fd)
 
 		if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
 			if (len > 0) name[--len] = '\0';
+			sel = 0;
 		} else if (c == ESC || c == CTRL_G) {
 			editor.echo_cursor_col = 0;
 			editor_set_status_message("");
@@ -295,23 +273,25 @@ void editor_named_command(int fd)
 		} else if (c == ENTER) {
 			editor.echo_cursor_col = 0;
 			editor_set_status_message("");
-			if (sel >= 0 && cmdtable[sel].name &&
-			    strncmp(cmdtable[sel].name, name, len) == 0)
-				cmdtable[sel].fn(fd);
+			if (shown > 0 && sel >= 0 && sel < shown)
+				cmdtable[match_idx[sel]].fn(fd);
 			else
 				editor_set_status_message("No command: %s", name);
 			return;
 		} else if (c == TAB) {
-			/* Complete to the longest common prefix of all current matches. */
-			if (first >= 0) {
-				const char *ref = cmdtable[first].name;
+			/* Complete to the longest common prefix of the prefix-
+			 * matched group only — substring matches share no
+			 * leading text worth extending typed input to. */
+			if (first_cmd >= 0) {
+				const char *ref = cmdtable[first_cmd].name;
 				int clen;
 
 				for (clen = len; ref[clen]; clen++) {
 					int ok = 1;
 
 					for (i = 0; cmdtable[i].name && ok; i++) {
-						if (strncmp(cmdtable[i].name, name, len) != 0) continue;
+						if (editor_picker_match_rank(cmdtable[i].name, name) != 0)
+							continue;
 						if (cmdtable[i].name[clen] != ref[clen]) ok = 0;
 					}
 					if (!ok) break;
@@ -322,33 +302,15 @@ void editor_named_command(int fd)
 					len = clen;
 				}
 			}
+			sel = 0;
 		} else if (c == ARROW_RIGHT || c == CTRL_F) {
-			/* Cycle forward through matches. */
-			int found = 0;
-
-			for (i = sel + 1; cmdtable[i].name; i++) {
-				if (strncmp(cmdtable[i].name, name, len) == 0) {
-					sel = i; found = 1; break;
-				}
-			}
-			if (!found && first >= 0) sel = first; /* wrap */
+			if (shown > 0) sel = (sel + 1) % shown;
 		} else if (c == ARROW_LEFT || c == CTRL_B) {
-			/* Cycle backward through matches. */
-			int prev = -1;
-
-			for (i = 0; cmdtable[i].name && i < sel; i++) {
-				if (strncmp(cmdtable[i].name, name, len) == 0) prev = i;
-			}
-			if (prev < 0) {
-				/* wrap to last match */
-				for (i = 0; cmdtable[i].name; i++) {
-					if (strncmp(cmdtable[i].name, name, len) == 0) prev = i;
-				}
-			}
-			if (prev >= 0) sel = prev;
+			if (shown > 0) sel = (sel - 1 + shown) % shown;
 		} else if (isprint(c) && len < (int)sizeof(name) - 1) {
 			name[len++] = c;
 			name[len]   = '\0';
+			sel = 0;
 		}
 	}
 }

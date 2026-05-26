@@ -344,12 +344,16 @@ int  editor_read_line(int fd, const char *prompt, char *buf, int bufsize);
 int  editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize);
 void editor_prompt_prefill_dir(char *buf, int bufsize);
 void editor_path_expand_tilde(char *buf, int bufsize);
+#define PICKER_MAX_ENTRIES 64
+void editor_picker_render(char *msg, int msg_size, int *off,
+                          const char *const *names, int n, int n_total, int sel);
+void editor_msg_appendf(char *msg, int size, int *off, const char *fmt, ...)
+	__attribute__((format(printf, 4, 5)));
 int  autorevert_poll(void);
 void buf_reload_from_disk(void);
 
 /* path.c */
 #define PATH_ENTRY_NAME_MAX 256              /* fits POSIX NAME_MAX (255) + NUL */
-#define PATH_PICK_MAX_ENTRIES 64             /* upper bound shown in the picker */
 struct path_entry {
 	char name[PATH_ENTRY_NAME_MAX];
 	int  is_dir;

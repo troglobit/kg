@@ -398,7 +398,7 @@ int editor_read_line(int fd, const char *prompt, char *buf, int bufsize)
 
 /* Append printf-style at `*off` into `msg[size]`, clamping `*off` to
  * size-1 so subsequent calls don't underflow `size - *off`. */
-static void msg_appendf(char *msg, int size, int *off, const char *fmt, ...)
+void editor_msg_appendf(char *msg, int size, int *off, const char *fmt, ...)
 {
 	va_list ap;
 	int n;
@@ -433,10 +433,10 @@ static int file_open_in_buflist(const char *name)
 /* Stable-partition entries[0..n) so files already open in a buffer
  * move to the tail, with the in-group rank+name order preserved on
  * both sides.  Two passes keep the implementation obvious; entries[]
- * is small (≤PATH_PICK_MAX_ENTRIES). */
+ * is small (≤PICKER_MAX_ENTRIES). */
 static void push_open_files_back(struct path_entry *entries, int n)
 {
-	struct path_entry tmp[PATH_PICK_MAX_ENTRIES];
+	struct path_entry tmp[PICKER_MAX_ENTRIES];
 	int i, k = 0;
 
 	for (i = 0; i < n; i++)
@@ -446,6 +446,66 @@ static void push_open_files_back(struct path_entry *entries, int n)
 		if (file_open_in_buflist(entries[i].name))
 			tmp[k++] = entries[i];
 	memcpy(entries, tmp, n * sizeof(*entries));
+}
+
+/* Render an ido-style "{a | b | …}" pick list into `msg` starting at
+ * `*off`.  Caller has already written prompt + typed text up to `*off`.
+ *
+ *   - names[i]: i-th match's display name (caller's choice of order).
+ *   - n:        names[] count, also the count rendered in-line.
+ *   - n_total:  total match count; shown as "(+M more)" when > n.
+ *   - sel:      0-based index into names[] of the selected entry.
+ *
+ * The window of visible entries is sized so `sel` is always present
+ * even when the full list overflows the terminal width; trimmed sides
+ * get "… | " / " | …" markers. */
+void editor_picker_render(char *msg, int msg_size, int *off,
+                          const char *const *names, int n, int n_total, int sel)
+{
+	int budget, used, win_start, win_end, i;
+
+	if (n <= 0) {
+		editor_msg_appendf(msg, msg_size, off, "[no match]");
+		return;
+	}
+	if (sel < 0)     sel = 0;
+	if (sel >= n)    sel = n - 1;
+
+	/* Leave room for the framing markers: "{" + "}" + worst-case
+	 * "… | " (4 cols) + " | …" (4 cols) = 10. */
+	budget = win_total_cols - *off - 10;
+	if (budget < 0) budget = 0;
+	used      = 0;
+	win_start = sel;
+	win_end   = sel;
+	for (i = sel; i < n; i++) {
+		int w = (int)strlen(names[i]) + (i > sel ? 3 : 0);   /* " | " */
+		if (i > sel && used + w > budget) break;
+		used   += w;
+		win_end = i + 1;
+	}
+	for (i = sel - 1; i >= 0; i--) {
+		int w = (int)strlen(names[i]) + 3;
+		if (used + w > budget) break;
+		win_start = i;
+		used     += w;
+	}
+
+	editor_msg_appendf(msg, msg_size, off, "{");
+	if (win_start > 0)
+		editor_msg_appendf(msg, msg_size, off, "… | ");
+	for (i = win_start; i < win_end; i++) {
+		if (i > win_start) editor_msg_appendf(msg, msg_size, off, " | ");
+		if (i == sel)
+			editor_msg_appendf(msg, msg_size, off, "\x1b[1m%s\x1b[22m", names[i]);
+		else
+			editor_msg_appendf(msg, msg_size, off, "%s", names[i]);
+	}
+	if (win_end < n)
+		editor_msg_appendf(msg, msg_size, off, " | …");
+	editor_msg_appendf(msg, msg_size, off, "}");
+	if (n_total > n)
+		editor_msg_appendf(msg, msg_size, off, "  (+%d more)", n_total - n);
 }
 
 /* Prompt for a path with ido-style completion.  Matching directory
@@ -458,7 +518,7 @@ static void push_open_files_back(struct path_entry *entries, int n)
  * you up one level. */
 int editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize)
 {
-	struct path_entry entries[PATH_PICK_MAX_ENTRIES];
+	struct path_entry entries[PICKER_MAX_ENTRIES];
 	char dir[256], file[256], lcp[256], msg[1024];
 	int plen = (int)strlen(prompt);
 	/* Honour any pre-populated content (callers may seed the prompt
@@ -469,66 +529,25 @@ int editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize)
 
 	buf[len] = '\0';
 	while (1) {
-		int off, i, win_start, win_end, used, budget;
+		const char *names[PICKER_MAX_ENTRIES];
+		int off, i;
 
 		editor_path_split(buf, dir, sizeof(dir), file, sizeof(file));
 		flen = (int)strlen(file);
 		total = editor_path_complete_entries(dir, file, entries,
-		                                     PATH_PICK_MAX_ENTRIES,
+		                                     PICKER_MAX_ENTRIES,
 		                                     lcp, sizeof(lcp));
-		matches = total > PATH_PICK_MAX_ENTRIES
-		            ? PATH_PICK_MAX_ENTRIES : (total < 0 ? 0 : total);
+		matches = total > PICKER_MAX_ENTRIES
+		            ? PICKER_MAX_ENTRIES : (total < 0 ? 0 : total);
 		if (sel >= matches) sel = matches > 0 ? matches - 1 : 0;
 
 		push_open_files_back(entries, matches);
 
-		off = 0;
-		msg_appendf(msg, sizeof(msg), &off, "%s%s ", prompt, buf);
-		if (matches <= 0) {
-			msg_appendf(msg, sizeof(msg), &off, "[no match]");
-		} else {
-			/* Window the pick list around `sel` so the selected entry
-			 * stays visible even on terminals that can't hold the
-			 * whole list at once. */
-			budget = win_total_cols - off - 6;   /* room for "{…}" */
-			if (budget < 0) budget = 0;
-			win_start = sel;
-			win_end   = sel;
-			used      = 0;
-			for (i = sel; i < matches; i++) {
-				int w = (int)strlen(entries[i].name) +
-				        (i > sel ? 3 : 0);   /* " | " */
-				if (i > sel && used + w > budget) break;
-				used   += w;
-				win_end = i + 1;
-			}
-			for (i = sel - 1; i >= 0; i--) {
-				int w = (int)strlen(entries[i].name) + 3;
-				if (used + w > budget) break;
-				win_start = i;
-				used     += w;
-			}
+		for (i = 0; i < matches; i++) names[i] = entries[i].name;
 
-			msg_appendf(msg, sizeof(msg), &off, "{");
-			if (win_start > 0)
-				msg_appendf(msg, sizeof(msg), &off, "… | ");
-			for (i = win_start; i < win_end; i++) {
-				if (i > win_start)
-					msg_appendf(msg, sizeof(msg), &off, " | ");
-				if (i == sel)
-					msg_appendf(msg, sizeof(msg), &off,
-					            "\x1b[1m%s\x1b[22m", entries[i].name);
-				else
-					msg_appendf(msg, sizeof(msg), &off,
-					            "%s", entries[i].name);
-			}
-			if (win_end < matches)
-				msg_appendf(msg, sizeof(msg), &off, " | …");
-			msg_appendf(msg, sizeof(msg), &off, "}");
-			if (total > matches)
-				msg_appendf(msg, sizeof(msg), &off,
-				            "  (+%d more)", total - matches);
-		}
+		off = 0;
+		editor_msg_appendf(msg, sizeof(msg), &off, "%s%s ", prompt, buf);
+		editor_picker_render(msg, sizeof(msg), &off, names, matches, total, sel);
 
 		editor_set_status_message("%s", msg);
 		editor.echo_cursor_col = plen + len + 1;
@@ -647,14 +666,22 @@ void buf_load_args(int nfiles, char **filenames, int readonly)
 }
 
 /* Interactive buffer selector shown in the echo area (C-x b).
- * Displays all buffers except the current one in a ring; left/right arrows
- * rotate the selection; Enter switches, ESC/C-g cancels. */
+ * Lists every buffer except the current one and narrows the list as
+ * the user types — substring matching with prefix matches ranked
+ * first, the same rule M-x and C-x C-f use.  Left/Right cycle within
+ * the filtered set; Enter switches; ESC/C-g cancels. */
 void buf_select_interactive(int fd)
 {
-	int order[MAX_BUFFERS], n = 0, sel = 0;
+	const char prompt[] = "Buffer: ";
+	const int  plen     = sizeof(prompt) - 1;
+	int order[MAX_BUFFERS], n = 0;
+	char query[64];
+	int qlen = 0, sel = 0;
 	int i, c;
-	char msg[256];
+	char msg[512];
 	int off;
+
+	query[0] = '\0';
 
 	/* Build ring starting from the buffer after current (most natural default). */
 	for (i = 1; i <= MAX_BUFFERS; i++) {
@@ -666,32 +693,70 @@ void buf_select_interactive(int fd)
 		return;
 	}
 
-	while (1) {
-		off = snprintf(msg, sizeof(msg), "Buffer: ");
-		for (i = 0; i < n; i++) {
-			char name[128];
-			buf_display_name(order[i], name, sizeof(name));
-			if (i == sel)
-				off += snprintf(msg+off, sizeof(msg)-off, "[%s]  ", name);
-			else
-				off += snprintf(msg+off, sizeof(msg)-off, "%s  ", name);
-		}
-		editor_set_status_message("%s", msg);
-		editor_refresh_screen();
+	{
+		static char namebuf[MAX_BUFFERS][128];
+		const char *names[MAX_BUFFERS];
+		int match_idx[MAX_BUFFERS];
 
-		c = editor_read_key(fd);
-		if (c == ARROW_RIGHT || c == CTRL_F) {
-			sel = (sel + 1) % n;
-		} else if (c == ARROW_LEFT || c == CTRL_B) {
-			sel = (sel - 1 + n) % n;
-		} else if (c == ENTER) {
-			buf_save_current_state();
-			buf_restore_from_slot(order[sel]);
-			editor_set_status_message("");
-			return;
-		} else if (c == ESC || c == CTRL_G) {
-			editor_set_status_message("");
-			return;
+		while (1) {
+			int matches = 0;
+
+			/* Cache every candidate's display name once per redraw,
+			 * then build the filtered view as prefix matches followed
+			 * by mid-name matches. */
+			for (i = 0; i < n; i++)
+				buf_display_name(order[i], namebuf[i], sizeof(namebuf[i]));
+
+			for (i = 0; i < n; i++) {
+				if (editor_picker_match_rank(namebuf[i], query) != 0)
+					continue;
+				names[matches]     = namebuf[i];
+				match_idx[matches] = order[i];
+				matches++;
+			}
+			if (qlen > 0) {
+				for (i = 0; i < n; i++) {
+					if (editor_picker_match_rank(namebuf[i], query) != 1)
+						continue;
+					names[matches]     = namebuf[i];
+					match_idx[matches] = order[i];
+					matches++;
+				}
+			}
+			if (sel >= matches) sel = matches > 0 ? matches - 1 : 0;
+
+			off = 0;
+			editor_msg_appendf(msg, sizeof(msg), &off, "%s%s ", prompt, query);
+			editor_picker_render(msg, sizeof(msg), &off, names, matches, matches, sel);
+			editor_set_status_message("%s", msg);
+			editor.echo_cursor_col = plen + qlen + 1;
+			editor_refresh_screen();
+
+			c = editor_read_key(fd);
+			if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
+				if (qlen > 0) query[--qlen] = '\0';
+				sel = 0;
+			} else if (c == ARROW_RIGHT || c == CTRL_F) {
+				if (matches > 0) sel = (sel + 1) % matches;
+			} else if (c == ARROW_LEFT || c == CTRL_B) {
+				if (matches > 0) sel = (sel - 1 + matches) % matches;
+			} else if (c == ENTER) {
+				editor.echo_cursor_col = 0;
+				editor_set_status_message("");
+				if (matches > 0) {
+					buf_save_current_state();
+					buf_restore_from_slot(match_idx[sel]);
+				}
+				return;
+			} else if (c == ESC || c == CTRL_G) {
+				editor.echo_cursor_col = 0;
+				editor_set_status_message("");
+				return;
+			} else if (isprint(c) && qlen < (int)sizeof(query) - 1) {
+				query[qlen++] = c;
+				query[qlen]   = '\0';
+				sel = 0;
+			}
 		}
 	}
 }

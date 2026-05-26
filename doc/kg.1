@@ -342,6 +342,14 @@ extends the typed text to the longest common prefix of the prefix-
 matched group, or appends a
 .Sq /
 when the sole match is a directory.
+.Pp
+.Ic C-x b
+opens the same picker shape against the active buffers (everything
+except the current one).
+What you type narrows the list by basename;
+Left/Right cycles;
+.Ic Enter
+switches to the selected buffer.
 .Ss Window Commands
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action
@@ -409,6 +417,11 @@ interactive programs that require a terminal will not work.
 .Pp
 .Ic M-x
 prompts for a command name and executes it.
+The completion prompt is the same ido-style picker as
+.Ic C-x C-f :
+substring matching, Left/Right to cycle,
+.Ic Tab
+to extend to the longest common prefix.
 Available commands:
 .Bl -tag -width "what-cursor-position"
 .It auto-revert-mode
