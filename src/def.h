@@ -342,14 +342,23 @@ extern int win_total_cols;  /* terminal cols (set by update_window_size) */
 void buf_save_current_state(void);
 int  editor_read_line(int fd, const char *prompt, char *buf, int bufsize);
 int  editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize);
+void editor_prompt_prefill_dir(char *buf, int bufsize);
+void editor_path_expand_tilde(char *buf, int bufsize);
 int  autorevert_poll(void);
 void buf_reload_from_disk(void);
 
 /* path.c */
+#define PATH_ENTRY_NAME_MAX 256              /* fits POSIX NAME_MAX (255) + NUL */
+#define PATH_PICK_MAX_ENTRIES 64             /* upper bound shown in the picker */
+struct path_entry {
+	char name[PATH_ENTRY_NAME_MAX];
+	int  is_dir;
+};
 void editor_path_split(const char *path, char *dir, int dsize, char *file, int fsize);
-int  editor_path_complete(const char *dir, const char *prefix,
-                          char *lcp, int lcp_size, int *is_dir,
-                          char *names, int *names_off, int names_size);
+int  editor_path_complete_entries(const char *dir, const char *prefix,
+                                  struct path_entry *entries, int max,
+                                  char *lcp, int lcp_size);
+int  editor_picker_match_rank(const char *haystack, const char *needle);
 void buf_load_args(int nfiles, char **filenames, int readonly);
 void buf_select_interactive(int fd);
 void buf_open_file(int fd);

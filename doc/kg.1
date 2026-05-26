@@ -310,11 +310,38 @@ The filename prompts for
 .Ic C-x C-w
 and
 .Ic C-x i
-list matching directory entries live in the echo area as the user types.
-Press Tab to extend the typed portion to the longest common prefix of those
-matches; when the sole match is a directory a trailing
+open an ido-style picker.
+Matching directory entries render as a {pipe-delimited} pick list in
+the echo area, with the currently selected entry shown in bold.
+.Pp
+What you type narrows the list by substring, the way Emacs'
+ido-mode does it: typing
+.Sq buf
+matches both
+.Sq bufmgr.c
+and
+.Sq editor_buffer.c .
+Prefix matches still rank above mid-name ones, so a leading letter
+prioritises the obvious candidate.
+Files already open in a buffer get pushed to the back of the list,
+matched by basename the way Emacs does it, so the default
+selection lands on something not yet open.
+Handy when walking a directory to open several files in turn.
+.Pp
+Left/Right arrows cycle the selection;
+.Ic Enter
+on a directory descends into it;
+.Ic Enter
+on a file completes the typed path and submits.
+.Ic Backspace
+at a trailing
 .Sq /
-is appended so the next Tab descends into it.
+walks you up one level in a single keystroke.
+.Ic Tab
+extends the typed text to the longest common prefix of the prefix-
+matched group, or appends a
+.Sq /
+when the sole match is a directory.
 .Ss Window Commands
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action

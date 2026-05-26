@@ -83,6 +83,7 @@ int editor_save(int fd)
 	if (is_special_buffer(editor.filename)) {
 		char newname[256];
 
+		editor_prompt_prefill_dir(newname, sizeof(newname));
 		if (editor_read_line_path(fd, "Write file: ", newname, sizeof(newname)) < 0
 		    || !newname[0])
 			return 1;
@@ -153,6 +154,7 @@ void editor_write_file(int fd)
 	char newname[256];
 	char *newfilename;
 
+	editor_prompt_prefill_dir(newname, sizeof(newname));
 	if (editor_read_line_path(fd, "Write file: ", newname, sizeof(newname)) < 0 || !newname[0])
 		return;
 	newfilename = strdup(newname);
@@ -176,6 +178,7 @@ void editor_insert_file(int fd)
 	int filerow, filecol;
 	FILE *fp;
 
+	editor_prompt_prefill_dir(filename, sizeof(filename));
 	if (editor_read_line_path(fd, "Insert file: ", filename, sizeof(filename)) < 0 || !filename[0])
 		return;
 

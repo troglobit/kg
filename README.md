@@ -28,8 +28,8 @@ escape sequences.
 - Multi-level undo (C-_)
 - Paragraph reflow to 72 columns (M-q)
 - Keyboard macros (C-x ( / C-x ) / C-x e)
-- M-x command dispatcher with interactive completion
-- Tab completion for file paths in the minibuffer
+- M-x command dispatcher and C-x C-f file open with an ido-style
+  picker: substring matching, already-open files pushed to the back
 - Detects external changes to open files; optional auto-revert
 - Shell commands (M-!) and pipe-region-through-command (M-|)
 - Comment-dwim (M-;)

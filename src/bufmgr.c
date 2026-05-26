@@ -332,6 +332,45 @@ static void prompt_refresh(const char *prompt, int plen, const char *buf, int le
 	editor_refresh_screen();
 }
 
+/* Seed a path-prompt buffer with the full directory path of the current
+ * buffer's file (trailing '/' included), shortened with "~" when the
+ * path lives under $HOME.  Resolves relative paths via realpath so the
+ * user can backspace up the tree to navigate elsewhere.  Falls back to
+ * the directory part of the recorded filename when realpath fails (the
+ * file doesn't exist on disk yet), and to empty for special / unsaved
+ * buffers. */
+void editor_prompt_prefill_dir(char *buf, int bufsize)
+{
+	const char *fn = editor.filename;
+	const char *home, *path, *slash;
+	char *abs = NULL;
+	int dir_len, home_len;
+
+	buf[0] = '\0';
+	if (!fn || is_special_buffer(fn)) return;
+	abs = realpath(fn, NULL);
+	path = abs ? abs : fn;   /* fall back to as-recorded path */
+	slash = strrchr(path, '/');
+	if (!slash) { free(abs); return; }
+	dir_len = (int)(slash - path) + 1;
+
+	home = getenv("HOME");
+	home_len = home ? (int)strlen(home) : 0;
+	if (home_len > 0 && dir_len > home_len &&
+	    strncmp(path, home, home_len) == 0 && path[home_len] == '/') {
+		int rest = dir_len - home_len;
+		if (rest + 2 <= bufsize) {
+			buf[0] = '~';
+			memcpy(buf + 1, path + home_len, rest);
+			buf[1 + rest] = '\0';
+		}
+	} else if (dir_len + 1 <= bufsize) {
+		memcpy(buf, path, dir_len);
+		buf[dir_len] = '\0';
+	}
+	free(abs);
+}
+
 /* Prompt the user for a line of text in the status bar.  Returns 0 on
  * confirmation (Enter) or -1 if cancelled (ESC / C-g).  buf is always
  * NUL-terminated on return. */
@@ -357,33 +396,139 @@ int editor_read_line(int fd, const char *prompt, char *buf, int bufsize)
 	}
 }
 
-/* Prompt for a path.  Same semantics as editor_read_line, plus:
- *   - matching directory entries are listed live in the echo area, and
- *   - Tab extends the typed portion to the longest common prefix of those
- *     matches; if the sole match is a directory the trailing '/' is added.
- *
- * The directory is scanned once per keystroke (in this loop, not in a helper);
- * the resulting `matches`, `lcp` and `is_dir` are reused by the Tab branch
- * without re-opening the directory. */
+/* Append printf-style at `*off` into `msg[size]`, clamping `*off` to
+ * size-1 so subsequent calls don't underflow `size - *off`. */
+static void msg_appendf(char *msg, int size, int *off, const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+	int avail = size - *off;
+
+	if (avail <= 1) { msg[size - 1] = '\0'; *off = size - 1; return; }
+	va_start(ap, fmt);
+	n = vsnprintf(msg + *off, (size_t)avail, fmt, ap);
+	va_end(ap);
+	if (n < 0) return;
+	*off += n;
+	if (*off > size - 1) *off = size - 1;
+}
+
+/* Is `name` the basename of any currently-open buffer's filename?
+ * Used to push already-open files to the back of the path picker so
+ * the default selection lands on something not yet open, matching
+ * Emacs' ido-mode behaviour.  Basename-only comparison mirrors how
+ * Emacs identifies "the same file" across distinct prompt paths. */
+static int file_open_in_buflist(const char *name)
+{
+	int i;
+
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		if (buflist[i].active && buflist[i].filename &&
+		    strcmp(buf_basename(buflist[i].filename), name) == 0)
+			return 1;
+	}
+	return 0;
+}
+
+/* Stable-partition entries[0..n) so files already open in a buffer
+ * move to the tail, with the in-group rank+name order preserved on
+ * both sides.  Two passes keep the implementation obvious; entries[]
+ * is small (≤PATH_PICK_MAX_ENTRIES). */
+static void push_open_files_back(struct path_entry *entries, int n)
+{
+	struct path_entry tmp[PATH_PICK_MAX_ENTRIES];
+	int i, k = 0;
+
+	for (i = 0; i < n; i++)
+		if (!file_open_in_buflist(entries[i].name))
+			tmp[k++] = entries[i];
+	for (i = 0; i < n; i++)
+		if (file_open_in_buflist(entries[i].name))
+			tmp[k++] = entries[i];
+	memcpy(entries, tmp, n * sizeof(*entries));
+}
+
+/* Prompt for a path with ido-style completion.  Matching directory
+ * entries are rendered as a "{name1 | name2 | …}" pick-list to the
+ * right of the typed text, with the selected entry shown in bold.
+ * Left/Right cycle the selection.  Enter on a directory descends into
+ * it; Enter on a file completes the path and returns.  Tab still
+ * extends to the longest common prefix.  Backspace at the trailing
+ * '/' deletes the whole last path component, so one keystroke walks
+ * you up one level. */
 int editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize)
 {
-	char dir[256], file[256], lcp[256], msg[512];
+	struct path_entry entries[PATH_PICK_MAX_ENTRIES];
+	char dir[256], file[256], lcp[256], msg[1024];
 	int plen = (int)strlen(prompt);
-	int len = 0, c;
-	int matches = 0, is_dir = 0;
-	int flen = 0;
+	/* Honour any pre-populated content (callers may seed the prompt
+	 * with the current buffer's directory, à la Emacs). */
+	int len = (int)strnlen(buf, bufsize - 1);
+	int c, sel = 0;
+	int matches = 0, total = 0, flen = 0;
 
-	buf[0] = '\0';
+	buf[len] = '\0';
 	while (1) {
-		int off;
+		int off, i, win_start, win_end, used, budget;
 
 		editor_path_split(buf, dir, sizeof(dir), file, sizeof(file));
 		flen = (int)strlen(file);
-		off  = snprintf(msg, sizeof(msg), "%s%s  ", prompt, buf);
-		matches = editor_path_complete(dir, file, lcp, sizeof(lcp), &is_dir,
-		                               msg, &off, sizeof(msg));
-		if (matches <= 0)
-			snprintf(msg + off, sizeof(msg) - off, "[no match]");
+		total = editor_path_complete_entries(dir, file, entries,
+		                                     PATH_PICK_MAX_ENTRIES,
+		                                     lcp, sizeof(lcp));
+		matches = total > PATH_PICK_MAX_ENTRIES
+		            ? PATH_PICK_MAX_ENTRIES : (total < 0 ? 0 : total);
+		if (sel >= matches) sel = matches > 0 ? matches - 1 : 0;
+
+		push_open_files_back(entries, matches);
+
+		off = 0;
+		msg_appendf(msg, sizeof(msg), &off, "%s%s ", prompt, buf);
+		if (matches <= 0) {
+			msg_appendf(msg, sizeof(msg), &off, "[no match]");
+		} else {
+			/* Window the pick list around `sel` so the selected entry
+			 * stays visible even on terminals that can't hold the
+			 * whole list at once. */
+			budget = win_total_cols - off - 6;   /* room for "{…}" */
+			if (budget < 0) budget = 0;
+			win_start = sel;
+			win_end   = sel;
+			used      = 0;
+			for (i = sel; i < matches; i++) {
+				int w = (int)strlen(entries[i].name) +
+				        (i > sel ? 3 : 0);   /* " | " */
+				if (i > sel && used + w > budget) break;
+				used   += w;
+				win_end = i + 1;
+			}
+			for (i = sel - 1; i >= 0; i--) {
+				int w = (int)strlen(entries[i].name) + 3;
+				if (used + w > budget) break;
+				win_start = i;
+				used     += w;
+			}
+
+			msg_appendf(msg, sizeof(msg), &off, "{");
+			if (win_start > 0)
+				msg_appendf(msg, sizeof(msg), &off, "… | ");
+			for (i = win_start; i < win_end; i++) {
+				if (i > win_start)
+					msg_appendf(msg, sizeof(msg), &off, " | ");
+				if (i == sel)
+					msg_appendf(msg, sizeof(msg), &off,
+					            "\x1b[1m%s\x1b[22m", entries[i].name);
+				else
+					msg_appendf(msg, sizeof(msg), &off,
+					            "%s", entries[i].name);
+			}
+			if (win_end < matches)
+				msg_appendf(msg, sizeof(msg), &off, " | …");
+			msg_appendf(msg, sizeof(msg), &off, "}");
+			if (total > matches)
+				msg_appendf(msg, sizeof(msg), &off,
+				            "  (+%d more)", total - matches);
+		}
 
 		editor_set_status_message("%s", msg);
 		editor.echo_cursor_col = plen + len + 1;
@@ -391,10 +536,44 @@ int editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize)
 
 		c = editor_read_key(fd);
 		if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
-			if (len > 0) buf[--len] = '\0';
+			if (len > 0 && buf[len-1] == '/') {
+				/* At a directory boundary: walk up one component. */
+				buf[--len] = '\0';
+				while (len > 0 && buf[len-1] != '/')
+					buf[--len] = '\0';
+			} else if (len > 0) {
+				buf[--len] = '\0';
+			}
+			sel = 0;
 		} else if (c == ESC || c == CTRL_G) {
 			return prompt_done(-1);
+		} else if (c == ARROW_LEFT || c == CTRL_B) {
+			if (matches > 0)
+				sel = (sel - 1 + matches) % matches;
+		} else if (c == ARROW_RIGHT || c == CTRL_F) {
+			if (matches > 0)
+				sel = (sel + 1) % matches;
 		} else if (c == ENTER) {
+			if (matches > 0) {
+				/* Replace the typed file part with the selected name. */
+				const struct path_entry *pe = &entries[sel];
+				int new_name_len = (int)strlen(pe->name);
+				int add_slash    = pe->is_dir ? 1 : 0;
+				if (len - flen + new_name_len + add_slash + 1 > bufsize) {
+					editor_set_status_message("Path too long");
+					return prompt_done(-1);
+				}
+				len -= flen;
+				memcpy(buf + len, pe->name, new_name_len);
+				len += new_name_len;
+				if (add_slash) buf[len++] = '/';
+				buf[len] = '\0';
+				if (pe->is_dir) {
+					sel = 0;
+					continue;   /* descend, re-loop */
+				}
+			}
+			editor_path_expand_tilde(buf, bufsize);
 			return prompt_done(0);
 		} else if (c == TAB && matches > 0) {
 			int llen = (int)strlen(lcp);
@@ -405,14 +584,17 @@ int editor_read_line_path(int fd, const char *prompt, char *buf, int bufsize)
 					len += extend;
 					buf[len] = '\0';
 				}
-			} else if (matches == 1 && is_dir && len < bufsize - 1 &&
+			} else if (matches == 1 && entries[0].is_dir &&
+			           len < bufsize - 1 &&
 			           (len == 0 || buf[len-1] != '/')) {
 				buf[len++] = '/';
 				buf[len]   = '\0';
 			}
+			sel = 0;
 		} else if (isprint(c) && len < bufsize - 1) {
 			buf[len++] = c;
 			buf[len]   = '\0';
+			sel = 0;
 		}
 	}
 }
@@ -523,6 +705,7 @@ static void buf_open_file_ro(int fd, int readonly)
 	int i, slot;
 	const char *prompt = readonly ? "Open file read-only: " : "Open file: ";
 
+	editor_prompt_prefill_dir(query, sizeof(query));
 	if (editor_read_line_path(fd, prompt, query, sizeof(query)) < 0 || query[0] == '\0')
 		return;
 
