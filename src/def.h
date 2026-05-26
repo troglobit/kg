@@ -403,7 +403,7 @@ int  editor_chars_col_at_visual(erow *row, int target_vcol);
 
 /* buffer.c */
 void editor_update_row(erow *row);
-void editor_insert_row(int at, char *s, size_t len);
+void editor_insert_row(int at, const char *s, size_t len);
 void editor_free_row(erow *row);
 void editor_del_row(int at);
 char *editor_rows_to_string(erow *rows, int numrows, int *buflen);

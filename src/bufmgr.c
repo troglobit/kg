@@ -904,32 +904,28 @@ void buf_kill(int fd)
 	editor_set_status_message("%s", editor.filename ? editor.filename : "[new]");
 }
 
-/* Open (or refresh) a *Buffer List* buffer in the current window (C-x C-b).
- * Lists all open buffers with modification flag, name, size, mode, and path.
- * Press q or C-x k to close. */
-void buf_open_list(void)
+/* Set up the special buffer named `name`: save the outgoing state,
+ * find or allocate its slot, clear any prior content, run `populate`
+ * to fill rows, then mark the buffer read-only, attach `syn`, and
+ * post `status`.  Shared by buf_open_list and buf_open_help. */
+static void buf_open_special(const char *name, struct editor_syntax *syn,
+                             void (*populate)(void), const char *status)
 {
-	int i, j, slot = -1, existing = -1;
-	char line[256];
-	int len, size;
-	const char *modename;
+	int i, slot = -1, existing = -1;
 
-	/* Save current state so the snapshot is up-to-date. */
 	buf_save_current_state();
 
-	/* Find an existing *Buffer List* slot to reuse, or a free slot. */
 	for (i = 0; i < MAX_BUFFERS; i++) {
 		if (!buflist[i].active) {
 			if (slot < 0) slot = i;
 			continue;
 		}
 		if (buflist[i].filename &&
-		    strcmp(buflist[i].filename, IBUF_NAME) == 0)
+		    strcmp(buflist[i].filename, name) == 0)
 			existing = i;
 	}
 
 	if (existing >= 0) {
-		/* Reuse: switch to it, then rebuild content below. */
 		buf_restore_from_slot(existing);
 		undo_init(); /* content is rebuilt from scratch; don't keep stale ops */
 	} else {
@@ -939,16 +935,39 @@ void buf_open_list(void)
 		}
 		if (slot < 0) return;
 		buf_reset();
-		editor.filename = strdup(IBUF_NAME);
+		editor.filename = strdup(name);
 	}
 
-	/* Clear existing rows. */
 	for (i = 0; i < editor.numrows; i++) editor_free_row(&editor.row[i]);
 	free(editor.row);
 	editor.row = NULL;
 	editor.numrows = 0;
 
-	/* Header. */
+	populate();
+
+	editor.cx = editor.cy = editor.rowoff = editor.coloff = 0;
+	editor.dirty = 0;
+	editor.readonly = 1;
+	editor.syntax = syn;
+
+	if (existing >= 0) {
+		buf_save_to_slot(existing);
+	} else {
+		buf_save_to_slot(slot);
+		buf_restore_from_slot(slot);
+		buf_count++;
+	}
+
+	editor_set_status_message("%s", status);
+}
+
+/* Populate the *Buffer List* rows from the buflist[] snapshot. */
+static void buf_list_populate(void)
+{
+	char line[256];
+	int i, j, len, size;
+	const char *modename;
+
 	len = snprintf(line, sizeof(line), " M  %-24s  %6s  %-14s  %s",
 		"Buffer", "Size", "Mode", "File");
 	editor_insert_row(editor.numrows, line, len);
@@ -956,7 +975,6 @@ void buf_open_list(void)
 		"------", "------", "----", "----");
 	editor_insert_row(editor.numrows, line, len);
 
-	/* One row per buffer (using the just-saved snapshot in buflist[]). */
 	for (i = 0; i < MAX_BUFFERS; i++) {
 		struct editor_buffer *b = &buflist[i];
 		if (!b->active) continue;
@@ -972,79 +990,34 @@ void buf_open_list(void)
 			b->filename ? b->filename : "");
 		editor_insert_row(editor.numrows, line, len);
 	}
+}
 
-	editor.cx = editor.cy = editor.rowoff = editor.coloff = 0;
-	editor.dirty = 0;
-	editor.readonly = 1;
-	editor.syntax = &ibuffer_syntax;
+/* Open (or refresh) a *Buffer List* buffer in the current window (C-x C-b).
+ * Lists all open buffers with modification flag, name, size, mode, and path.
+ * Press q or C-x k to close. */
+void buf_open_list(void)
+{
+	buf_open_special(IBUF_NAME, &ibuffer_syntax, buf_list_populate,
+	                 "Buffer list — RET to open, q or C-x k to close.");
+}
 
-	if (existing >= 0) {
-		buf_save_to_slot(existing);
-	} else {
-		buf_save_to_slot(slot);
-		buf_restore_from_slot(slot);
-		buf_count++;
-	}
+/* Populate the *help* buffer rows from the static key-binding table. */
+static void buf_help_populate(void)
+{
+	int i;
 
-	editor_set_status_message("Buffer list — RET to open, q or C-x k to close.");
+	for (i = 0; kg_help_lines[i]; i++)
+		editor_insert_row(editor.numrows, kg_help_lines[i],
+		                  strlen(kg_help_lines[i]));
 }
 
 /* Open (or refresh) the *help* buffer in the current window (C-h).
  * Reuses the regular buffer machinery so scrolling, mode line, and
- * 'q' to close all come for free.  Content is the static key-binding
- * table in help.c, loaded verbatim as buffer rows. */
+ * 'q' to close all come for free. */
 void buf_open_help(void)
 {
-	int i, slot = -1, existing = -1;
-
-	buf_save_current_state();
-
-	for (i = 0; i < MAX_BUFFERS; i++) {
-		if (!buflist[i].active) {
-			if (slot < 0) slot = i;
-			continue;
-		}
-		if (buflist[i].filename &&
-		    strcmp(buflist[i].filename, HELP_NAME) == 0)
-			existing = i;
-	}
-
-	if (existing >= 0) {
-		buf_restore_from_slot(existing);
-		undo_init();
-	} else {
-		if (buf_count >= MAX_BUFFERS) {
-			editor_set_status_message("Too many open buffers (%d max).", MAX_BUFFERS);
-			return;
-		}
-		if (slot < 0) return;
-		buf_reset();
-		editor.filename = strdup(HELP_NAME);
-	}
-
-	for (i = 0; i < editor.numrows; i++) editor_free_row(&editor.row[i]);
-	free(editor.row);
-	editor.row = NULL;
-	editor.numrows = 0;
-
-	for (i = 0; kg_help_lines[i]; i++)
-		editor_insert_row(editor.numrows, (char *)kg_help_lines[i],
-		                  strlen(kg_help_lines[i]));
-
-	editor.cx = editor.cy = editor.rowoff = editor.coloff = 0;
-	editor.dirty = 0;
-	editor.readonly = 1;
-	editor.syntax = &text_syntax;
-
-	if (existing >= 0) {
-		buf_save_to_slot(existing);
-	} else {
-		buf_save_to_slot(slot);
-		buf_restore_from_slot(slot);
-		buf_count++;
-	}
-
-	editor_set_status_message("Press q to exit help.");
+	buf_open_special(HELP_NAME, &text_syntax, buf_help_populate,
+	                 "Press q to exit help.");
 }
 
 /* Open the buffer named on the current IBuffer line.

@@ -141,7 +141,7 @@ void editor_update_row(erow *row)
 
 /* Insert a row at the specified position, shifting the other rows on the bottom
  * if required. */
-void editor_insert_row(int at, char *s, size_t len)
+void editor_insert_row(int at, const char *s, size_t len)
 {
 	if (at > editor.numrows)
 		return;
