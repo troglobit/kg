@@ -1,6 +1,5 @@
 /* ============================= Built-in help =============================== */
 
-#include <string.h>
 #include "def.h"
 
 /*
@@ -8,63 +7,42 @@
  * Each cell: 1 leading space + 9-char key field + 15-char desc field = 25 chars.
  * Row:  │<cell25>│<cell25>│<cell25>│  = 4 + 75 = 79 chars.
  * Sep:  ├<25─>┼<25─>┼<25─>┤          = 79 chars.
+ *
+ * NULL-terminated.  Lines are loaded verbatim into the *help* buffer by
+ * buf_open_help() in bufmgr.c, then rendered through the regular display
+ * pipeline so scrolling, mode-line, and 'q' to close come for free.
  */
-static const char *help_lines[] = {
-	"┌─ key bindings ─────────────────────────────────── press any key to dismiss ─┐",
+const char *kg_help_lines[] = {
+	"┌─ key bindings ──────────────────────────────────────────────────────────────┐",
 	"├─────────────────────────┬─────────────────────────┬─────────────────────────┤",
 	"│ NAVIGATION              │ EDITING                 │ FILES & BUFFERS         │",
 	"├─────────────────────────┼─────────────────────────┼─────────────────────────┤",
-	"│ C-f/C-b  fwd/back       │ BS       del back       │ C-x C-s  save           │",
-	"│ C-n/C-p  dn/up          │ C-d/DEL  del fwd        │ C-x s    save all       │",
+	"│ C-f/C-b  fwd/back char  │ BS       del back       │ C-x C-s  save           │",
+	"│ C-n/C-p  down/up line   │ C-d/DEL  del fwd        │ C-x s    save all       │",
 	"│ C-a/C-e  bol/eol        │ C-k      kill line      │ C-x C-f  open file      │",
-	"│ C-v/M-v  page dn/up     │ C-y      yank           │ C-x C-r  open r/o       │",
-	"│ M-f/M-b  word fwd/bk    │ C-w      kill region    │ C-x C-q  read-only      │",
-	"│ M-d      kill word fwd  │ M-w      copy region    │ C-x C-c  quit           │",
-	"│ M-BS     kill word bk   │ C-SPC    set mark       │ C-x b    sel buffer     │",
-	"│ C-up/dn  paragraph      │ C-_      undo           │ C-x k    kill buffer    │",
-	"│ C-Home   beg of file    │ C-o      open line      │ C-x C-b  list bufs      │",
-	"│ C-End    end of file    │ C-x C-x  exch mark      │ C-x C-w  write file     │",
-	"│                         │                         │ C-x i    insert file    │",
+	"│ C-v/M-v  page dn/up     │ C-_      undo           │ C-x C-r  open r/o       │",
+	"│ M-f/M-b  word fwd/bk    │ C-o      open line      │ C-x C-w  write file     │",
+	"│ M-d/M-BS kill word ±    │ C-q      quoted insert  │ C-x i    insert file    │",
+	"│ C-up/dn  paragraph      │ M-^      join line      │ C-x b    sel buffer     │",
+	"│ M-</M->  beg/end buf    │ M-u/M-l  up/down word   │ C-x C-b  list bufs      │",
+	"│ M-m      to indent      │ M-c      cap word       │ C-x k    kill buffer    │",
+	"│ M-a/M-e  sentence ±     │ M-q      reflow para    │ C-x C-q  read-only      │",
+	"│ M-r      window line    │ M-;      comment line   │ C-x C-c  quit           │",
+	"│ M-g      goto line      │ M-x      named command  │                         │",
 	"├─────────────────────────┼─────────────────────────┼─────────────────────────┤",
-	"│ SEARCH                  │ MISC                    │ WINDOWS                 │",
+	"│ REGION & SELECTION      │ RECTANGLES              │ WINDOWS · SEARCH · MISC │",
 	"├─────────────────────────┼─────────────────────────┼─────────────────────────┤",
-	"│ C-s      search fwd     │ C-g      cancel         │ C-x 2    split horiz    │",
-	"│ C-r      search bk      │ C-l      recenter       │ C-x 3    split vert     │",
-	"│ M-%      query replace  │ C-h      help           │ C-x o    other window   │",
-	"│ M-;      comment line   │ C-z      suspend        │ C-x 0    del window     │",
-	"│ M-x      named cmd      │ M-g      goto line      │ C-x 1    del others     │",
-	"│ C-x ( F3 beg macro      │ M-q      reflow para    │ C-x ) F4 end macro      │",
-	"│ C-x e F4 exec macro     │ M-!      shell cmd      │ C-u      numeric arg    │",
-	"│ M-^      join line      │ M-u      upcase word    │ M-l      dncase word    │",
-	"│ M-|      sh on region   │ M-c      cap word       │ C-q      quoted insert  │",
+	"│ C-SPC      set mark     │ C-x SPC  rect mark mode │ C-x 2/3  split h / v    │",
+	"│ C-x C-x    exch mark    │ C-x r k  kill rect      │ C-x o    other window   │",
+	"│ S-arrow    extend       │ C-x r y  yank rect      │ C-x 0/1  del wnd/others │",
+	"│ C-w/S-Del  cut          │ C-x r d  delete rect    │ C-s/C-r  search fwd/bk  │",
+	"│ M-w/C-Ins  copy         │ C-x r c  clear rect     │ M-%      query replace  │",
+	"│ C-y/S-Ins  paste        │                         │ C-l      recenter       │",
+	"│ DEL        del region   │ MACROS                  │ C-g      cancel         │",
+	"│ M-!/M-|    shell cmd ±  │ C-x (/F3 begin macro    │ C-h      help           │",
+	"│                         │ C-x )/F4 end macro      │ C-z      suspend        │",
+	"│                         │ C-x e/F4 exec macro     │ C-u      numeric arg    │",
 	"└─────────────────────────┴─────────────────────────┴─────────────────────────┘",
+	"           M- = Esc/Meta/Alt      C- = Ctrl       S- = Shift",
 	NULL
 };
-
-void editor_toggle_help(void)
-{
-	editor.show_help = !editor.show_help;
-}
-
-void editor_draw_help(struct abuf *ab, int nrows)
-{
-	int nhelp = sizeof(help_lines) / sizeof(help_lines[0]) - 1;
-	int i;
-
-	for (i = 0; i < nrows; i++) {
-		if (i < nhelp) {
-			/* UTF-8 aware clip: count display columns, not bytes.
-			 * Box-drawing and other multi-byte chars are single-width,
-			 * so we count non-continuation bytes as one column each. */
-			const char *s = help_lines[i];
-			const char *p = s;
-			int cols = 0;
-			while (*p && cols < editor.screencols) {
-				if (!utf8_is_cont(*p)) cols++;
-				p++;
-			}
-			ab_append(ab, s, p - s);
-		}
-		ab_append(ab, "\x1b[0K\r\n", 6);
-	}
-}

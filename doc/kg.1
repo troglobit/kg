@@ -386,7 +386,7 @@ The macro buffer holds up to 1024 keystrokes.
 .It Sy Key Ta Sy Action
 .It C-g Ta Cancel current operation
 .It C-l Ta Recenter: cycle current line to center, top, then bottom of window
-.It C-h Ta Toggle built-in help screen
+.It C-h Ta Open *help* buffer (q closes)
 .It M-x Ta Execute named command
 .It M-\&! Ta Run shell command, insert output at point
 .It M-\&| Ta Pipe region through shell command, replace it with the output
@@ -414,6 +414,19 @@ Both commands are intended for non-interactive filters such as
 or
 .Xr sed 1 ;
 interactive programs that require a terminal will not work.
+.Pp
+.Ic C-h
+opens a special
+.Pa *help*
+buffer with the full key-binding table.
+It is a regular buffer.
+Scroll with the usual motion keys, then press
+.Ic q
+to dismiss it (or
+.Ic C-x k ,
+or
+.Ic C-x b
+back to wherever you were).
 .Pp
 .Ic M-x
 prompts for a command name and executes it.
@@ -494,7 +507,11 @@ Each modified line is independently reversible with
 .Nm
 supports up to 20 open buffers.
 Each buffer has its own undo history, dirty flag, and read-only state.
-Special system buffers (such as the buffer list) have names enclosed in
+Special system buffers (the buffer list with
+.Ic C-x C-b ,
+the help buffer with
+.Ic C-h )
+have names enclosed in
 .Sq *
 and can be closed with
 .Ic q

@@ -15,6 +15,7 @@ static struct editor_syntax text_syntax = {
  *          1+1+2+24  +2+6  +2+14  +2 = 54  */
 #define IBUF_FILENAME_OFFSET 54
 #define IBUF_NAME "*Buffer List*"
+#define HELP_NAME "*help*"
 
 struct editor_buffer buflist[MAX_BUFFERS];
 int buf_current = 0;
@@ -986,6 +987,64 @@ void buf_open_list(void)
 	}
 
 	editor_set_status_message("Buffer list — RET to open, q or C-x k to close.");
+}
+
+/* Open (or refresh) the *help* buffer in the current window (C-h).
+ * Reuses the regular buffer machinery so scrolling, mode line, and
+ * 'q' to close all come for free.  Content is the static key-binding
+ * table in help.c, loaded verbatim as buffer rows. */
+void buf_open_help(void)
+{
+	int i, slot = -1, existing = -1;
+
+	buf_save_current_state();
+
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		if (!buflist[i].active) {
+			if (slot < 0) slot = i;
+			continue;
+		}
+		if (buflist[i].filename &&
+		    strcmp(buflist[i].filename, HELP_NAME) == 0)
+			existing = i;
+	}
+
+	if (existing >= 0) {
+		buf_restore_from_slot(existing);
+		undo_init();
+	} else {
+		if (buf_count >= MAX_BUFFERS) {
+			editor_set_status_message("Too many open buffers (%d max).", MAX_BUFFERS);
+			return;
+		}
+		if (slot < 0) return;
+		buf_reset();
+		editor.filename = strdup(HELP_NAME);
+	}
+
+	for (i = 0; i < editor.numrows; i++) editor_free_row(&editor.row[i]);
+	free(editor.row);
+	editor.row = NULL;
+	editor.numrows = 0;
+
+	for (i = 0; kg_help_lines[i]; i++)
+		editor_insert_row(editor.numrows, (char *)kg_help_lines[i],
+		                  strlen(kg_help_lines[i]));
+
+	editor.cx = editor.cy = editor.rowoff = editor.coloff = 0;
+	editor.dirty = 0;
+	editor.readonly = 1;
+	editor.syntax = &text_syntax;
+
+	if (existing >= 0) {
+		buf_save_to_slot(existing);
+	} else {
+		buf_save_to_slot(slot);
+		buf_restore_from_slot(slot);
+		buf_count++;
+	}
+
+	editor_set_status_message("Press q to exit help.");
 }
 
 /* Open the buffer named on the current IBuffer line.

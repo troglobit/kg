@@ -132,7 +132,7 @@ static void draw_window_rows(struct abuf *ab,
 		int current_color = -1;
 		int current_reverse = 0;
 		int hi_lo = -1, hi_hi = -1;   /* highlight bounds in render-col, half-open */
-		int len;
+		int len, vcol_used = 0;
 
 		ab_move_to(ab, win_y + y, win_x);
 
@@ -191,9 +191,22 @@ static void draw_window_rows(struct abuf *ab,
 			char *c;
 			unsigned char *hl;
 
-			len = r->rsize - coloff;
-			if (len < 0) len = 0;
-			if (len > win_w) len = win_w;
+			/* Walk render bytes from coloff to compute len bounded by
+			 * win_w VISIBLE columns, keeping UTF-8 glyphs whole.
+			 * Counting non-continuation bytes as one column each lets
+			 * a 79-visual-col line (200+ bytes of box drawing) render
+			 * correctly on an 80-col terminal. */
+			len = 0;
+			if (coloff < r->rsize) {
+				while (coloff + len < r->rsize) {
+					unsigned char b = (unsigned char)r->render[coloff + len];
+					if (!utf8_is_cont(b)) {
+						if (vcol_used >= win_w) break;
+						vcol_used++;
+					}
+					len++;
+				}
+			}
 
 			c  = r->render + coloff;
 			hl = r->hl    + coloff;
@@ -291,10 +304,7 @@ static void draw_window_rows(struct abuf *ab,
 		if (is_full_width) {
 			ab_append(ab, "\x1b[0K", 4);
 		} else {
-			int used = rows[fr].rsize - coloff;
-			if (used < 0) used = 0;
-			if (used > win_w) used = win_w;
-			ab_append_spaces(ab, win_w - used);
+			ab_append_spaces(ab, win_w - vcol_used);
 		}
 	}
 }
@@ -354,21 +364,6 @@ void editor_refresh_screen(void)
 	int msglen;
 
 	ab_append(&ab, "\x1b[?25l", 6); /* Hide cursor. */
-
-	if (editor.show_help) {
-		ab_append(&ab, "\x1b[H", 3);
-		editor_draw_help(&ab, editor.screenrows);
-		ab_append(&ab, "\x1b[0K", 4);
-		ab_append(&ab, "\x1b[7m", 4);
-		ab_append_spaces(&ab, editor.screencols);
-		ab_append(&ab, "\x1b[0m\r\n", 6);
-		ab_append(&ab, "\x1b[0K", 4);
-		ab_append(&ab, "\x1b[H", 3);
-		ab_append(&ab, "\x1b[?25h", 6);
-		tty_write(ab.b, ab.len);
-		ab_free(&ab);
-		return;
-	}
 
 	/* ---- Render each window ---- */
 	for (i = 0; i < MAX_WINDOWS; i++) {

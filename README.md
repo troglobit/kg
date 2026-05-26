@@ -39,7 +39,7 @@ escape sequences.
 - Universal-argument (C-u) for repeated commands
 - Auto-indent and bracket autocomplete
 - Suspend to background (C-z)
-- Built-in help screen (C-h)
+- Built-in help in a scrollable *help* buffer (C-h)
 - No dependencies (not even curses)
 - Uses standard VT100 escape sequences
 - Graceful terminal resize handling

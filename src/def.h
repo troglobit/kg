@@ -228,7 +228,6 @@ struct editor_config {
 	int rect_mode;      /* 1 when the region should render as a rectangle. */
 	int rect_prefix;    /* 1 after C-x r, waiting for the rectangle op key. */
 	int desired_visual_col; /* goal column across vertical motion; -1 = unset. */
-	int show_help;      /* If 1, display help screen instead of file content. */
 	int readonly;       /* If 1, buffer is read-only (editing is blocked). */
 	int last_key;       /* Last key processed, for command repetition logic. */
 	int recenter_state; /* Cycle state for C-l: 0=center, 1=top, 2=bottom. */
@@ -370,6 +369,7 @@ void buf_open_file_read_only(int fd);
 void buf_kill(int fd);
 void buf_save_all(int fd);
 void buf_open_list(void);
+void buf_open_help(void);
 void buf_ibuffer_select(void);
 void buf_display_name(int idx, char *out, size_t outsize);
 
@@ -443,8 +443,7 @@ static inline const char *buf_basename(const char *filename)
 }
 
 /* help.c */
-void editor_toggle_help(void);
-void editor_draw_help(struct abuf *ab, int nrows);
+extern const char *kg_help_lines[];   /* NULL-terminated, loaded into *help* */
 
 /* display.c */
 void ab_append(struct abuf *ab, const char *s, int len);

@@ -73,12 +73,6 @@ void editor_process_keypress(int fd)
 	}
 	editor.last_char_time = tv;
 
-	/* Help screen: any key dismisses it. */
-	if (editor.show_help) {
-		editor.show_help = 0;
-		return;
-	}
-
 	/* Handle C-x r rectangle ops (second key after C-x r).  Every op
 	 * here mutates the buffer, so a read-only buffer rejects them
 	 * outright; only C-g (cancel) still has any business reaching
@@ -381,7 +375,7 @@ void editor_process_keypress(int fd)
 		while (n--) editor_undo();
 		break;
 	case CTRL_H:        /* Help */
-		editor_toggle_help();
+		buf_open_help();
 		break;
 	case CTRL_Z:        /* Suspend to shell */
 		editor_suspend();

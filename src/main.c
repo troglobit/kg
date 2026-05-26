@@ -111,8 +111,7 @@ int main(int argc, char **argv)
 	init_editor();
 	buf_load_args(argc - optind, argv + optind, readonly);
 	enable_raw_mode(STDIN_FILENO);
-	editor_set_status_message(
-		"HELP: C-x C-s = save | C-x C-c = quit | C-s = search | C-k = kill line | C-h = help");
+	editor_set_status_message("Press Ctrl-h for help");
 	while (running) {
 		autorevert_poll();
 		editor_refresh_screen();
