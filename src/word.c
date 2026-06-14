@@ -4,35 +4,44 @@
 
 #define FILL_COLUMN 72
 
-/* Move cursor forward by one word (to start of next word). */
+/* Non-zero when point sits at the very end of the buffer, i.e. there is
+ * nothing further forward to move onto. */
+static int at_buffer_end(void)
+{
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
+	erow *row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
+
+	return (!row || filecol >= row->size) && filerow >= editor.numrows - 1;
+}
+
+/* Non-zero when the character at point is a word constituent.  The end of a
+ * line (the implicit newline) and the end of the buffer count as whitespace,
+ * so callers can treat the buffer as one continuous stream. */
+static int point_on_word(void)
+{
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
+	erow *row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
+
+	if (!row || filecol >= row->size)
+		return 0;
+	return !isspace((unsigned char)row->chars[filecol]);
+}
+
+/* Move cursor forward by one word (to start of next word).  Whitespace runs,
+ * including line breaks, are crossed so that M-f / Ctrl-Right continue onto
+ * the following line just as M-b does onto the previous one. */
 void editor_move_word_forward(void)
 {
-	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
-	int filecol = editor.coloff + editor.cx;
-
-	if (!row) return;
-
-	/* If on whitespace, skip it first so we always land at the same
-	 * relative position (start of next word) regardless of entry point. */
-	if (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
-		while (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
-			editor_move_cursor(ARROW_RIGHT);
-			filecol = editor.coloff + editor.cx;
-		}
-		return;
-	}
-
-	/* Skip current word */
-	while (filecol < row->size && !isspace((unsigned char)row->chars[filecol])) {
+	/* If standing inside a word, step past the rest of it first. */
+	while (!at_buffer_end() && point_on_word())
 		editor_move_cursor(ARROW_RIGHT);
-		filecol = editor.coloff + editor.cx;
-	}
 
-	/* Skip whitespace to land at start of next word */
-	while (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
+	/* Then skip the whitespace gap — newlines included — to land at the
+	 * start of the next word. */
+	while (!at_buffer_end() && !point_on_word())
 		editor_move_cursor(ARROW_RIGHT);
-		filecol = editor.coloff + editor.cx;
-	}
 }
 
 /* Move cursor backward by one word */
@@ -84,7 +93,8 @@ void editor_kill_word_forward(void)
 
 	if (!row) return;
 
-	/* Mirror editor_move_word_forward: skip whitespace OR word+whitespace */
+	/* Skip whitespace OR word+whitespace, within the current line only
+	 * (unlike editor_move_word_forward, M-d does not kill across lines). */
 	if (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
 		while (filecol < row->size && isspace((unsigned char)row->chars[filecol]))
 			filecol++;
