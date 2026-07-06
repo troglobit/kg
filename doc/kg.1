@@ -1,4 +1,4 @@
-.Dd May 26, 2026
+.Dd July 6, 2026
 .Dt KG 1
 .Os
 .Sh NAME
@@ -100,11 +100,12 @@ will be mis-detected as sentence ends.
 .It Tab Ta Insert tab (with bracket autocomplete)
 .It Backspace Ta Delete character before point
 .It Delete Ta Delete character at point
-.It C-d Ta Delete character before point
+.It C-d Ta Delete character at point
 .It C-k Ta Kill from point to end of line
 .It C-o Ta Open line (insert newline, keep cursor)
 .It C-q Ta Quoted-insert: insert the next byte literally
 .It M-^ Ta Join current line with the previous one
+.It M-q Ta Reflow paragraph to 72 columns
 .It M-u Ta Upcase word forward from point
 .It M-l Ta Downcase word forward from point
 .It M-c Ta Capitalize word forward from point
@@ -134,6 +135,12 @@ for Python and Shell).
 If the mark is set, every line between the mark and the cursor is toggled.
 When adding a comment the prefix is inserted at column 0 followed by a space;
 when removing one, the prefix and the optional following space are deleted.
+.Pp
+.Ic M-q
+reflows the paragraph around point to fill column 72, re-applying the
+indentation of the first line to every wrapped line.
+Paragraph boundaries are blank lines, and the whole reflow is a single
+undo step.
 .Ss Copy and Paste
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action
@@ -386,6 +393,7 @@ The macro buffer holds up to 1024 keystrokes.
 .It Sy Key Ta Sy Action
 .It C-g Ta Cancel current operation
 .It C-l Ta Recenter: cycle current line to center, top, then bottom of window
+.It C-z Ta Suspend to the shell (resume with fg)
 .It C-h Ta Open *help* buffer (q closes)
 .It M-x Ta Execute named command
 .It M-\&! Ta Run shell command, insert output at point
