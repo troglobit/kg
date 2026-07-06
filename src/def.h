@@ -201,6 +201,9 @@ typedef struct hl_color {
 	int r, g, b;
 } hl_color;
 
+/* Default column M-q reflows paragraphs to, until changed with C-x f. */
+#define DEFAULT_FILL_COLUMN 72
+
 /* Editor configuration state */
 struct editor_config {
 	int cx, cy;         /* Cursor x and y position in characters */
@@ -240,6 +243,7 @@ struct editor_config {
 	off_t disk_size;    /* size of `filename` when we last read/wrote it. */
 	int disk_changed;   /* Set by the auto-revert poll when disk differs. */
 	int auto_revert;    /* Per-buffer auto-revert toggle. */
+	int fill_column;    /* Column M-q reflows to; set with C-x f. */
 };
 
 /* Append buffer for efficient screen rendering */
@@ -322,6 +326,7 @@ struct editor_buffer {
 	off_t disk_size;
 	int disk_changed;
 	int auto_revert;
+	int fill_column;
 };
 
 /* Global editor state */
@@ -521,6 +526,7 @@ void editor_upcase_word(void);
 void editor_downcase_word(void);
 void editor_capitalize_word(void);
 void editor_reflow_paragraph(void);
+void editor_set_fill_column(int fd);
 void editor_comment_dwim(void);
 
 /* yank.c */

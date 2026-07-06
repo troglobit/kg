@@ -28,7 +28,7 @@ const char *kg_help_lines[] = {
 	"│ M-m      to indent      │ M-c      cap word       │ C-x k    kill buffer    │",
 	"│ M-a/M-e  sentence ±     │ M-q      reflow para    │ C-x C-q  read-only      │",
 	"│ M-r      window line    │ M-;      comment line   │ C-x C-c  quit           │",
-	"│ M-g      goto line      │ M-x      named command  │                         │",
+	"│ M-g      goto line      │ M-x      named command  │ C-x f    set fill column│",
 	"├─────────────────────────┼─────────────────────────┼─────────────────────────┤",
 	"│ REGION & SELECTION      │ RECTANGLES              │ WINDOWS · SEARCH · MISC │",
 	"├─────────────────────────┼─────────────────────────┼─────────────────────────┤",

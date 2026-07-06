@@ -105,7 +105,8 @@ will be mis-detected as sentence ends.
 .It C-o Ta Open line (insert newline, keep cursor)
 .It C-q Ta Quoted-insert: insert the next byte literally
 .It M-^ Ta Join current line with the previous one
-.It M-q Ta Reflow paragraph to 72 columns
+.It M-q Ta Reflow paragraph to the fill column
+.It C-x f Ta Set the fill column (per-buffer)
 .It M-u Ta Upcase word forward from point
 .It M-l Ta Downcase word forward from point
 .It M-c Ta Capitalize word forward from point
@@ -137,10 +138,21 @@ When adding a comment the prefix is inserted at column 0 followed by a space;
 when removing one, the prefix and the optional following space are deleted.
 .Pp
 .Ic M-q
-reflows the paragraph around point to fill column 72, re-applying the
+reflows the paragraph around point to the fill column, re-applying the
 indentation of the first line to every wrapped line.
 Paragraph boundaries are blank lines, and the whole reflow is a single
 undo step.
+.Pp
+.Ic C-x f
+sets the fill column that
+.Ic M-q
+wraps to.
+It prompts in the echo area, seeded with the current value; empty input
+leaves the setting unchanged.
+The fill column is per-buffer and defaults to 72.
+.Ic M-q
+never wraps wider than the window, so a larger value is clamped to the
+window width when reflowing.
 .Ss Copy and Paste
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action
@@ -485,6 +497,12 @@ If the buffer is modified a confirmation prompt is shown.
 Save the current buffer to its file.
 Equivalent to
 .Ic C-x C-s .
+.It set-fill-column
+Set the current buffer's fill column, the width
+.Ic M-q
+reflows to.
+Equivalent to
+.Ic C-x f .
 .It shell-command
 Run a shell command and insert its standard output at point.
 Equivalent to

@@ -128,6 +128,9 @@ void editor_process_keypress(int fd)
 		case CTRL_S:    /* C-x C-s: Save */
 			editor_save(fd);
 			break;
+		case 'f':       /* C-x f: Set fill column (per-buffer) */
+			editor_set_fill_column(fd);
+			break;
 		case 's':       /* C-x s: Save all modified buffers */
 			buf_save_all(fd);
 			break;

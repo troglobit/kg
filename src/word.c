@@ -2,8 +2,6 @@
 
 #include "def.h"
 
-#define FILL_COLUMN 72
-
 /* Non-zero when point sits at the very end of the buffer, i.e. there is
  * nothing further forward to move onto. */
 static int at_buffer_end(void)
@@ -597,7 +595,7 @@ void editor_comment_dwim(void)
 	editor.dirty = 1;
 }
 
-/* Reflow the current paragraph to FILL_COLUMN (M-q).
+/* Reflow the current paragraph to the buffer's fill column (M-q).
  * Paragraph boundaries are blank lines.  Indentation from the first
  * line is detected and re-applied to every reflowed line.
  * The entire operation is recorded as a single undo record. */
@@ -632,7 +630,7 @@ void editor_reflow_paragraph(void)
 	for (i = para_start; i <= para_end; i++)
 		total_chars += editor.row[i].size;
 
-	fill_col = (FILL_COLUMN < editor.screencols - 1) ? FILL_COLUMN : editor.screencols - 1;
+	fill_col = (editor.fill_column < editor.screencols - 1) ? editor.fill_column : editor.screencols - 1;
 
 	/* Save original text (lines joined with '\n') for undo */
 	orig_text = malloc(total_chars + nrows + 1);
@@ -781,4 +779,25 @@ void editor_reflow_paragraph(void)
 	editor.cx     = indent_len;
 	editor.coloff = 0;
 	editor_set_status_message("Paragraph reflowed");
+}
+
+/* Prompt for and set the current buffer's fill column (C-x f), the width
+ * M-q reflows to.  The value is per-buffer; the current setting seeds the
+ * prompt and empty input leaves it unchanged, matching Emacs. */
+void editor_set_fill_column(int fd)
+{
+	char prompt[48], buf[16];
+	int col;
+
+	snprintf(prompt, sizeof(prompt), "Set fill column to (%d): ", editor.fill_column);
+	if (editor_read_line(fd, prompt, buf, sizeof(buf)) < 0 || buf[0] == '\0')
+		return;
+
+	col = atoi(buf);
+	if (col < 1) {
+		editor_set_status_message("Fill column must be a positive number");
+		return;
+	}
+	editor.fill_column = col;
+	editor_set_status_message("Fill column set to %d", col);
 }
