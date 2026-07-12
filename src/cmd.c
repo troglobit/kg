@@ -45,6 +45,12 @@ static void cmd_goto_line(int fd)
 	editor_goto_line(fd);
 }
 
+/* Select the window in the given direction (M-arrow). */
+static void cmd_windmove_left(int fd)  { (void)fd; win_move_dir(-1, 0); }
+static void cmd_windmove_right(int fd) { (void)fd; win_move_dir(1, 0);  }
+static void cmd_windmove_up(int fd)    { (void)fd; win_move_dir(0, -1); }
+static void cmd_windmove_down(int fd)  { (void)fd; win_move_dir(0, 1);  }
+
 /* Save current buffer to its file. */
 static void cmd_save_buffer(int fd)
 {
@@ -205,6 +211,10 @@ static const struct named_cmd cmdtable[] = {
 	{ "version",                  cmd_version                  },
 	{ "what-cursor-position",     cmd_what_cursor_position     },
 	{ "whitespace-cleanup",       cmd_whitespace_cleanup       },
+	{ "windmove-down",            cmd_windmove_down            },
+	{ "windmove-left",            cmd_windmove_left            },
+	{ "windmove-right",           cmd_windmove_right           },
+	{ "windmove-up",              cmd_windmove_up              },
 	{ NULL, NULL }
 };
 

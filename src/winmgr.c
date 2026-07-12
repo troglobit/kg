@@ -221,6 +221,16 @@ void win_split_vertical(void)
 	win_reflow();
 }
 
+/* Switch focus to window `idx`: save the old view, load the new one,
+ * and echo the buffer name. */
+static void win_focus(int idx)
+{
+	buf_save_current_state();
+	win_current = idx;
+	win_activate_window();
+	editor_set_status_message("%s", editor.filename ? editor.filename : "[new]");
+}
+
 /* Switch focus to the next window (C-x o). */
 void win_cycle_next(void)
 {
@@ -231,15 +241,46 @@ void win_cycle_next(void)
 		return;
 	}
 
-	buf_save_current_state();
-
 	for (i = 1; i <= MAX_WINDOWS; i++) {
 		int idx = (win_current + i) % MAX_WINDOWS;
-		if (winlist[idx].active) { win_current = idx; break; }
+		if (winlist[idx].active) { win_focus(idx); break; }
+	}
+}
+
+/* Switch focus to the window beside the current one (M-arrow), like
+ * windmove in GNU Emacs: the neighbor sharing the edge in the given
+ * direction, with overlapping rows or columns.  The `+ 1` terms skip
+ * the separator column and mode-line row win_reflow() places between
+ * windows. */
+void win_move_dir(int dx, int dy)
+{
+	struct editor_window *cur = &winlist[win_current];
+	int i;
+
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		struct editor_window *w = &winlist[i];
+
+		if (!w->active || i == win_current)
+			continue;
+		if (dx > 0 && w->x != cur->x + cur->w + 1)
+			continue;
+		if (dx < 0 && cur->x != w->x + w->w + 1)
+			continue;
+		if (dy > 0 && w->y != cur->y + cur->h + 1)
+			continue;
+		if (dy < 0 && cur->y != w->y + w->h + 1)
+			continue;
+		/* text rows or columns must overlap, edges do not count */
+		if (dx != 0 && (w->y >= cur->y + cur->h || cur->y >= w->y + w->h))
+			continue;
+		if (dy != 0 && (w->x >= cur->x + cur->w || cur->x >= w->x + w->w))
+			continue;
+
+		win_focus(i);
+		return;
 	}
 
-	win_activate_window();
-	editor_set_status_message("%s", editor.filename ? editor.filename : "[new]");
+	editor_set_status_message("No window there.");
 }
 
 /* Delete the current window (C-x 0). */

@@ -379,6 +379,7 @@ switches to the selected buffer.
 .It C-x 2 Ta Split window horizontally
 .It C-x 3 Ta Split window vertically
 .It C-x o Ta Switch to next window
+.It M-\(<- / M-\(-> / M-\(ua / M-\(da Ta Select window in that direction
 .It C-x 0 Ta Delete current window
 .It C-x 1 Ta Delete all other windows
 .El
@@ -582,7 +583,8 @@ Each window shows one buffer and maintains its own scroll position and cursor.
 Multiple windows may show the same buffer.
 Use
 .Ic C-x o
-to cycle between windows.
+to cycle between windows, or Meta and an arrow key to select the
+window in that direction, like windmove in GNU Emacs.
 Up to 8 windows may be open simultaneously.
 .Sh SYNTAX HIGHLIGHTING
 Syntax highlighting is detected automatically from the file extension or

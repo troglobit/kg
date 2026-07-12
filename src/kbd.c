@@ -498,6 +498,18 @@ void editor_process_keypress(int fd)
 	case ALT_R:         /* M-r: top/middle/bottom of window cycle */
 		editor_move_to_window_line();
 		break;
+	case ALT_ARROW_LEFT:    /* M-arrow: select window in that direction */
+		win_move_dir(-1, 0);
+		break;
+	case ALT_ARROW_RIGHT:
+		win_move_dir(1, 0);
+		break;
+	case ALT_ARROW_UP:
+		win_move_dir(0, -1);
+		break;
+	case ALT_ARROW_DOWN:
+		win_move_dir(0, 1);
+		break;
 	case ALT_V:         /* Page up */
 		if (editor.cy != 0)
 			editor.cy = 0;

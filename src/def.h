@@ -149,6 +149,10 @@ enum KEY_ACTION {
 	CTRL_SHIFT_ARROW_DOWN,
 	CTRL_SHIFT_HOME,
 	CTRL_SHIFT_END,
+	ALT_ARROW_LEFT,
+	ALT_ARROW_RIGHT,
+	ALT_ARROW_UP,
+	ALT_ARROW_DOWN,
 	SHIFT_INSERT,    /* CUA paste */
 	SHIFT_DELETE,    /* CUA cut */
 	CTRL_INSERT,     /* CUA copy */
@@ -398,6 +402,7 @@ void win_restore_active_view(void);
 void win_split_horizontal(void);
 void win_split_vertical(void);
 void win_cycle_next(void);
+void win_move_dir(int dx, int dy);
 void win_delete_current(void);
 void win_delete_others(void);
 

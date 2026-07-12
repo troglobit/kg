@@ -144,6 +144,13 @@ static int parse_escape(int fd)
 					case 'H': return CTRL_SHIFT_HOME;
 					case 'F': return CTRL_SHIFT_END;
 					}
+				} else if (seq[1] == '1' && seq[3] == '3') {
+					switch (seq[4]) {
+					case 'A': return ALT_ARROW_UP;
+					case 'B': return ALT_ARROW_DOWN;
+					case 'C': return ALT_ARROW_RIGHT;
+					case 'D': return ALT_ARROW_LEFT;
+					}
 				} else if (seq[4] == '~') {
 					/* ESC [ N ; M ~  modified Insert/Delete (CUA clipboard)
 					 * and Shift+PgUp/PgDn */
