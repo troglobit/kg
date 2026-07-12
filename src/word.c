@@ -13,9 +13,18 @@ static int at_buffer_end(void)
 	return (!row || filecol >= row->size) && filerow >= editor.numrows - 1;
 }
 
-/* Non-zero when the character at point is a word constituent.  The end of a
- * line (the implicit newline) and the end of the buffer count as whitespace,
- * so callers can treat the buffer as one continuous stream. */
+/* A word constituent is a letter or a digit, like in GNU Emacs and Mg,
+ * so punctuation runs are crossed rather than treated as words.  All
+ * word commands share this definition: motion, kill, and case. */
+static int is_word_char(int c)
+{
+	return isalnum((unsigned char)c);
+}
+
+/* Non-zero when the character at point is a word constituent.  The end
+ * of a line (the implicit newline) and the end of the buffer count as
+ * separators, so callers can treat the buffer as one continuous
+ * stream. */
 static int point_on_word(void)
 {
 	int filerow = editor.rowoff + editor.cy;
@@ -24,21 +33,21 @@ static int point_on_word(void)
 
 	if (!row || filecol >= row->size)
 		return 0;
-	return !isspace((unsigned char)row->chars[filecol]);
+	return is_word_char(row->chars[filecol]);
 }
 
-/* Move cursor forward by one word (to start of next word).  Whitespace runs,
- * including line breaks, are crossed so that M-f / Ctrl-Right continue onto
- * the following line just as M-b does onto the previous one. */
+/* Move cursor forward by one word, to the end of the current or next
+ * word like M-f in GNU Emacs and Mg.  Separator runs, including line
+ * breaks, are crossed so that M-f / Ctrl-Right continue onto the
+ * following line just as M-b does onto the previous one. */
 void editor_move_word_forward(void)
 {
-	/* If standing inside a word, step past the rest of it first. */
-	while (!at_buffer_end() && point_on_word())
+	/* Skip separators — newlines included — up to the next word... */
+	while (!at_buffer_end() && !point_on_word())
 		editor_move_cursor(ARROW_RIGHT);
 
-	/* Then skip the whitespace gap — newlines included — to land at the
-	 * start of the next word. */
-	while (!at_buffer_end() && !point_on_word())
+	/* ...and step past it, landing just after its last character. */
+	while (!at_buffer_end() && point_on_word())
 		editor_move_cursor(ARROW_RIGHT);
 }
 
@@ -66,14 +75,14 @@ void editor_move_word_backward(void)
 
 	if (!row) return;
 
-	/* Skip whitespace */
-	while (filecol > 0 && isspace(row->chars[filecol])) {
+	/* Skip separators */
+	while (filecol > 0 && !is_word_char(row->chars[filecol])) {
 		editor_move_cursor(ARROW_LEFT);
 		filecol = editor.coloff + editor.cx;
 	}
 
-	/* Skip word characters */
-	while (filecol > 0 && !isspace(row->chars[filecol - 1])) {
+	/* Skip word characters, landing at the start of the word */
+	while (filecol > 0 && is_word_char(row->chars[filecol - 1])) {
 		editor_move_cursor(ARROW_LEFT);
 		filecol = editor.coloff + editor.cx;
 	}
@@ -91,15 +100,15 @@ void editor_kill_word_forward(void)
 
 	if (!row) return;
 
-	/* Skip whitespace OR word+whitespace, within the current line only
+	/* Skip separators OR word+separators, within the current line only
 	 * (unlike editor_move_word_forward, M-d does not kill across lines). */
-	if (filecol < row->size && isspace((unsigned char)row->chars[filecol])) {
-		while (filecol < row->size && isspace((unsigned char)row->chars[filecol]))
+	if (filecol < row->size && !is_word_char(row->chars[filecol])) {
+		while (filecol < row->size && !is_word_char(row->chars[filecol]))
 			filecol++;
 	} else {
-		while (filecol < row->size && !isspace((unsigned char)row->chars[filecol]))
+		while (filecol < row->size && is_word_char(row->chars[filecol]))
 			filecol++;
-		while (filecol < row->size && isspace((unsigned char)row->chars[filecol]))
+		while (filecol < row->size && !is_word_char(row->chars[filecol]))
 			filecol++;
 	}
 
@@ -134,10 +143,10 @@ void editor_kill_word_backward(void)
 
 	if (!row || filecol == 0) return;
 
-	/* Mirror editor_move_word_backward: skip whitespace then word chars */
-	while (filecol > 0 && isspace((unsigned char)row->chars[filecol - 1]))
+	/* Mirror editor_move_word_backward: skip separators then word chars */
+	while (filecol > 0 && !is_word_char(row->chars[filecol - 1]))
 		filecol--;
-	while (filecol > 0 && !isspace((unsigned char)row->chars[filecol - 1]))
+	while (filecol > 0 && is_word_char(row->chars[filecol - 1]))
 		filecol--;
 
 	kill_len = end_col - filecol;
@@ -468,10 +477,10 @@ static void do_word_case(int mode)
 	if (!row) return;
 
 	word_start = filecol;
-	while (word_start < row->size && isspace((unsigned char)row->chars[word_start]))
+	while (word_start < row->size && !is_word_char(row->chars[word_start]))
 		word_start++;
 	word_end = word_start;
-	while (word_end < row->size && !isspace((unsigned char)row->chars[word_end]))
+	while (word_end < row->size && is_word_char(row->chars[word_end]))
 		word_end++;
 
 	word_len = word_end - word_start;

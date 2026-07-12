@@ -241,6 +241,53 @@ static void test_comment_dwim_no_syntax(void)
 	teardown();
 }
 
+/* M-f lands at the end of the current or next word, like in GNU Emacs
+ * and Mg, not at the start of the following word.  Regression test
+ * for the shift-select-by-word feedback. */
+static void test_word_forward_lands_at_word_end(void)
+{
+	setup();
+	editor_insert_row(0, "/* Kilo -- editor", 17);
+	cursor_home();
+
+	editor_move_word_forward();
+	CHECK(editor.cx == 7);   /* Kilo| */
+	editor_move_word_forward();
+	CHECK(editor.cx == 17);  /* editor| ("--" are separators) */
+	teardown();
+}
+
+/* Word motion crosses line boundaries in both directions. */
+static void test_word_forward_crosses_lines(void)
+{
+	setup();
+	editor_insert_row(0, "one", 3);
+	editor_insert_row(1, "two", 3);
+	cursor_home();
+
+	editor_move_word_forward();
+	CHECK(editor.cy == 0 && editor.cx == 3);  /* one| */
+	editor_move_word_forward();
+	CHECK(editor.cy == 1 && editor.cx == 3);  /* two| on next line */
+	teardown();
+}
+
+/* M-b mirrors M-f: it lands at the start of the current or previous
+ * word. */
+static void test_word_backward_lands_at_word_start(void)
+{
+	setup();
+	editor_insert_row(0, "one two", 7);
+	cursor_home();
+	editor.cx = 7;
+
+	editor_move_word_backward();
+	CHECK(editor.cx == 4);   /* |two */
+	editor_move_word_backward();
+	CHECK(editor.cx == 0);   /* |one */
+	teardown();
+}
+
 /* ---- Main ---- */
 
 int main(void)
@@ -258,5 +305,8 @@ int main(void)
 	RUN(test_comment_dwim_add);
 	RUN(test_comment_dwim_remove);
 	RUN(test_comment_dwim_no_syntax);
+	RUN(test_word_forward_lands_at_word_end);
+	RUN(test_word_forward_crosses_lines);
+	RUN(test_word_backward_lands_at_word_start);
 	return test_summary();
 }

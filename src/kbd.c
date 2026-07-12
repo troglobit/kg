@@ -49,6 +49,30 @@ static int handle_universal_arg(int c)
 	return 0;
 }
 
+/* Map a shift+motion key to its unshifted motion, or 0 when `c` is not
+ * one.  Shift+motion extends a shift-selected region instead of tearing
+ * it down; the motion itself dispatches like the unshifted key. */
+static int shift_motion_base(int c)
+{
+	switch (c) {
+	case SHIFT_ARROW_LEFT:       return ARROW_LEFT;
+	case SHIFT_ARROW_RIGHT:      return ARROW_RIGHT;
+	case SHIFT_ARROW_UP:         return ARROW_UP;
+	case SHIFT_ARROW_DOWN:       return ARROW_DOWN;
+	case SHIFT_HOME:             return HOME_KEY;
+	case SHIFT_END:              return END_KEY;
+	case SHIFT_PAGE_UP:          return PAGE_UP;
+	case SHIFT_PAGE_DOWN:        return PAGE_DOWN;
+	case CTRL_SHIFT_ARROW_LEFT:  return CTRL_ARROW_LEFT;
+	case CTRL_SHIFT_ARROW_RIGHT: return CTRL_ARROW_RIGHT;
+	case CTRL_SHIFT_ARROW_UP:    return CTRL_ARROW_UP;
+	case CTRL_SHIFT_ARROW_DOWN:  return CTRL_ARROW_DOWN;
+	case CTRL_SHIFT_HOME:        return CTRL_HOME;
+	case CTRL_SHIFT_END:         return CTRL_END;
+	}
+	return 0;
+}
+
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
 void editor_process_keypress(int fd)
@@ -59,6 +83,7 @@ void editor_process_keypress(int fd)
 	int dirty_before = editor.dirty;
 	int was_shift_select = editor.shift_select;
 	long elapsed;
+	int base = 0;
 	int n;
 
 	/* Paste mode detection: if characters arrive very quickly (< 30ms apart),
@@ -248,6 +273,19 @@ void editor_process_keypress(int fd)
 		editor.window_line_state = 0;
 	editor.last_key = c;
 
+	/* Shift+motion: drop the mark at the current position the first
+	 * time the user starts a shift-selected region, so subsequent
+	 * shift+motion extends it.  If a region is already on-screen we
+	 * just extend.  The key then dispatches as the unshifted motion. */
+	base = shift_motion_base(c);
+	if (base) {
+		if (!editor.mark_highlight) {
+			editor_set_mark_silent();
+			editor.shift_select = 1;
+		}
+		c = base;
+	}
+
 	/* Regular key processing */
 	switch (c) {
 	case KEY_NULL:      /* Ctrl+Space - set mark */
@@ -415,31 +453,6 @@ void editor_process_keypress(int fd)
 	case END_KEY:
 		editor_move_cursor(c);
 		break;
-	case SHIFT_ARROW_LEFT:
-	case SHIFT_ARROW_RIGHT:
-	case SHIFT_ARROW_UP:
-	case SHIFT_ARROW_DOWN:
-	case SHIFT_HOME:
-	case SHIFT_END: {
-		int motion;
-		/* Drop the mark at the current position the first time the user
-		 * starts a shift-selected region, so subsequent shift+motion
-		 * extends it.  If a region is already on-screen we just extend. */
-		if (!editor.mark_highlight) {
-			editor_set_mark_silent();
-			editor.shift_select = 1;
-		}
-		switch (c) {
-		case SHIFT_ARROW_LEFT:  motion = ARROW_LEFT;  break;
-		case SHIFT_ARROW_RIGHT: motion = ARROW_RIGHT; break;
-		case SHIFT_ARROW_UP:    motion = ARROW_UP;    break;
-		case SHIFT_ARROW_DOWN:  motion = ARROW_DOWN;  break;
-		case SHIFT_HOME:        motion = HOME_KEY;    break;
-		default:                motion = END_KEY;     break;
-		}
-		while (n--) editor_move_cursor(motion);
-		break;
-	}
 	case CTRL_HOME:
 	case ALT_LT:
 		editor_move_to_beginning();
@@ -588,10 +601,7 @@ void editor_process_keypress(int fd)
 	 * during their dispatch.  Extender keys keep the region alive; a
 	 * C-x prefix keystroke also keeps it (the follow-up may consume
 	 * the region). */
-	if (was_shift_select && !editor.cx_prefix &&
-	    c != SHIFT_ARROW_LEFT  && c != SHIFT_ARROW_RIGHT &&
-	    c != SHIFT_ARROW_UP    && c != SHIFT_ARROW_DOWN  &&
-	    c != SHIFT_HOME        && c != SHIFT_END) {
+	if (was_shift_select && !editor.cx_prefix && !base) {
 		editor.shift_select = 0;
 		editor.mark_set = 0;
 		editor.mark_highlight = 0;
@@ -602,10 +612,9 @@ void editor_process_keypress(int fd)
 	/* Goal column is only valid between consecutive vertical motions —
 	 * any other key invalidates it.  Keep-list mirrors every key that
 	 * eventually routes through editor_move_cursor(ARROW_UP/DOWN). */
-	if (c != ARROW_UP       && c != ARROW_DOWN       &&
-	    c != SHIFT_ARROW_UP && c != SHIFT_ARROW_DOWN &&
-	    c != PAGE_UP        && c != PAGE_DOWN        &&
-	    c != CTRL_N         && c != CTRL_P           &&
-	    c != CTRL_V         && c != ALT_V)
+	if (c != ARROW_UP && c != ARROW_DOWN &&
+	    c != PAGE_UP  && c != PAGE_DOWN  &&
+	    c != CTRL_N   && c != CTRL_P     &&
+	    c != CTRL_V   && c != ALT_V)
 		editor.desired_visual_col = -1;
 }

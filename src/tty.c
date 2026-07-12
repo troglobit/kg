@@ -135,11 +135,23 @@ static int parse_escape(int fd)
 					case 'H': return SHIFT_HOME;
 					case 'F': return SHIFT_END;
 					}
+				} else if (seq[1] == '1' && seq[3] == '6') {
+					switch (seq[4]) {
+					case 'A': return CTRL_SHIFT_ARROW_UP;
+					case 'B': return CTRL_SHIFT_ARROW_DOWN;
+					case 'C': return CTRL_SHIFT_ARROW_RIGHT;
+					case 'D': return CTRL_SHIFT_ARROW_LEFT;
+					case 'H': return CTRL_SHIFT_HOME;
+					case 'F': return CTRL_SHIFT_END;
+					}
 				} else if (seq[4] == '~') {
-					/* ESC [ N ; M ~  modified Insert/Delete (CUA clipboard) */
+					/* ESC [ N ; M ~  modified Insert/Delete (CUA clipboard)
+					 * and Shift+PgUp/PgDn */
 					if (seq[1] == '2' && seq[3] == '2') return SHIFT_INSERT;
 					if (seq[1] == '2' && seq[3] == '5') return CTRL_INSERT;
 					if (seq[1] == '3' && seq[3] == '2') return SHIFT_DELETE;
+					if (seq[1] == '5' && seq[3] == '2') return SHIFT_PAGE_UP;
+					if (seq[1] == '6' && seq[3] == '2') return SHIFT_PAGE_DOWN;
 				}
 			}
 		} else {
