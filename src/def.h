@@ -185,8 +185,13 @@ enum KEY_ACTION {
 	ALT_A,         /* M-a backward sentence */
 	ALT_E,         /* M-e forward sentence */
 	ALT_R,         /* M-r move-to-window-line */
+	CTRL_PAGE_UP,  /* Ctrl+PgUp: beginning of buffer */
+	CTRL_PAGE_DOWN,/* Ctrl+PgDn: end of buffer */
+	KEY_F1,        /* F1: help */
+	KEY_F2,        /* F2: save buffer */
 	KEY_F3,        /* F3: start keyboard macro */
-	KEY_F4         /* F4: stop or replay keyboard macro */
+	KEY_F4,        /* F4: stop or replay keyboard macro */
+	KEY_F10        /* F10: quit */
 };
 
 /* Syntax highlight definition */

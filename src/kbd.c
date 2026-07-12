@@ -73,6 +73,37 @@ static int shift_motion_base(int c)
 	return 0;
 }
 
+/* Quit (C-x C-c, F10), prompting when modified file-backed buffers
+ * would be lost. */
+static void editor_quit(int fd)
+{
+	int i, ndirty = 0;
+
+	/* Count modified real-file buffers (exclude *special* ones). */
+	if (editor.dirty && !is_special_buffer(editor.filename))
+		ndirty++;
+	for (i = 0; i < MAX_BUFFERS; i++) {
+		if (!buflist[i].active || i == buf_current) continue;
+		if (!buflist[i].dirty) continue;
+		if (is_special_buffer(buflist[i].filename)) continue;
+		ndirty++;
+	}
+	if (ndirty) {
+		int answer;
+		editor_set_status_message(
+			ndirty == 1 ? "Modified buffer, really quit? (y/n) "
+			            : "%d modified buffers, really quit? (y/n) ",
+			ndirty);
+		editor_refresh_screen();
+		answer = editor_read_key(fd);
+		if (answer != 'y' && answer != 'Y') {
+			editor_set_status_message("");
+			return;
+		}
+	}
+	running = 0;
+}
+
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
 void editor_process_keypress(int fd)
@@ -123,33 +154,9 @@ void editor_process_keypress(int fd)
 	if (editor.cx_prefix) {
 		editor.cx_prefix = 0;
 		switch (c) {
-		case CTRL_C: {  /* C-x C-c: Quit */
-			int i, ndirty = 0;
-			/* Count modified real-file buffers (exclude *special* ones). */
-			if (editor.dirty && !is_special_buffer(editor.filename))
-				ndirty++;
-			for (i = 0; i < MAX_BUFFERS; i++) {
-				if (!buflist[i].active || i == buf_current) continue;
-				if (!buflist[i].dirty) continue;
-				if (is_special_buffer(buflist[i].filename)) continue;
-				ndirty++;
-			}
-			if (ndirty) {
-				int answer;
-				editor_set_status_message(
-					ndirty == 1 ? "Modified buffer, really quit? (y/n) "
-					            : "%d modified buffers, really quit? (y/n) ",
-					ndirty);
-				editor_refresh_screen();
-				answer = editor_read_key(fd);
-				if (answer != 'y' && answer != 'Y') {
-					editor_set_status_message("");
-					return;
-				}
-			}
-			running = 0;
+		case CTRL_C:    /* C-x C-c: Quit */
+			editor_quit(fd);
 			break;
-		}
 		case CTRL_S:    /* C-x C-s: Save */
 			editor_save(fd);
 			break;
@@ -466,10 +473,12 @@ void editor_process_keypress(int fd)
 		editor_move_cursor(c);
 		break;
 	case CTRL_HOME:
+	case CTRL_PAGE_UP:
 	case ALT_LT:
 		editor_move_to_beginning();
 		break;
 	case CTRL_END:
+	case CTRL_PAGE_DOWN:
 	case ALT_GT:
 		editor_move_to_end();
 		break;
@@ -576,6 +585,15 @@ void editor_process_keypress(int fd)
 		break;
 	case ALT_PIPE:      /* Shell command on region */
 		editor_shell_command_on_region(fd);
+		break;
+	case KEY_F1:        /* F1: Help */
+		buf_open_help();
+		break;
+	case KEY_F2:        /* F2: Save */
+		editor_save(fd);
+		break;
+	case KEY_F10:       /* F10: Quit */
+		editor_quit(fd);
 		break;
 	case KEY_F3:        /* F3: Start keyboard macro */
 		macro_start();

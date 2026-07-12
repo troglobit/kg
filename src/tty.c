@@ -105,14 +105,18 @@ static int parse_escape(int fd)
 				case '6': return PAGE_DOWN;
 				}
 			} else if (seq[2] >= '0' && seq[2] <= '9') {
-				/* Two-digit: ESC[<d1><d2>~ (F3=ESC[13~, F4=ESC[14~) */
+				/* Two-digit: ESC[<d1><d2>~ (F1=ESC[11~ .. F10=ESC[21~) */
 				if (read(fd, seq+3, 1) == 0) return ESC;
 				if (seq[3] == '~' && seq[1] == '1') {
 					switch (seq[2]) {
+					case '1': return KEY_F1;
+					case '2': return KEY_F2;
 					case '3': return KEY_F3;
 					case '4': return KEY_F4;
 					}
 				}
+				if (seq[3] == '~' && seq[1] == '2' && seq[2] == '1')
+					return KEY_F10;
 			} else if (seq[2] == ';') {
 				/* ESC [ 1 ; N x  modified-key, N=2 Shift, N=5 Ctrl */
 				if (read(fd, seq+3, 1) == 0) return ESC;
@@ -160,12 +164,14 @@ static int parse_escape(int fd)
 					}
 				} else if (seq[4] == '~') {
 					/* ESC [ N ; M ~  modified Insert/Delete (CUA clipboard)
-					 * and Shift+PgUp/PgDn */
+					 * and Shift/Ctrl+PgUp/PgDn */
 					if (seq[1] == '2' && seq[3] == '2') return SHIFT_INSERT;
 					if (seq[1] == '2' && seq[3] == '5') return CTRL_INSERT;
 					if (seq[1] == '3' && seq[3] == '2') return SHIFT_DELETE;
 					if (seq[1] == '5' && seq[3] == '2') return SHIFT_PAGE_UP;
 					if (seq[1] == '6' && seq[3] == '2') return SHIFT_PAGE_DOWN;
+					if (seq[1] == '5' && seq[3] == '5') return CTRL_PAGE_UP;
+					if (seq[1] == '6' && seq[3] == '5') return CTRL_PAGE_DOWN;
 				}
 			}
 		} else {
@@ -183,6 +189,8 @@ static int parse_escape(int fd)
 		switch (seq[1]) {
 		case 'H': return HOME_KEY;
 		case 'F': return END_KEY;
+		case 'P': return KEY_F1;
+		case 'Q': return KEY_F2;
 		case 'R': return KEY_F3;
 		case 'S': return KEY_F4;
 		}
