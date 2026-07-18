@@ -117,6 +117,37 @@ static void test_c_string(void)
 	teardown();
 }
 
+/* UTF-8 lead/continuation bytes are not control characters: they must
+ * never be classified HL_NONPRINT, or multibyte glyphs (box drawing in
+ * *help*, non-ASCII text in any highlighted buffer) render as inverted
+ * garbage.  Regression test for the double C-h display corruption. */
+static void test_utf8_not_nonprint(void)
+{
+	/* "┌─ hi ─┐" — box drawing chars are 3-byte UTF-8 sequences. */
+	const char *line = "\xe2\x94\x8c\xe2\x94\x80 hi \xe2\x94\x80\xe2\x94\x90";
+	int len = (int)strlen(line);
+	int i;
+
+	setup(&HLDB[0]);
+	editor_insert_row(0, line, len);
+
+	for (i = 0; i < len; i++)
+		CHECK(editor.row[0].hl[i] != HL_NONPRINT);
+	teardown();
+}
+
+/* Real control characters still flag HL_NONPRINT under a syntax. */
+static void test_ctrl_char_nonprint(void)
+{
+	setup(&HLDB[0]);
+	editor_insert_row(0, "a\x01z", 3);
+
+	CHECK(editor.row[0].hl[1] == HL_NONPRINT);
+	CHECK(editor.row[0].hl[0] != HL_NONPRINT);
+	CHECK(editor.row[0].hl[2] != HL_NONPRINT);
+	teardown();
+}
+
 /* A single-line comment "//" colours the rest of the line HL_COMMENT. */
 static void test_c_line_comment(void)
 {
@@ -327,6 +358,8 @@ int main(void)
 	RUN(test_c_type_keyword);
 	RUN(test_c_ctrl_keyword);
 	RUN(test_c_string);
+	RUN(test_utf8_not_nonprint);
+	RUN(test_ctrl_char_nonprint);
 	RUN(test_c_line_comment);
 	RUN(test_c_integer);
 	RUN(test_c_hex);

@@ -239,9 +239,10 @@ static void draw_window_rows(struct abuf *ab,
 					current_reverse = want_rev;
 				}
 				if (hl[j] == HL_NONPRINT) {
+					unsigned char uc = c[j];
 					char sym;
 					ab_append(ab, "\x1b[7m", 4);
-					sym = (c[j] <= 26) ? ('@' + c[j]) : '?';
+					sym = (uc <= 26) ? ('@' + uc) : '?';
 					ab_append(ab, &sym, 1);
 					ab_append(ab, "\x1b[0m", 4);
 					/* The [0m reset just cleared every attribute, so the

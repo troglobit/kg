@@ -886,8 +886,11 @@ void editor_update_syntax(erow *row)
 			}
 		}
 
-		/* Handle non printable chars. */
-		if (!isprint(*p)) {
+		/* Handle non printable chars.  Bytes with the high bit set
+		 * are UTF-8 lead/continuation bytes, not control characters;
+		 * leave them HL_NORMAL so multibyte glyphs render intact. */
+		unsigned char uc = *p;
+		if (!isprint(uc) && !(uc & 0x80)) {
 			row->hl[i] = HL_NONPRINT;
 			p++; i++;
 			prev_sep = 0;

@@ -931,6 +931,10 @@ static void buf_open_special(const char *name, struct editor_syntax *syn,
 	if (existing >= 0) {
 		buf_restore_from_slot(existing);
 		undo_init(); /* content is rebuilt from scratch; don't keep stale ops */
+		/* Detach the restored syntax so populate() highlights rows the
+		 * same way as on the first open, where it runs before `syn` is
+		 * attached below. */
+		editor.syntax = NULL;
 	} else {
 		if (buf_count >= MAX_BUFFERS) {
 			editor_set_status_message("Too many open buffers (%d max).", MAX_BUFFERS);
