@@ -8,7 +8,7 @@ int win_count      = 0;
 int win_total_rows = 0;
 int win_total_cols = 0;
 
-/* Splits refuse to make a window smaller than these; the
+/* win_moveseam() refuses a resize shrinking a window below these; the
  * terminal-shrink path squeezes down to one text row and two columns
  * before giving up and going single-window. */
 #define MIN_WIN_ROWS 2
@@ -254,6 +254,258 @@ void win_move_dir(int dx, int dy)
 	}
 	win_focus(i);
 }
+
+/* Move the window divider at the given column, or with `cols` false
+ * the mode line at the given row, by delta: windows ending on it grow
+ * or shrink, windows starting just past it follow.  Refuses, without
+ * changing anything, when a window would come out below the minimum
+ * size. */
+static int win_moveseam(int seam, int delta, int cols)
+{
+	int min = cols ? MIN_WIN_COLS : MIN_WIN_ROWS;
+	int i;
+
+	if (seam <= 1 || seam >= (cols ? SCREEN_RIGHT : SCREEN_BOT))
+		return 0;	/* the screen edge, not a divider */
+
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		struct editor_window *p = &winlist[i];
+		int size, end, start;
+
+		if (!p->active)
+			continue;
+		size  = cols ? p->w : p->h;
+		end   = cols ? p->x + p->w : p->y + p->h;
+		start = cols ? p->x : p->y;
+		if (end == seam && size + delta < min)
+			return 0;
+		if (start == seam + 1 && size - delta < min)
+			return 0;
+	}
+
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		struct editor_window *p = &winlist[i];
+
+		if (!p->active)
+			continue;
+		if ((cols ? p->x + p->w : p->y + p->h) == seam) {
+			if (cols)
+				p->w += delta;
+			else
+				p->h += delta;
+		} else if ((cols ? p->x : p->y) == seam + 1) {
+			if (cols) {
+				p->x += delta;
+				p->w -= delta;
+			} else {
+				p->y += delta;
+				p->h -= delta;
+			}
+		}
+	}
+
+	win_sync_view();
+	return 1;
+}
+
+/* Resize the current window with Meta, Shift and an arrow key: the
+ * edge on that side of the window travels with the arrow when it is
+ * a divider, otherwise the opposite one, so the arrow and the divider
+ * always move together.  `n` is the repeat count. */
+void win_resize_dir(int dx, int dy, int n)
+{
+	struct editor_window *cur = &winlist[win_current];
+	int cols  = dx != 0;
+	int d     = cols ? dx : dy;
+	int lo    = cols ? cur->x - 1 : cur->y - 1;
+	int hi    = cols ? cur->x + cur->w : cur->y + cur->h;
+	int limit = cols ? SCREEN_RIGHT : SCREEN_BOT;
+	int seam  = d > 0 ? hi : lo;
+
+	if (seam <= 1 || seam >= limit)
+		seam = d > 0 ? lo : hi;
+	if (seam <= 1 || seam >= limit) {
+		editor_set_status_message(cols ? "No window beside."
+		                               : "No window above or below.");
+		return;
+	}
+	if (!win_moveseam(seam, d * n, cols))
+		editor_set_status_message("Impossible change.");
+}
+
+/* Grow the current window by `n` text rows (C-x ^), like
+ * enlarge-window in GNU Emacs: the mode line below travels, or the
+ * one above when the window is bottom-most.  Negative n shrinks. */
+void win_enlarge_v(int n)
+{
+	struct editor_window *cur = &winlist[win_current];
+	int seam = cur->y + cur->h;
+
+	if (seam >= SCREEN_BOT) {
+		seam = cur->y - 1;
+		n = -n;
+	}
+	if (seam <= 1) {
+		editor_set_status_message("No window above or below.");
+		return;
+	}
+	if (!win_moveseam(seam, n, 0))
+		editor_set_status_message("Impossible change.");
+}
+
+/* Widen the current window by `n` columns (C-x }), like
+ * enlarge-window-horizontally in GNU Emacs.  The right-most window
+ * widens leftward.  Negative n narrows (C-x {). */
+void win_enlarge_h(int n)
+{
+	struct editor_window *cur = &winlist[win_current];
+	int seam = cur->x + cur->w;
+
+	if (seam >= SCREEN_RIGHT) {
+		seam = cur->x - 1;
+		n = -n;
+	}
+	if (seam <= 1) {
+		editor_set_status_message("No window beside.");
+		return;
+	}
+	if (!win_moveseam(seam, n, 1))
+		editor_set_status_message("Impossible change.");
+}
+
+/* Is the window's band, mode line and divider included, fully inside
+ * the rectangle? */
+static int balin(const struct editor_window *p, int top, int bot,
+                 int left, int right)
+{
+	return p->y >= top && p->y + p->h <= bot &&
+	       p->x >= left && p->x + p->w <= right;
+}
+
+/* Find the lowest cut through the rectangle: a mode line row (or,
+ * with `rows` false, a divider column) that no window straddles.
+ * Returns 0 when there is none. */
+static int balcut(int top, int bot, int left, int right, int rows)
+{
+	int i, j, e, best = 0;
+
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		const struct editor_window *p = &winlist[i];
+
+		if (!p->active || !balin(p, top, bot, left, right))
+			continue;
+		e = rows ? p->y + p->h : p->x + p->w;
+		if (e >= (rows ? bot : right))
+			continue;
+		for (j = 0; j < MAX_WINDOWS; j++) {
+			const struct editor_window *q = &winlist[j];
+
+			if (!q->active || !balin(q, top, bot, left, right))
+				continue;
+			if (rows ? q->y <= e && q->y + q->h > e
+			         : q->x <= e && q->x + q->w > e)
+				break;
+		}
+		if (j == MAX_WINDOWS && (best == 0 || e < best))
+			best = e;
+	}
+	return best;
+}
+
+/* The number of windows in the tallest stack in the rectangle, or,
+ * with `rows` false, in the widest row.  Returns zero for a layout
+ * the cuts cannot take apart. */
+static int balweight(int top, int bot, int left, int right, int rows)
+{
+	int i, e, a, b;
+
+	if ((e = balcut(top, bot, left, right, 1)) != 0) {
+		a = balweight(top, e, left, right, rows);
+		b = balweight(e + 1, bot, left, right, rows);
+		return a == 0 || b == 0 ? 0 : rows ? a + b : a > b ? a : b;
+	}
+	if ((e = balcut(top, bot, left, right, 0)) != 0) {
+		a = balweight(top, bot, left, e, rows);
+		b = balweight(top, bot, e + 1, right, rows);
+		return a == 0 || b == 0 ? 0 : rows ? (a > b ? a : b) : a + b;
+	}
+	a = 0;
+	for (i = 0; i < MAX_WINDOWS; i++)
+		if (winlist[i].active &&
+		    balin(&winlist[i], top, bot, left, right))
+			a++;
+	return a == 1;
+}
+
+/* Retile the windows of the old rectangle into the new one.  The
+ * sections at a cut get room in proportion to their tallest stack,
+ * or widest row, so the window sizes come out even on both axes.
+ * New geometry lands in balgeo[], not winlist[]: the cut and weight
+ * scans judge the windows still to be placed by their old rows, so
+ * winlist[] must stay untouched until every window has a place. */
+static struct editor_window balgeo[MAX_WINDOWS];
+
+static void balassign(int ot, int ob, int ol, int orr,
+                      int nt, int nb, int nl, int nr)
+{
+	int i, e, w1, w2, c;
+
+	if ((e = balcut(ot, ob, ol, orr, 1)) != 0) {
+		w1 = balweight(ot, e, ol, orr, 1);
+		w2 = balweight(e + 1, ob, ol, orr, 1);
+		if (w1 <= 0 || w2 <= 0)
+			return;		/* win_balance() refused these */
+		c = nt - 1 + (nb - nt + 1) * w1 / (w1 + w2);
+		balassign(ot, e, ol, orr, nt, c, nl, nr);
+		balassign(e + 1, ob, ol, orr, c + 1, nb, nl, nr);
+		return;
+	}
+	if ((e = balcut(ot, ob, ol, orr, 0)) != 0) {
+		w1 = balweight(ot, ob, ol, e, 0);
+		w2 = balweight(ot, ob, e + 1, orr, 0);
+		if (w1 <= 0 || w2 <= 0)
+			return;		/* win_balance() refused these */
+		c = nl - 1 + (nr - nl + 1) * w1 / (w1 + w2);
+		balassign(ot, ob, ol, e, nt, nb, nl, c);
+		balassign(ot, ob, e + 1, orr, nt, nb, c + 1, nr);
+		return;
+	}
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		struct editor_window *p = &winlist[i];
+
+		if (!p->active || !balin(p, ot, ob, ol, orr))
+			continue;
+		balgeo[i].y = nt;
+		balgeo[i].h = nb - nt;
+		balgeo[i].x = nl;
+		balgeo[i].w = nr - nl;
+	}
+}
+
+/* Even out the window sizes (C-x +), like balance-windows in GNU
+ * Emacs: heights and widths alike, in any layout the mode line and
+ * divider cuts can take apart. */
+void win_balance(void)
+{
+	int w;
+
+	if (win_count <= 1)
+		return;
+	if ((w = balweight(1, SCREEN_BOT, 1, SCREEN_RIGHT, 1)) == 0) {
+		editor_set_status_message("Cannot balance this window layout.");
+		return;
+	}
+	if (SCREEN_BOT < 2 * w ||
+	    SCREEN_RIGHT < 3 * balweight(1, SCREEN_BOT, 1, SCREEN_RIGHT, 0)) {
+		editor_set_status_message("Not enough room to balance.");
+		return;
+	}
+	memcpy(balgeo, winlist, sizeof(balgeo));
+	balassign(1, SCREEN_BOT, 1, SCREEN_RIGHT, 1, SCREEN_BOT, 1, SCREEN_RIGHT);
+	memcpy(winlist, balgeo, sizeof(winlist));
+	win_sync_view();
+}
+
 /* Give the current window's rows or columns, divider included, to the
  * adjacent windows on the side given by dx/dy.  Only safe when those
  * windows tile the window's edge exactly: one sticking out would end

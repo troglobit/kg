@@ -380,6 +380,11 @@ switches to the selected buffer.
 .It C-x 3 Ta Split window vertically
 .It C-x o Ta Switch to next window
 .It M-\(<- / M-\(-> / M-\(ua / M-\(da Ta Select window in that direction
+.It M-S-\(<- / \(-> / \(ua / \(da Ta Resize window, divider travels with the arrow
+.It C-x ^ Ta Enlarge window
+.It C-x } Ta Enlarge window horizontally
+.It C-x { Ta Shrink window horizontally
+.It C-x + Ta Balance windows
 .It C-x 0 Ta Delete current window
 .It C-x 1 Ta Delete all other windows
 .El
@@ -589,6 +594,17 @@ Use
 to cycle between windows, or Meta and an arrow key to select the
 window in that direction, like windmove in GNU Emacs.
 Up to 8 windows may be open simultaneously.
+.Pp
+Resize windows with Meta, Shift and an arrow key: the divider on that
+side of the window travels with the arrow.
+.Ic C-x ^
+enlarges the current window,
+.Ic C-x }
+and
+.Ic C-x {
+widen and narrow it, and
+.Ic C-x +
+evens out all window sizes again.
 .Sh SYNTAX HIGHLIGHTING
 Syntax highlighting is detected automatically from the file extension or
 type, e.g., Makefile.  Hash-bang lines

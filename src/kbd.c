@@ -189,6 +189,18 @@ void editor_process_keypress(int fd)
 		case '1':       /* C-x 1: Delete other windows */
 			win_delete_others();
 			break;
+		case '+':       /* C-x +: Balance windows */
+			win_balance();
+			break;
+		case '^':       /* C-x ^: Enlarge window */
+			win_enlarge_v(1);
+			break;
+		case '}':       /* C-x }: Enlarge window horizontally */
+			win_enlarge_h(1);
+			break;
+		case '{':       /* C-x {: Shrink window horizontally */
+			win_enlarge_h(-1);
+			break;
 		case CTRL_X:    /* C-x C-x: Exchange point and mark */
 			editor_exchange_point_and_mark();
 			break;
@@ -509,6 +521,18 @@ void editor_process_keypress(int fd)
 		break;
 	case ALT_ARROW_DOWN:
 		win_move_dir(0, 1);
+		break;
+	case ALT_SHIFT_ARROW_LEFT:  /* M-S-arrow: divider travels with arrow */
+		win_resize_dir(-1, 0, n);
+		break;
+	case ALT_SHIFT_ARROW_RIGHT:
+		win_resize_dir(1, 0, n);
+		break;
+	case ALT_SHIFT_ARROW_UP:
+		win_resize_dir(0, -1, n);
+		break;
+	case ALT_SHIFT_ARROW_DOWN:
+		win_resize_dir(0, 1, n);
 		break;
 	case ALT_V:         /* Page up */
 		if (editor.cy != 0)

@@ -51,6 +51,13 @@ static void cmd_windmove_right(int fd) { (void)fd; win_move_dir(1, 0);  }
 static void cmd_windmove_up(int fd)    { (void)fd; win_move_dir(0, -1); }
 static void cmd_windmove_down(int fd)  { (void)fd; win_move_dir(0, 1);  }
 
+/* Resize the current window (M-S-arrow, C-x ^ } { +). */
+static void cmd_enlarge_window(int fd)   { (void)fd; win_enlarge_v(1);  }
+static void cmd_shrink_window(int fd)    { (void)fd; win_enlarge_v(-1); }
+static void cmd_enlarge_window_h(int fd) { (void)fd; win_enlarge_h(1);  }
+static void cmd_shrink_window_h(int fd)  { (void)fd; win_enlarge_h(-1); }
+static void cmd_balance_windows(int fd)  { (void)fd; win_balance();     }
+
 /* Save current buffer to its file. */
 static void cmd_save_buffer(int fd)
 {
@@ -194,9 +201,12 @@ struct named_cmd {
 
 static const struct named_cmd cmdtable[] = {
 	{ "auto-revert-mode",         cmd_auto_revert_mode         },
+	{ "balance-windows",          cmd_balance_windows          },
 	{ "capitalize-word",          cmd_capitalize_word          },
 	{ "delete-trailing-space",    cmd_delete_trailing_space    },
 	{ "downcase-word",            cmd_downcase_word            },
+	{ "enlarge-window",           cmd_enlarge_window           },
+	{ "enlarge-window-horizontally", cmd_enlarge_window_h      },
 	{ "global-auto-revert-mode",  cmd_global_auto_revert_mode  },
 	{ "goto-line",                cmd_goto_line                },
 	{ "join-line",                cmd_join_line                },
@@ -206,6 +216,8 @@ static const struct named_cmd cmdtable[] = {
 	{ "set-fill-column",          cmd_set_fill_column          },
 	{ "shell-command",            cmd_shell_command            },
 	{ "shell-command-on-region",  cmd_shell_command_on_region  },
+	{ "shrink-window",            cmd_shrink_window            },
+	{ "shrink-window-horizontally", cmd_shrink_window_h        },
 	{ "toggle-read-only",         cmd_toggle_read_only         },
 	{ "upcase-word",              cmd_upcase_word              },
 	{ "version",                  cmd_version                  },

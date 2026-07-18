@@ -161,6 +161,42 @@ static void test_delete_absorbs_space(void)
 	CHECK(winlist[win_current].h == 22 && winlist[win_current].w == 80);
 }
 
+/* M-S-arrow moves the divider; it stops at the minimum window size. */
+static void test_resize_moves_divider_and_clamps(void)
+{
+	int i, top;
+
+	setup();
+	top = win_current;
+	win_split_horizontal();
+	CHECK(winlist[top].h == 10);
+
+	win_resize_dir(0, 1, 3);     /* divider down: current grows */
+	CHECK(winlist[top].h == 13);
+	CHECK(tiles_ok());
+
+	for (i = 0; i < 30; i++)     /* shrink far past the minimum */
+		win_resize_dir(0, -1, 1);
+	CHECK(winlist[top].h == 2);
+	CHECK(tiles_ok());
+}
+
+/* C-x + evens the heights back out after a resize. */
+static void test_balance_evens_out(void)
+{
+	int top;
+
+	setup();
+	top = win_current;
+	win_split_horizontal();
+	win_resize_dir(0, 1, 5);
+	CHECK(winlist[top].h == 15);
+
+	win_balance();
+	CHECK(winlist[top].h == 10);
+	CHECK(tiles_ok());
+}
+
 /* A terminal resize keeps the other windows' sizes: the current
  * window absorbs the delta. */
 static void test_term_resize_absorbs_in_current(void)
@@ -195,6 +231,8 @@ int main(void)
 	RUN(test_split_h_then_v_splits_current_only);
 	RUN(test_split_v_then_h_splits_current_only);
 	RUN(test_delete_absorbs_space);
+	RUN(test_resize_moves_divider_and_clamps);
+	RUN(test_balance_evens_out);
 	RUN(test_term_resize_absorbs_in_current);
 	return test_summary();
 }
