@@ -6,5 +6,6 @@ test_region
 test_shell
 test_syntax
 test_undo
+test_winmgr
 test_word
 test_yank

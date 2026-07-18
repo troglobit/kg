@@ -576,9 +576,12 @@ to discard local edits.
 .Sh WINDOWS
 The terminal can be divided into multiple windows with
 .Ic C-x 2
-(horizontal split) or
+(the current window splits into an upper and a lower half) or
 .Ic C-x 3
-(vertical split).
+(into a left and a right half), like in GNU Emacs: other windows are
+not disturbed, so stacked and side-by-side layouts mix freely.
+.Ic C-x 0
+closes the current window and gives its space to the neighbors.
 Each window shows one buffer and maintains its own scroll position and cursor.
 Multiple windows may show the same buffer.
 Use

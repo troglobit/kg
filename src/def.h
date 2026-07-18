@@ -310,10 +310,9 @@ struct editor_window {
 	int cx, cy;         /* Cursor position within window */
 	int rowoff, coloff; /* Scroll offsets */
 	int y, x;           /* Top-left corner on terminal (1-based) */
-	int h, w;           /* Height (text rows) and width (cols) of this window */
+	int h, w;           /* Height (text rows) and width (cols) of this window;
+	                       the mode line sits at y+h, a divider column at x+w */
 	int active;         /* 1 if this slot is in use */
-	int col_group;      /* Column group: windows with same value stack vertically;
-	                       different values sit side-by-side */
 };
 
 /* Per-buffer state saved when switching away from a buffer. */
@@ -396,7 +395,7 @@ void buf_display_name(int idx, char *out, size_t outsize);
 
 /* winmgr.c */
 void win_init(void);
-void win_reflow(void);
+void win_term_resize(void);
 void win_save_active_view(void);
 void win_restore_active_view(void);
 void win_split_horizontal(void);

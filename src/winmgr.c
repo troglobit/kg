@@ -8,6 +8,21 @@ int win_count      = 0;
 int win_total_rows = 0;
 int win_total_cols = 0;
 
+/* Splits refuse to make a window smaller than these; the
+ * terminal-shrink path squeezes down to one text row and two columns
+ * before giving up and going single-window. */
+#define MIN_WIN_ROWS 2
+#define MIN_WIN_COLS 6
+
+/* Every window owns its rectangle, in 1-based screen coordinates:
+ * text rows y .. y+h-1 with the mode line at y+h, columns x .. x+w-1
+ * with a divider column at x+w when another window sits to the right.
+ * The echo area is the last terminal row, so the bottom-most mode
+ * lines sit at SCREEN_BOT and the right-most window edge at
+ * SCREEN_RIGHT. */
+#define SCREEN_BOT   (win_total_rows - 1)
+#define SCREEN_RIGHT (win_total_cols + 1)
+
 /* Save the active editor cursor/scroll state into the current window slot and
  * also into its buffer slot so switching buffers later is consistent. */
 void win_save_active_view(void)
@@ -61,84 +76,26 @@ void win_restore_active_view(void)
 	editor.screencols = w->w;
 }
 
-/* Recompute the layout of all active windows.
- *
- * Windows are organised into column groups (col_group field).  Windows sharing
- * the same col_group value are stacked vertically in the same column; different
- * col_group values are placed side-by-side.
- *
- * Layout algorithm:
- *   1. Collect distinct col_group values in order of first appearance.
- *   2. Divide win_total_cols equally among column groups.
- *   3. Within each column group, divide the usable rows equally among its windows.
- *      Each window band = (text rows) + 1 mode-line row.
- *   4. One global echo-area row is reserved at win_total_rows.
- */
-void win_reflow(void)
+/* Push the current window's size into the live editor view and clamp
+ * the cursor to the new bounds. */
+static void win_sync_view(void)
 {
-	int col_groups[MAX_WINDOWS];
-	int num_col_groups = 0;
-	int usable, col_w, col_rem, col_x;
-	int i, j;
-
-	if (win_count == 0) return;
-
-	/* Collect distinct col_group values in appearance order. */
-	for (i = 0; i < MAX_WINDOWS; i++) {
-		int found = 0;
-		if (!winlist[i].active) continue;
-		for (j = 0; j < num_col_groups; j++) {
-			if (col_groups[j] == winlist[i].col_group) { found = 1; break; }
-		}
-		if (!found) col_groups[num_col_groups++] = winlist[i].col_group;
-	}
-
-	if (num_col_groups == 0) return;
-
-	usable  = win_total_rows - 1; /* reserve 1 row for the global echo area */
-	/* Reserve one column per inter-group gap for the vertical separator. */
-	col_w   = (win_total_cols - (num_col_groups - 1)) / num_col_groups;
-	col_rem = (win_total_cols - (num_col_groups - 1)) % num_col_groups;
-	col_x   = 1; /* VT100 columns are 1-based */
-
-	for (j = 0; j < num_col_groups; j++) {
-		int cg  = col_groups[j];
-		int cw  = col_w + (j == num_col_groups - 1 ? col_rem : 0);
-		int n   = 0; /* windows in this col_group */
-		int row_h, row_rem, row_y, win_idx;
-
-		for (i = 0; i < MAX_WINDOWS; i++)
-			if (winlist[i].active && winlist[i].col_group == cg) n++;
-
-		row_h   = usable / n;
-		row_rem = usable % n;
-		row_y   = 1;
-		win_idx = 0;
-
-		for (i = 0; i < MAX_WINDOWS; i++) {
-			int band_h;
-			if (!winlist[i].active || winlist[i].col_group != cg) continue;
-
-			band_h = row_h + (win_idx < row_rem ? 1 : 0);
-			winlist[i].y = row_y;
-			winlist[i].x = col_x;
-			winlist[i].h = band_h - 1; /* text rows; mode line uses the last row */
-			winlist[i].w = cw;
-			row_y  += band_h;
-			win_idx++;
-		}
-
-		col_x += cw + 1; /* +1 skips the separator column between groups */
-	}
-
 	editor.screenrows = winlist[win_current].h;
 	editor.screencols = winlist[win_current].w;
 
-	/* Clamp cursor to new bounds. */
 	if (editor.cy >= editor.screenrows) editor.cy = editor.screenrows - 1;
 	if (editor.cx >= editor.screencols) editor.cx = editor.screencols - 1;
-	if (editor.cy < 0)             editor.cy = 0;
-	if (editor.cx < 0)             editor.cx = 0;
+	if (editor.cy < 0) editor.cy = 0;
+	if (editor.cx < 0) editor.cx = 0;
+}
+
+/* Give the window the whole screen above the echo area. */
+static void win_fill_screen(struct editor_window *w)
+{
+	w->y = 1;
+	w->x = 1;
+	w->h = win_total_rows > 3 ? win_total_rows - 2 : 1;
+	w->w = win_total_cols;
 }
 
 /* Initialise the window list with a single window covering the whole screen.
@@ -149,76 +106,81 @@ void win_init(void)
 	win_current = 0;
 	win_count   = 1;
 
-	winlist[0].bufidx    = 0;
-	winlist[0].active    = 1;
-	winlist[0].col_group = 0;
+	winlist[0].bufidx = 0;
+	winlist[0].active = 1;
+	win_fill_screen(&winlist[0]);
 
-	/* win_total_rows/cols are set by update_window_size() before win_init(). */
-	win_reflow();
+	win_sync_view();
 }
 
-/* Split the current window horizontally (C-x 2): the current window shrinks
- * to the top half; a new window showing the same buffer appears below.
- * The new window stays in the same column group. */
+/* First inactive winlist slot, or -1 when the list is full. */
+static int win_free_slot(void)
+{
+	int i;
+
+	for (i = 0; i < MAX_WINDOWS; i++)
+		if (!winlist[i].active)
+			return i;
+	return -1;
+}
+
+/* Split the current window (C-x 2): it keeps the upper half, a new
+ * window showing the same buffer takes the lower half.  Other windows
+ * are not disturbed. */
 void win_split_horizontal(void)
 {
-	int i, slot = -1;
+	struct editor_window *cur = &winlist[win_current];
+	int slot, h = cur->h;
 
 	if (win_count >= MAX_WINDOWS) {
 		editor_set_status_message("Too many windows (%d max).", MAX_WINDOWS);
 		return;
 	}
-	if (winlist[win_current].h < 3) {
+	if (h < 2 * MIN_WIN_ROWS + 1) {
 		editor_set_status_message("Window too small to split.");
 		return;
 	}
-
-	for (i = 0; i < MAX_WINDOWS; i++) {
-		if (!winlist[i].active) { slot = i; break; }
-	}
-	if (slot < 0) return;
+	slot = win_free_slot();
 
 	buf_save_current_state();
 
-	/* New window inherits the same buffer, cursor state, and col_group. */
-	winlist[slot]        = winlist[win_current];
-	winlist[slot].active = 1;
+	/* New window inherits the same buffer and cursor state. */
+	winlist[slot]   = *cur;
+	cur->h          = (h - 1) / 2;
+	winlist[slot].y = cur->y + cur->h + 1;
+	winlist[slot].h = h - 1 - cur->h;
 
 	win_count++;
-	win_reflow();
+	win_sync_view();
 }
 
-/* Split the current window vertically (C-x 3): the current window becomes the
- * left half; a new window showing the same buffer appears to the right.
- * The new window is placed in a new column group. */
+/* Split the current window side by side (C-x 3): it keeps the left
+ * half, a new window showing the same buffer appears to the right of
+ * a one column divider.  Other windows are not disturbed. */
 void win_split_vertical(void)
 {
-	int i, slot = -1, max_cg = 0;
+	struct editor_window *cur = &winlist[win_current];
+	int slot, w = cur->w;
 
 	if (win_count >= MAX_WINDOWS) {
 		editor_set_status_message("Too many windows (%d max).", MAX_WINDOWS);
 		return;
 	}
-	if (winlist[win_current].w < 6) {
+	if (w < 2 * MIN_WIN_COLS + 1) {
 		editor_set_status_message("Window too small to split.");
 		return;
 	}
-
-	for (i = 0; i < MAX_WINDOWS; i++) {
-		if (!winlist[i].active) { if (slot < 0) slot = i; continue; }
-		if (winlist[i].col_group > max_cg) max_cg = winlist[i].col_group;
-	}
-	if (slot < 0) return;
+	slot = win_free_slot();
 
 	buf_save_current_state();
 
-	/* New window: same buffer/cursor, but a new column group (rightmost). */
-	winlist[slot]           = winlist[win_current];
-	winlist[slot].active    = 1;
-	winlist[slot].col_group = max_cg + 1;
+	winlist[slot]   = *cur;
+	cur->w          = (w - 1) / 2;
+	winlist[slot].x = cur->x + cur->w + 1;
+	winlist[slot].w = w - 1 - cur->w;
 
 	win_count++;
-	win_reflow();
+	win_sync_view();
 }
 
 /* Switch focus to window `idx`: save the old view, load the new one,
@@ -247,12 +209,10 @@ void win_cycle_next(void)
 	}
 }
 
-/* Switch focus to the window beside the current one (M-arrow), like
- * windmove in GNU Emacs: the neighbor sharing the edge in the given
- * direction, with overlapping rows or columns.  The `+ 1` terms skip
- * the separator column and mode-line row win_reflow() places between
- * windows. */
-void win_move_dir(int dx, int dy)
+/* Find the window beside the current one: the neighbor sharing the
+ * edge in the given direction, with overlapping rows or columns.
+ * Returns its winlist index, or -1 when there is none. */
+static int win_find_dir(int dx, int dy)
 {
 	struct editor_window *cur = &winlist[win_current];
 	int i;
@@ -276,16 +236,93 @@ void win_move_dir(int dx, int dy)
 		if (dy != 0 && (w->x >= cur->x + cur->w || cur->x >= w->x + w->w))
 			continue;
 
-		win_focus(i);
-		return;
+		return i;
 	}
 
-	editor_set_status_message("No window there.");
+	return -1;
 }
 
-/* Delete the current window (C-x 0). */
+/* Switch focus to the window beside the current one (M-arrow), like
+ * windmove in GNU Emacs. */
+void win_move_dir(int dx, int dy)
+{
+	int i = win_find_dir(dx, dy);
+
+	if (i < 0) {
+		editor_set_status_message("No window there.");
+		return;
+	}
+	win_focus(i);
+}
+/* Give the current window's rows or columns, divider included, to the
+ * adjacent windows on the side given by dx/dy.  Only safe when those
+ * windows tile the window's edge exactly: one sticking out would end
+ * up overlapping a third window, so that is checked first.  Returns 1
+ * on success. */
+static int win_merge_side(const struct editor_window *w, int dx, int dy)
+{
+	int i, pass, adjacent, span = 0;
+
+	for (pass = 0; pass < 2; pass++) {
+		for (i = 0; i < MAX_WINDOWS; i++) {
+			struct editor_window *p = &winlist[i];
+
+			if (!p->active || p == w)
+				continue;
+			if (dy < 0)
+				adjacent = p->y + p->h + 1 == w->y;
+			else if (dy > 0)
+				adjacent = w->y + w->h + 1 == p->y;
+			else if (dx < 0)
+				adjacent = p->x + p->w + 1 == w->x;
+			else
+				adjacent = w->x + w->w + 1 == p->x;
+			if (!adjacent)
+				continue;
+
+			if (dy != 0) {
+				/* columns not shared with w are not affected */
+				if (p->x >= w->x + w->w + 1 ||
+				    w->x >= p->x + p->w + 1)
+					continue;
+				if (p->x < w->x || p->x + p->w > w->x + w->w)
+					return 0;
+				if (pass == 0) {
+					span += p->w + 1;
+				} else {
+					if (dy > 0)
+						p->y = w->y;
+					p->h += w->h + 1;
+				}
+			} else {
+				/* rows not shared with w are not affected */
+				if (p->y >= w->y + w->h + 1 ||
+				    w->y >= p->y + p->h + 1)
+					continue;
+				if (p->y < w->y || p->y + p->h > w->y + w->h)
+					return 0;
+				if (pass == 0) {
+					span += p->h + 1;
+				} else {
+					if (dx > 0)
+						p->x = w->x;
+					p->w += w->w + 1;
+				}
+			}
+		}
+		if (pass == 0 && span != (dy != 0 ? w->w + 1 : w->h + 1))
+			return 0;
+	}
+	return 1;
+}
+
+/* Delete the current window (C-x 0): its space goes to the neighbors
+ * above, below, left or right -- the first side whose windows tile
+ * the shared edge exactly. */
 void win_delete_current(void)
 {
+	struct editor_window *cur = &winlist[win_current];
+	int oy = cur->y, ox = cur->x;
 	int i;
 
 	if (win_count <= 1) {
@@ -293,26 +330,118 @@ void win_delete_current(void)
 		return;
 	}
 
-	buf_save_current_state();
-	winlist[win_current].active = 0;
-	win_count--;
-
-	for (i = 0; i < MAX_WINDOWS; i++) {
-		if (winlist[i].active) { win_current = i; break; }
+	if (!win_merge_side(cur, 0, -1) && !win_merge_side(cur, 0, 1) &&
+	    !win_merge_side(cur, -1, 0) && !win_merge_side(cur, 1, 0)) {
+		editor_set_status_message("No window to absorb this one, try C-x 1.");
+		return;
 	}
 
-	win_reflow();
-	win_activate_window();
+	buf_save_current_state();
+	cur->active = 0;
+	win_count--;
+
+	/* Focus the window that took over the deleted corner. */
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		struct editor_window *p = &winlist[i];
+
+		if (p->active &&
+		    p->y <= oy && oy <= p->y + p->h &&
+		    p->x <= ox && ox <= p->x + p->w)
+			break;
+	}
+	if (i == MAX_WINDOWS)
+		for (i = 0; !winlist[i].active; i++)
+			;
+	win_focus(i);
 }
 
 /* Delete all other windows, leaving only the current one (C-x 1). */
 void win_delete_others(void)
 {
+	struct editor_window *cur = &winlist[win_current];
 	int i;
 
 	for (i = 0; i < MAX_WINDOWS; i++) {
 		if (i != win_current) winlist[i].active = 0;
 	}
 	win_count = 1;
-	win_reflow();
+
+	win_fill_screen(cur);
+	win_sync_view();
+}
+
+/* Shift every window edge at or past the seam by delta: windows on
+ * the seam grow or shrink, windows past it follow.  Refuses when a
+ * window would come out below one text row or two columns. */
+static int win_shiftedges(int seam, int delta, int cols)
+{
+	int i, pos, size;
+
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		struct editor_window *p = &winlist[i];
+
+		if (!p->active)
+			continue;
+		pos  = cols ? p->x : p->y;
+		size = cols ? p->w : p->h;
+		if (pos <= seam && pos + size >= seam &&
+		    size + delta < (cols ? 2 : 1))
+			return 0;
+	}
+
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		struct editor_window *p = &winlist[i];
+
+		if (!p->active)
+			continue;
+		if (cols) {
+			if (p->x > seam)
+				p->x += delta;
+			else if (p->x + p->w >= seam)
+				p->w += delta;
+		} else {
+			if (p->y > seam)
+				p->y += delta;
+			else if (p->y + p->h >= seam)
+				p->h += delta;
+		}
+	}
+	return 1;
+}
+
+/* One axis of a terminal resize: move the outermost window edge to
+ * the new screen edge, preferring the seam at the focused window so
+ * it takes the delta.  Falls back to single-window when the layout
+ * cannot be squeezed any further. */
+static void win_fit_axis(int cols)
+{
+	struct editor_window *cur = &winlist[win_current];
+	int i, e, edge = 0, delta;
+
+	for (i = 0; i < MAX_WINDOWS; i++) {
+		if (!winlist[i].active)
+			continue;
+		e = cols ? winlist[i].x + winlist[i].w
+		         : winlist[i].y + winlist[i].h;
+		if (e > edge)
+			edge = e;
+	}
+	if ((delta = (cols ? SCREEN_RIGHT : SCREEN_BOT) - edge) != 0) {
+		if (!win_shiftedges(cols ? cur->x + cur->w : cur->y + cur->h,
+		                    delta, cols) &&
+		    !win_shiftedges(edge, delta, cols))
+			win_delete_others();
+	}
+}
+
+/* Adapt the layout to a new terminal size: the focused window grows
+ * or shrinks, the other windows keep their size and move. */
+void win_term_resize(void)
+{
+	if (win_count == 0)
+		return;
+
+	win_fit_axis(1);
+	win_fit_axis(0);
+	win_sync_view();
 }

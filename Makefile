@@ -27,7 +27,8 @@ TESTBINS = $(TESTDIR)/test_undo $(TESTDIR)/test_buffer \
            $(TESTDIR)/test_syntax $(TESTDIR)/test_yank \
            $(TESTDIR)/test_autocomplete $(TESTDIR)/test_word \
            $(TESTDIR)/test_basic $(TESTDIR)/test_region \
-           $(TESTDIR)/test_shell $(TESTDIR)/test_complete
+           $(TESTDIR)/test_shell $(TESTDIR)/test_complete \
+           $(TESTDIR)/test_winmgr
 # Source objects needed by tests (subset of OBJS, no main/tty/display/etc.)
 TEST_SRCS_OBJS = $(OBJDIR)/undo.o $(OBJDIR)/buffer.o $(OBJDIR)/syntax.o
 
@@ -74,6 +75,7 @@ EXTRA_basic        := $(TESTDIR)/stubs.o          $(OBJDIR)/basic.o $(TEST_SRCS_
 EXTRA_region       := $(TESTDIR)/stubs_noyank.o   $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(TEST_SRCS_OBJS)
 EXTRA_shell        := $(TESTDIR)/stubs_noyank.o   $(OBJDIR)/shell.o $(OBJDIR)/yank.o $(OBJDIR)/rect.o $(OBJDIR)/buffer.o $(OBJDIR)/undo.o $(OBJDIR)/syntax.o
 EXTRA_complete     := $(TESTDIR)/stubs.o          $(OBJDIR)/path.o $(TEST_SRCS_OBJS)
+EXTRA_winmgr       := $(OBJDIR)/winmgr.o
 
 .SECONDEXPANSION:
 $(TESTBINS): $(TESTDIR)/test_%: $(TESTDIR)/test_%.o $(TESTDIR)/test.o $$(EXTRA_$$*)

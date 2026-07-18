@@ -347,7 +347,7 @@ void probe_window_size(void)
 		win_total_rows = new_rows;
 		win_total_cols = new_cols;
 		if (win_count > 0)
-			win_reflow();
+			win_term_resize();
 		else {
 			editor.screenrows = new_rows - 2;
 			editor.screencols = new_cols;
@@ -371,7 +371,7 @@ void update_window_size(void)
 			win_total_rows = new_rows;
 			win_total_cols = new_cols;
 			if (win_count > 0)
-				win_reflow();
+				win_term_resize();
 			else {
 				/* win_init() not yet called; set a sensible default. */
 				editor.screenrows = new_rows - 2;
@@ -393,7 +393,7 @@ void update_window_size(void)
 
 void handle_sig_winch(int unused __attribute__((unused)))
 {
-	update_window_size(); /* calls win_reflow() which clamps cursors */
+	update_window_size(); /* adapts the window layout and clamps cursors */
 	editor_refresh_screen();
 }
 
