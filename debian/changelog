@@ -1,3 +1,17 @@
+kg (1.2.0-1) unstable; urgency=low
+
+  * Shift-select by word and paragraph with Ctrl+Shift and the arrow keys
+  * C-x 2 and C-x 3 split only the current window, like GNU Emacs;
+    C-x 0 gives the closed window's space to its neighbors
+  * Move between windows with Meta and the arrow keys (windmove)
+  * Resize windows with Meta, Shift and the arrow keys; also C-x ^,
+    C-x } and C-x {, and C-x + to balance the window sizes
+  * Ctrl+PgUp/PgDn move to beginning/end of buffer
+  * F1 opens help, F2 saves, F10 quits
+  * Fix UTF-8 text rendering as garbage in highlighted buffers
+
+ -- Joachim Wiberg <troglobit@gmail.com>  Sun, 12 Jul 2026 08:37:49 +0200
+
 kg (1.1.0-1) unstable; urgency=low
 
   * Visual mark mode: the region between point and mark is drawn

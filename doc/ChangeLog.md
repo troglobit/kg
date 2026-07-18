@@ -2,6 +2,49 @@
 
 All relevant changes to the project are documented in this file.
 
+## [UNRELEASED][]
+
+### Changes
+
+- C-x 2 and C-x 3 now split only the current window, like in GNU Emacs: C-x 2
+  into an upper and a lower half, C-x 3 into a left and a right half.  Other
+  windows are not disturbed, so stacked and side-by-side layouts mix freely.
+  C-x 0 gives the closed window's space to the neighbors sharing its edge.
+
+- Shift-select by word and paragraph.  Ctrl+Shift+left/right extends the
+  region one word at a time, Ctrl+Shift+up/down one paragraph, Shift+PgUp/PgDn
+  one page, and Ctrl+Shift+Home/End to the buffer ends, complementing the
+  character/line steps from v1.1.  The same transient-mark rules apply: the
+  first unshifted key drops the region, and an explicit C-Space mark stays
+  sticky.  Word motion (M-f, C-right, and the shifted variant) now lands at
+  the end of the word, like in GNU Emacs and Mg, instead of at the start of
+  the next one.
+
+- Move between windows with Meta and the arrow keys, like windmove in GNU
+  Emacs: M-arrow selects the neighbor in that direction, quicker than lapping
+  the C-x o ring in a three-window layout.  Also available as M-x
+  windmove-up/-down/-left/-right.
+
+- Resize windows with Meta, Shift and the arrow keys: the divider on that side
+  of the window travels with the arrow, and C-u N moves it N rows or columns
+  at once.  The GNU Emacs commands are wired up alongside: enlarge-window (C-x
+  ^), enlarge-window-horizontally and shrink-window-horizontally (C-x } and
+  C-x {), and balance-windows (C-x +).  A terminal resize goes to the focused
+  window; the other windows keep their size and move.
+
+- Ctrl+PgUp and Ctrl+PgDn move to the beginning and end of the buffer, like
+  C-Home and C-End.
+
+- F1 opens the built-in help (like C-h), F2 saves (C-x C-s), and F10 quits
+  (C-x C-c), rounding out the function-key row alongside the F3/F4 macro keys.
+
+### Fixes
+
+- UTF-8 text no longer renders as inverted garbage in buffers with a language
+  mode: the highlighter classified every multibyte character as non-printable.
+  Most visible as broken box-drawing characters when reopening the built-in
+  help (C-h C-h).
+
 ## [v1.1.0][] - 2026-05-26
 
 > [!NOTE]
@@ -181,6 +224,7 @@ bindings, based on [kilo][] by Salvatore Sanfilippo.
 - Man page ([kg.1][]) and `make install` / `make uninstall` support
 
 [UNRELEASED]: https://github.com/troglobit/kg/compare/v1.1.0...HEAD
+[v1.2.0]:     https://github.com/troglobit/kg/compare/v1.1.0...v1.2.0
 [v1.1.0]:     https://github.com/troglobit/kg/compare/v1.0.0...v1.1.0
 [v1.0.1]:     https://github.com/troglobit/kg/compare/v1.0.0...v1.0.1
 [v1.0.0]:     https://github.com/troglobit/kg/releases/tag/v1.0.0
