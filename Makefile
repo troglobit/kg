@@ -40,6 +40,14 @@ $(TARGET): $(OBJS)
 $(OBJDIR)/%.o: $(OBJDIR)/%.c $(HDRS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# PTY acceptance tests: drive the real binary on a pseudo-terminal and
+# compare the saved file bytes (see utils/pty_accept.py).  Needs python3
+# with pexpect and pyyaml; oracle cases also use emacs (KG_PTY_EMACS).
+PTY_TESTS = $(sort $(wildcard $(TESTDIR)/pty/*.yaml))
+
+check-pty: $(TARGET)
+	python3 utils/pty_accept.py --kg $(TARGET) $(PTY_TESTS)
+
 check: $(TESTBINS)
 	@pass=0; fail=0; \
 	for t in $(TESTBINS); do \
@@ -109,4 +117,4 @@ uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(PROG)
 	rm -f $(DESTDIR)$(man1dir)/$(PROG).1
 
-.PHONY: all clean distclean check deb release install uninstall
+.PHONY: all clean distclean check check-pty deb release install uninstall

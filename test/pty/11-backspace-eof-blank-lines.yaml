@@ -1,0 +1,12 @@
+name: backspace-eof-blank-lines
+filename: blank-lines.txt
+initial: |+
+
+
+
+keys:
+  - M->
+  - C-?
+expected_saved: |+
+
+

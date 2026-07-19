@@ -1,0 +1,9 @@
+name: resize-idle
+filename: resize_idle.txt
+initial: |
+  abc
+keys:
+  - RESIZE=10,40
+  - Z
+expected_saved: |
+  Zabc

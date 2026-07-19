@@ -1,0 +1,7 @@
+name: page-down-short-buffer-left
+filename: page-down-short.txt
+initial: "x\n"
+keys:
+  - C-v
+  - C-b
+expected_saved: "x\n"

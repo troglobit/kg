@@ -1,0 +1,8 @@
+name: smoke-save
+filename: smoke.txt
+initial: |
+  abc
+keys:
+  - Z
+expected_saved: |
+  Zabc

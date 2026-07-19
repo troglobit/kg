@@ -1,0 +1,11 @@
+name: resize-split
+filename: resize_split.txt
+initial: |
+  abc
+keys:
+  - C-x
+  - "2"
+  - RESIZE=15,50
+  - Z
+expected_saved: |
+  Zabc
