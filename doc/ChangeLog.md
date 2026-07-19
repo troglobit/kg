@@ -20,6 +20,12 @@ All relevant changes to the project are documented in this file.
   the end of the word, like in GNU Emacs and Mg, instead of at the start of
   the next one.
 
+  As with the CUA clipboard keys in v1.1, some terminals grab these combos for
+  themselves: Terminator resizes its panes with Ctrl+Shift+arrows and moves
+  between them with Alt+arrows, KiTTY reserves Ctrl+Shift for its own
+  shortcuts, and Gnome Terminal switches tabs on Ctrl+PgUp/PgDn.  Free the
+  keys in the terminal preferences to use them in kg; see kg(1) for details.
+
 - Move between windows with Meta and the arrow keys, like windmove in GNU
   Emacs: M-arrow selects the neighbor in that direction, quicker than lapping
   the C-x o ring in a three-window layout.  Also available as M-x

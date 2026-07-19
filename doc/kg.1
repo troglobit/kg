@@ -224,6 +224,37 @@ for their own clipboard handling; unbind them in the terminal
 preferences if you want
 .Nm
 to see them.
+.Pp
+The same applies to several of the modifier-arrow bindings:
+Terminator grabs Ctrl+Shift and the arrow keys to resize its panes
+and Alt and the arrow keys to move between them, kitty reserves
+Ctrl+Shift for its own shortcuts (tab switching on left/right), and
+gnome-terminal takes Ctrl+PgUp/PgDn for tab switching.
+Free the keys in the terminal preferences, or fall back on the plain
+Emacs bindings, which cover the same ground:
+.Ic C-Space
+with
+.Ic M-b , M-f , M-{ , M-} ,
+window motion with
+.Ic C-x o ,
+and
+.Ic M-< / M->
+for the buffer ends.
+.Pp
+The rxvt family
+.Pq rxvt , urxvt
+is a harder case: by a legacy encoding it cannot distinguish Ctrl+Shift
+with an arrow key from a plain Shift+arrow \(en both send the same bytes
+\(en so those combinations cannot be told apart there, whatever the
+configuration.
+.Pq The keypad keys, such as Ctrl+Shift+Home, do have distinct encodings and work.
+Remapping the cursor keys to their xterm sequences with a
+.Pa ~/.Xresources
+keysym resource is the only cure.
+Note also that
+.Xr urxvt 1
+opens an ISO\ 14755 Unicode-entry prompt on Ctrl+Shift by default, which
+shadows these keys until it is turned off.
 .Ss Rectangles
 .Bl -column "C-Home / C-End" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" -compact
 .It Sy Key Ta Sy Action
