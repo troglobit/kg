@@ -69,6 +69,108 @@ int editor_open(char *filename)
 	return 0;
 }
 
+/* Write `buf` (len bytes) to `path` atomically: create a temp file in
+ * the target's directory, copy the target's permissions and owner onto
+ * it, flush it to disk, then rename it over the target -- so a reader
+ * only ever sees the old file or the complete new one, and a failed or
+ * short write can't truncate the original.  A symlinked path is resolved
+ * so the real file is replaced with the link left pointing at it.
+ * Returns 0 on success, -1 on error with errno set.
+ *
+ * The rename gives the saved file a new inode, so hard links to the
+ * original are not followed and setuid/setgid/sticky bits are dropped. */
+static int write_file_atomic(const char *path, const char *buf, int len)
+{
+	char real[PATH_MAX];
+	char tmp[PATH_MAX];
+	struct stat st;
+	const char *target = path;
+	int have_meta = 0;
+	int tmpfd;
+	char *slash;
+	int off;
+
+	/* Resolve a symlink so we replace its target, not the link itself;
+	 * lstat has already captured a non-symlink's own metadata. */
+	if (lstat(path, &st) == 0) {
+		if (S_ISLNK(st.st_mode)) {
+			if (realpath(path, real) != NULL &&
+			    stat(real, &st) == 0) {
+				target = real;
+				have_meta = 1;
+			}
+		} else {
+			have_meta = 1;
+		}
+	}
+
+	/* Temp file beside the target, on the same filesystem so the rename
+	 * is atomic. */
+	if (snprintf(tmp, sizeof(tmp), "%s", target) >= (int)sizeof(tmp)) {
+		errno = ENAMETOOLONG;
+		return -1;
+	}
+	slash = strrchr(tmp, '/');
+	if (slash)
+		snprintf(slash + 1, sizeof(tmp) - (slash + 1 - tmp), ".kg-XXXXXX");
+	else
+		snprintf(tmp, sizeof(tmp), ".kg-XXXXXX");
+	tmpfd = mkstemp(tmp);
+	if (tmpfd == -1)
+		return -1;
+
+	if (have_meta) {
+		/* Reapply the original mode and, where permitted, its owner;
+		 * a non-root save of someone else's file keeps its own owner. */
+		if (fchmod(tmpfd, st.st_mode & 0777) == -1)
+			goto fail;
+		if (fchown(tmpfd, st.st_uid, st.st_gid) == -1 && errno != EPERM)
+			goto fail;
+	} else {
+		/* New file: match open(..., 0644) masked by the umask. */
+		mode_t um = umask(0);
+		umask(um);
+		if (fchmod(tmpfd, 0644 & ~um) == -1)
+			goto fail;
+	}
+
+	for (off = 0; off < len; ) {
+		ssize_t n = write(tmpfd, buf + off, len - off);
+		if (n < 0) {
+			if (errno == EINTR)
+				continue;
+			goto fail;
+		}
+		if (n == 0) {
+			errno = EIO;
+			goto fail;
+		}
+		off += n;
+	}
+
+	if (fsync(tmpfd) == -1)
+		goto fail;
+	if (close(tmpfd) == -1) {
+		tmpfd = -1;
+		goto fail;
+	}
+	if (rename(tmp, target) == -1) {
+		tmpfd = -1;
+		goto fail;
+	}
+	return 0;
+
+fail:
+	{
+		int saved = errno;
+		if (tmpfd != -1)
+			close(tmpfd);
+		unlink(tmp);
+		errno = saved;
+	}
+	return -1;
+}
+
 /* Save the current file on disk. Return 0 on success, 1 on error.
  * Special buffers (filename is NULL or starts with '*') prompt for a name. */
 int editor_save(int fd)
@@ -77,7 +179,6 @@ int editor_save(int fd)
 	char *newfilename;
 	char *buf;
 	int len;
-	int filefd;
 	int answer;
 
 	if (is_special_buffer(editor.filename)) {
@@ -122,29 +223,19 @@ int editor_save(int fd)
 	}
 
 	buf = editor_rows_to_string(editor.row, editor.numrows, &len);
-	filefd = open(editor.filename, O_RDWR|O_CREAT, 0644);
-	if (filefd == -1) goto writeerr;
+	if (write_file_atomic(editor.filename, buf, len) == -1) {
+		free(buf);
+		editor_set_status_message("Error writing %s: %s",
+		                          editor.filename, strerror(errno));
+		return 1;
+	}
 
-	/* Use truncate + a single write(2) call in order to make saving
-	 * a bit safer, under the limits of what we can do in a small editor. */
-	if (ftruncate(filefd, len) == -1) goto writeerr;
-	if (write(filefd, buf, len) != len) goto writeerr;
-
-	close(filefd);
 	free(buf);
 	editor.dirty = 0;
 	undo_mark_clean();  /* Mark this state as clean for undo tracking */
 	editor_snapshot_disk();
 	editor_set_status_message("Wrote %s (%d bytes)", editor.filename, len);
 	return 0;
-
-writeerr:
-	free(buf);
-	if (filefd != -1)
-		close(filefd);
-
-	editor_set_status_message("Error writing %s: %s", editor.filename, strerror(errno));
-	return 1;
 }
 
 /* Prompt for a new filename, write the buffer there, and adopt that name.
