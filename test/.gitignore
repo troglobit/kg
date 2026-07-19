@@ -1,3 +1,5 @@
+fuzz_corpus/
+fuzz_keypress
 test_autocomplete
 test_basic
 test_buffer

@@ -48,6 +48,27 @@ PTY_TESTS = $(sort $(wildcard $(TESTDIR)/pty/*.yaml))
 check-pty: $(TARGET)
 	python3 utils/pty_accept.py --kg $(TARGET) $(PTY_TESTS)
 
+# Coverage-guided fuzzing of the keypress dispatch (clang libFuzzer).
+# Builds the editing core with terminal I/O stubbed out (KG_FUZZ) and
+# feeds it random buffers and key streams; see test/fuzz_keypress.c.
+FUZZ_CC     ?= clang
+FUZZ_CFLAGS ?= -Wall -W -std=c99 -g -O1 -D_POSIX_C_SOURCE=200809L \
+               -D_DEFAULT_SOURCE -DKG_FUZZ=1 \
+               -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer
+FUZZ_SRCS = $(TESTDIR)/fuzz_keypress.c $(TESTDIR)/fuzz_stubs.c \
+            $(OBJDIR)/kbd.c $(OBJDIR)/buffer.c $(OBJDIR)/basic.c \
+            $(OBJDIR)/word.c $(OBJDIR)/autocomplete.c $(OBJDIR)/yank.c \
+            $(OBJDIR)/undo.c $(OBJDIR)/rect.c $(OBJDIR)/syntax.c \
+            $(OBJDIR)/tty.c $(OBJDIR)/macro.c
+
+$(TESTDIR)/fuzz_keypress: $(FUZZ_SRCS) $(HDRS)
+	$(FUZZ_CC) $(FUZZ_CFLAGS) -I$(OBJDIR) -o $@ $(FUZZ_SRCS)
+
+fuzz: $(TESTDIR)/fuzz_keypress
+	@mkdir -p $(TESTDIR)/fuzz_corpus
+	$(TESTDIR)/fuzz_keypress -max_total_time=$${FUZZ_TIME:-60} \
+	    -max_len=512 $(TESTDIR)/fuzz_corpus
+
 check: $(TESTBINS)
 	@pass=0; fail=0; \
 	for t in $(TESTBINS); do \
@@ -117,4 +138,4 @@ uninstall:
 	rm -f $(DESTDIR)$(bindir)/$(PROG)
 	rm -f $(DESTDIR)$(man1dir)/$(PROG).1
 
-.PHONY: all clean distclean check check-pty deb release install uninstall
+.PHONY: all clean distclean check check-pty fuzz deb release install uninstall

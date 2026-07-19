@@ -2,3 +2,8 @@
 *.o
 foo*
 kg
+crash-*
+leak-*
+timeout-*
+oom-*
+slow-unit-*

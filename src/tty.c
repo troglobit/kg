@@ -6,6 +6,11 @@ static struct termios orig_termios; /* In order to restore at exit.*/
 
 void disable_raw_mode(int fd)
 {
+#ifdef KG_FUZZ
+	(void)fd;
+	editor.rawmode = 0;
+	return;
+#endif
 	/* Don't even check the return value as it's too late. */
 	if (editor.rawmode) {
 		/* Back to the normal screen; restores the shell's scrollback. */
@@ -18,6 +23,9 @@ void disable_raw_mode(int fd)
 /* Called at exit to avoid remaining in raw mode. */
 void editor_at_exit(void)
 {
+#ifdef KG_FUZZ
+	return;
+#endif
 	/* Clear screen and home the cursor: a fallback for terminals
 	 * without alternate-screen support; on the rest disable_raw_mode()
 	 * restores the shell's content anyway. */
@@ -30,6 +38,11 @@ void editor_at_exit(void)
 /* Raw mode: 1960 magic shit. */
 int enable_raw_mode(int fd)
 {
+#ifdef KG_FUZZ
+	(void)fd;
+	editor.rawmode = 1;
+	return 0;
+#endif
 	struct termios raw;
 
 	if (editor.rawmode) return 0; /* Already enabled. */
@@ -356,6 +369,9 @@ failed:
  * Saves and restores cursor position around the probe. */
 void probe_window_size(void)
 {
+#ifdef KG_FUZZ
+	return;
+#endif
 	int new_rows, new_cols, orig_row, orig_col;
 	char seq[32];
 
@@ -386,6 +402,9 @@ restore:
 
 void update_window_size(void)
 {
+#ifdef KG_FUZZ
+	return;
+#endif
 	const int max_attempts = 3;
 	int new_rows, new_cols;
 	int attempts = 0;
@@ -426,6 +445,9 @@ void handle_sig_winch(int unused __attribute__((unused)))
  * re-enable raw mode and redraw when resumed with fg. */
 void editor_suspend(void)
 {
+#ifdef KG_FUZZ
+	return;
+#endif
 	tty_write("\x1b[2J\x1b[H", 7); /* fallback for non-alt-screen terminals */
 	disable_raw_mode(STDIN_FILENO); /* also leaves the alternate screen */
 	raise(SIGTSTP);

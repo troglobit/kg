@@ -501,6 +501,7 @@ void editor_named_command(int fd);
 
 /* macro.c */
 int  macro_is_recording(void);
+void macro_reset(void);
 void macro_on_key(int key);
 int  macro_next_key(void);
 void macro_start(void);
