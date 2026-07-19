@@ -76,7 +76,17 @@ void init_editor(void)
 	undo_init();
 	update_window_size();
 	win_init();
-	signal(SIGWINCH, handle_sig_winch);
+
+	/* SA_RESTART so a resize doesn't interrupt a blocked read into the
+	 * quit-on-error path; the handler only raises a flag, and the main
+	 * loop and the idle read drain it within a read timeout. */
+	{
+		struct sigaction sa;
+		memset(&sa, 0, sizeof(sa));
+		sa.sa_handler = handle_sig_winch;
+		sa.sa_flags = SA_RESTART;
+		sigaction(SIGWINCH, &sa, NULL);
+	}
 }
 
 static int usage(FILE *fp, int rc)
@@ -114,6 +124,7 @@ int main(int argc, char **argv)
 	enable_raw_mode(STDIN_FILENO);
 	editor_set_status_message("Press Ctrl-h for help");
 	while (running) {
+		editor_process_pending_resize();
 		autorevert_poll();
 		editor_refresh_screen();
 		editor_process_keypress(STDIN_FILENO);

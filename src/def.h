@@ -537,6 +537,7 @@ int get_window_size(int ifd, int ofd, int *rows, int *cols);
 void update_window_size(void);
 void probe_window_size(void);
 void handle_sig_winch(int unused);
+void editor_process_pending_resize(void);
 
 /* word.c */
 void editor_move_word_forward(void);

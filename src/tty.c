@@ -235,7 +235,8 @@ int editor_read_key(int fd)
 	if (key >= 0)
 		return key;
 
-	while ((nread = read(fd, &c, 1)) == 0);
+	while ((nread = read(fd, &c, 1)) == 0 ||
+	       (nread == -1 && errno == EINTR));
 	if (nread == -1) {
 		running = 0;
 		return 0;
@@ -260,7 +261,8 @@ int editor_read_raw_byte(int fd)
 	if (key >= 0)
 		return key;
 
-	while ((nread = read(fd, &c, 1)) == 0);
+	while ((nread = read(fd, &c, 1)) == 0 ||
+	       (nread == -1 && errno == EINTR));
 	if (nread == -1) {
 		running = 0;
 		return 0;
@@ -286,7 +288,9 @@ int editor_read_key_idle(int fd)
 	if (key >= 0)
 		return key;
 
-	while ((nread = read(fd, &c, 1)) == 0) {
+	while ((nread = read(fd, &c, 1)) == 0 ||
+	       (nread == -1 && errno == EINTR)) {
+		editor_process_pending_resize();
 		if (autorevert_poll())
 			editor_refresh_screen();
 	}
@@ -435,9 +439,25 @@ void update_window_size(void)
 	editor_set_status_message("Warning: failed updating window size");
 }
 
+/* Raised by handle_sig_winch, drained by editor_process_pending_resize
+ * from ordinary code; a signal handler may only touch a flag like this. */
+static volatile sig_atomic_t resize_pending = 0;
+
 void handle_sig_winch(int unused __attribute__((unused)))
 {
-	update_window_size(); /* adapts the window layout and clamps cursors */
+	resize_pending = 1;
+}
+
+/* Act on a pending terminal resize outside the signal handler: adapt the
+ * window layout (which clamps cursors) and redraw.  Called from the main
+ * loop and while idling for input, so a resize shows within a read timeout
+ * without doing async-signal-unsafe work in the handler. */
+void editor_process_pending_resize(void)
+{
+	if (!resize_pending)
+		return;
+	resize_pending = 0;
+	update_window_size();
 	editor_refresh_screen();
 }
 
