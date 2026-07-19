@@ -564,11 +564,26 @@ void editor_comment_dwim(void)
 	row_start = editor.rowoff + editor.cy;
 	row_end   = row_start;
 	if (editor.mark_set) {
-		int mark = editor.mark_row;
-		int cur  = row_start;
+		int cur_row = row_start;
+		int cur_col = editor.coloff + editor.cx;
+		int end_col;
 
-		row_start = (mark < cur) ? mark : cur;
-		row_end   = (mark > cur) ? mark : cur;
+		if (editor.mark_row < cur_row ||
+		    (editor.mark_row == cur_row && editor.mark_col < cur_col)) {
+			row_start = editor.mark_row;
+			row_end   = cur_row;
+			end_col   = cur_col;
+		} else {
+			row_start = cur_row;
+			row_end   = editor.mark_row;
+			end_col   = editor.mark_col;
+		}
+
+		/* A region ending at column 0 does not cover that last line,
+		 * like Emacs comment-region: mark at the start of line N, point
+		 * at the start of line N+2, toggles only lines N and N+1. */
+		if (row_end > row_start && end_col == 0)
+			row_end--;
 	}
 
 	if (row_start >= editor.numrows) return;

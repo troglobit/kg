@@ -1,0 +1,36 @@
+name: comment-dwim-region-excludes-final-bol-line
+filename: sample.c
+initial: |
+  int main() {
+      int a = 3;
+      int b = 4;
+      a += 2;
+      b += 3;
+      return a*b;
+  }
+keys:
+  - C-s
+  - +=
+  - C-g
+  - C-a
+  - C-SPC
+  - C-n
+  - C-n
+  - M-;
+expected_saved_any:
+  - |
+      int main() {
+          int a = 3;
+          int b = 4;
+      //     a += 2;
+      //     b += 3;
+          return a*b;
+      }
+  - |
+      int main() {
+          int a = 3;
+          int b = 4;
+          /* a += 2; */
+          /* b += 3; */
+          return a*b;
+      }
