@@ -1,7 +1,12 @@
 # Makefile for kg editor
+#
+### Build Options
+# Show a leading "~" on lines past the end of the buffer
+KG_SHOW_TILDE ?= 1
 
 CC      = gcc
 CFLAGS  = -Wall -W -pedantic -std=c99 -Os
+CFLAGS += -DKG_SHOW_TILDE=$(KG_SHOW_TILDE)
 PROG    = kg
 OBJDIR  = src
 TARGET  = $(OBJDIR)/$(PROG)
@@ -13,9 +18,9 @@ mandir  = $(prefix)/share/man
 man1dir = $(mandir)/man1
 
 # Source files
-SRCS = main.c tty.c syntax.c autocomplete.c buffer.c fileio.c \
-       display.c search.c basic.c word.c kbd.c yank.c undo.c help.c bufmgr.c winmgr.c cmd.c macro.c \
-       shell.c path.c rect.c
+SRCS = main.c tty.c syntax.c autocomplete.c buffer.c fileio.c display.c	\
+       search.c basic.c word.c kbd.c yank.c undo.c help.c bufmgr.c	\
+       winmgr.c cmd.c macro.c shell.c path.c rect.c
 
 # Object and header files
 OBJS = $(addprefix $(OBJDIR)/,$(SRCS:.c=.o))
@@ -23,11 +28,11 @@ HDRS = $(OBJDIR)/def.h
 
 # Test infrastructure
 TESTDIR  = test
-TESTBINS = $(TESTDIR)/test_undo $(TESTDIR)/test_buffer \
-           $(TESTDIR)/test_syntax $(TESTDIR)/test_yank \
-           $(TESTDIR)/test_autocomplete $(TESTDIR)/test_word \
-           $(TESTDIR)/test_basic $(TESTDIR)/test_region \
-           $(TESTDIR)/test_shell $(TESTDIR)/test_complete \
+TESTBINS = $(TESTDIR)/test_undo $(TESTDIR)/test_buffer		\
+           $(TESTDIR)/test_syntax $(TESTDIR)/test_yank		\
+           $(TESTDIR)/test_autocomplete $(TESTDIR)/test_word	\
+           $(TESTDIR)/test_basic $(TESTDIR)/test_region		\
+           $(TESTDIR)/test_shell $(TESTDIR)/test_complete	\
            $(TESTDIR)/test_winmgr
 # Source objects needed by tests (subset of OBJS, no main/tty/display/etc.)
 TEST_SRCS_OBJS = $(OBJDIR)/undo.o $(OBJDIR)/buffer.o $(OBJDIR)/syntax.o

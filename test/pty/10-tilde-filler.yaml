@@ -1,0 +1,12 @@
+name: tilde-filler
+filename: tilde.txt
+initial: |
+  abc
+keys: []
+expected_saved: |
+  abc
+# Default build has KG_SHOW_TILDE=1, so lines past the end of the
+# buffer carry a leading "~" (vim/kilo style).  The mode line shows
+# only the basename, so the only "~" on screen comes from the filler.
+expected_screen_contains:
+  - "~"

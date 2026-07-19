@@ -225,6 +225,14 @@ typedef struct hl_color {
 /* Default column M-q reflows paragraphs to, until changed with C-x f. */
 #define DEFAULT_FILL_COLUMN 72
 
+/*
+ * Lines past the end of the buffer, and the welcome banner's left
+ * margin, traditionally show a leading "~".
+ */
+#ifndef KG_SHOW_TILDE
+#define KG_SHOW_TILDE 1
+#endif
+
 /* Editor configuration state */
 struct editor_config {
 	int cx, cy;         /* Cursor x and y position in characters */

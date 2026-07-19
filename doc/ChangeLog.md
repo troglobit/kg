@@ -6,6 +6,10 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- Lines past the end of the buffer traditionally carrying a leading "~", this
+  can now be disabled at build-time, to make kg resemble GNU Emacs.  Build
+  with `make KG_SHOW_TILDE=0` to disable.  From Björn Dahlgren's fork.
+
 - kg now runs on the terminal's alternate screen, like other full-screen
   editors: the shell's content and scrollback come back intact on exit and
   suspend.  This is also what makes VTE-based terminals (gnome-terminal and

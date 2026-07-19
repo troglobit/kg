@@ -150,7 +150,7 @@ static void draw_window_rows(struct abuf *ab,
 
 					if (padding < 0) padding = 0;
 					if (padding > 0) {
-						ab_append(ab, "~", 1);
+						ab_append(ab, KG_SHOW_TILDE ? "~" : " ", 1);
 						filled++;
 						padding--;
 					}
@@ -175,7 +175,7 @@ static void draw_window_rows(struct abuf *ab,
 					filled += vcols;
 				}
 			}
-			if (filled == 0) {
+			if (filled == 0 && KG_SHOW_TILDE) {
 				ab_append(ab, "~", 1);
 				filled = 1;
 			}
