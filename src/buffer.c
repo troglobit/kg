@@ -439,6 +439,7 @@ void editor_del_char(void)
 	int filecol = editor.coloff + editor.cx;
 
 	if (!row || (filecol == 0 && filerow == 0)) return;
+	if (filecol > row->size) return; /* virtual space past EOL (rect mark): no-op, not a clamp */
 	if (filecol == 0) {
 		/* Handle the case of column 0, we need to move the current line
 		 * on the right of the previous one. */
@@ -480,6 +481,7 @@ void editor_del_forward_char(void)
 	int filecol = editor.coloff + editor.cx;
 
 	if (!row) return;
+	if (filecol > row->size) return; /* virtual space past EOL (rect mark): no-op, not a clamp */
 
 	if (filecol == row->size) {
 		if (filerow + 1 >= editor.numrows) return;
@@ -507,8 +509,9 @@ void editor_kill_line(void)
 	int filecol = editor.coloff + editor.cx;
 
 	if (!row) return;
+	if (filecol > row->size) return; /* virtual space past EOL (rect mark): no-op, not a clamp */
 
-	if (filecol >= row->size) {
+	if (filecol == row->size) {
 		/* At end of line, join with next line like C-k in Emacs. */
 		if (filerow+1 < editor.numrows) {
 			/* Save newline to kill ring */

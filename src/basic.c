@@ -5,6 +5,19 @@
 /* Handle cursor position change because arrow keys were pressed. */
 void editor_move_cursor(int key)
 {
+	/* Pull a stale cursor back inside the buffer before any row is
+	 * dereferenced: bulk deletions can leave point below EOF or the
+	 * offsets negative. */
+	if (editor.rowoff < 0) editor.rowoff = 0;
+	if (editor.cy < 0) editor.cy = 0;
+	if (editor.rowoff + editor.cy > editor.numrows) {
+		editor.cy = editor.numrows - editor.rowoff;
+		if (editor.cy < 0) {
+			editor.rowoff = editor.numrows;
+			editor.cy = 0;
+		}
+	}
+
 	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
 	int filerow = editor.rowoff + editor.cy;
 	int filecol = editor.coloff + editor.cx;

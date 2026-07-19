@@ -1,0 +1,12 @@
+name: rect-virtual-kill-line
+filename: rect-virtual-kill-line.txt
+initial: "abc\ndef\n"
+keys:
+  - C-e
+  - C-x
+  - SPC
+  - C-f
+  - C-k
+  - C-g
+  - Z
+expected_saved: "abcZ\ndef\n"

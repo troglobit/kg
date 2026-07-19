@@ -75,8 +75,10 @@ void editor_move_word_backward(void)
 
 	if (!row) return;
 
-	/* Skip separators */
-	while (filecol > 0 && !is_word_char(row->chars[filecol])) {
+	/* Skip separators; virtual space past EOL (rect mark) counts as
+	 * separator so the index stays inside the row. */
+	while (filecol > 0 &&
+	       (filecol > row->size || !is_word_char(row->chars[filecol]))) {
 		editor_move_cursor(ARROW_LEFT);
 		filecol = editor.coloff + editor.cx;
 	}
@@ -142,6 +144,11 @@ void editor_kill_word_backward(void)
 	erow *row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
 
 	if (!row || filecol == 0) return;
+	if (filecol > row->size) { /* virtual space past EOL (rect mark) */
+		filecol = row->size;
+		end_col = filecol;
+		if (filecol == 0) return;
+	}
 
 	/* Mirror editor_move_word_backward: skip separators then word chars */
 	while (filecol > 0 && !is_word_char(row->chars[filecol - 1]))
@@ -333,8 +340,15 @@ void editor_move_sentence_backward(void)
 {
 	int orig_r = editor.rowoff + editor.cy;
 	int orig_c = editor.coloff + editor.cx;
-	int r = orig_r, c = orig_c;
+	int r, c;
 	int target_r = 0, target_c = 0;
+
+	/* Clamp a stale position before indexing rows. */
+	if (editor.numrows <= 0) return;
+	if (orig_r >= editor.numrows) orig_r = editor.numrows - 1;
+	if (orig_c > editor.row[orig_r].size) orig_c = editor.row[orig_r].size;
+	r = orig_r;
+	c = orig_c;
 
 	if (orig_r == 0 && orig_c == 0) goto place;
 
@@ -409,7 +423,7 @@ void editor_join_line(void)
 	const char *rest;
 	int rest_len;
 
-	if (filerow == 0) return;   /* nothing above */
+	if (filerow <= 0 || filerow >= editor.numrows) return;
 
 	prev_row_idx = filerow - 1;
 	prev = &editor.row[prev_row_idx];

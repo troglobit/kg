@@ -153,8 +153,14 @@ void editor_undo(void)
 		 * have an auto-indent prefix that was not part of the original text. */
 		if (op->row < editor.numrows) {
 			erow *row = &editor.row[op->row];
-			row->size = op->col;
-			row->chars[op->col] = '\0';
+			int col = op->col;
+
+			/* A stale column past the row would truncate outside the
+			 * allocation. */
+			if (col < 0) col = 0;
+			if (col > row->size) col = row->size;
+			row->size = col;
+			row->chars[col] = '\0';
 			if (op->text && op->len > 0)
 				editor_row_append_string(row, op->text, op->len);
 			else
@@ -169,12 +175,16 @@ void editor_undo(void)
 		/* Reverse: split the line */
 		if (op->row < editor.numrows && op->text) {
 			erow *row;
+			int col = op->col;
+
 			/* Insert new line after current; this realloc's editor.row,
 			 * so fetch the row pointer afterwards. */
 			editor_insert_row(op->row + 1, op->text, op->len);
 			row = &editor.row[op->row];
-			row->size = op->col;
-			row->chars[op->col] = '\0';
+			if (col < 0) col = 0;
+			if (col > row->size) col = row->size;
+			row->size = col;
+			row->chars[col] = '\0';
 			editor_update_row(row);
 			editor.dirty++;
 		}

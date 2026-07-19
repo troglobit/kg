@@ -2,6 +2,10 @@
 
 #include "def.h"
 
+/* Repeat counts big enough to overflow the multiply, or to wedge the
+ * editor for minutes, are clamped; nothing sensible repeats more often. */
+#define PREFIX_ARG_MAX 100000
+
 /* C-u universal-argument: accumulate a numeric prefix.  Returns 1 if `c`
  * was part of the in-progress prefix (digit, another C-u, or C-g cancel)
  * and the caller should stop processing this key.  Returns 0 if `c` is a
@@ -22,6 +26,8 @@ static int handle_universal_arg(int c)
 
 	if (c == CTRL_U) {
 		editor.prefix_arg *= 4;
+		if (editor.prefix_arg > PREFIX_ARG_MAX)
+			editor.prefix_arg = PREFIX_ARG_MAX;
 		editor_set_status_message("C-u %d", editor.prefix_arg);
 		return 1;
 	}
@@ -33,6 +39,8 @@ static int handle_universal_arg(int c)
 		} else {
 			editor.prefix_arg = editor.prefix_arg * 10 + digit;
 		}
+		if (editor.prefix_arg > PREFIX_ARG_MAX)
+			editor.prefix_arg = PREFIX_ARG_MAX;
 		editor_set_status_message("C-u %d", editor.prefix_arg);
 		return 1;
 	}
