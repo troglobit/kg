@@ -123,9 +123,13 @@ static int parse_escape(int fd)
 			if (read(fd, seq+2, 1) == 0) return ESC;
 			if (seq[2] == '~') {
 				switch (seq[1]) {
+				case '1': return HOME_KEY;       /* VT220 Home */
 				case '3': return DEL_KEY;
+				case '4': return END_KEY;        /* VT220 End */
 				case '5': return PAGE_UP;
 				case '6': return PAGE_DOWN;
+				case '7': return HOME_KEY;       /* rxvt Home */
+				case '8': return END_KEY;        /* rxvt End */
 				}
 			} else if (seq[2] >= '0' && seq[2] <= '9') {
 				/* Two-digit: ESC[<d1><d2>~ (F1=ESC[11~ .. F10=ESC[21~) */
@@ -196,6 +200,36 @@ static int parse_escape(int fd)
 					if (seq[1] == '5' && seq[3] == '5') return CTRL_PAGE_UP;
 					if (seq[1] == '6' && seq[3] == '5') return CTRL_PAGE_DOWN;
 				}
+			} else if (seq[2] == '$' || seq[2] == '^' || seq[2] == '@') {
+				/* rxvt keypad modifiers: $ Shift, ^ Ctrl, @ Ctrl+Shift.
+				 * Combos kg has no key for (Ctrl+Shift on the Page keys,
+				 * Ctrl or Ctrl+Shift on Delete/Insert) fall through to
+				 * ESC. */
+				switch (seq[1]) {
+				case '2': /* Insert */
+					if (seq[2] == '$') return SHIFT_INSERT;
+					if (seq[2] == '^') return CTRL_INSERT;
+					break;
+				case '3': /* Delete */
+					if (seq[2] == '$') return SHIFT_DELETE;
+					break;
+				case '5': /* Page Up */
+					if (seq[2] == '$') return SHIFT_PAGE_UP;
+					if (seq[2] == '^') return CTRL_PAGE_UP;
+					break;
+				case '6': /* Page Down */
+					if (seq[2] == '$') return SHIFT_PAGE_DOWN;
+					if (seq[2] == '^') return CTRL_PAGE_DOWN;
+					break;
+				case '7': /* Home */
+					if (seq[2] == '$') return SHIFT_HOME;
+					if (seq[2] == '^') return CTRL_HOME;
+					return CTRL_SHIFT_HOME;
+				case '8': /* End */
+					if (seq[2] == '$') return SHIFT_END;
+					if (seq[2] == '^') return CTRL_END;
+					return CTRL_SHIFT_END;
+				}
 			}
 		} else {
 			switch (seq[1]) {
@@ -205,6 +239,14 @@ static int parse_escape(int fd)
 			case 'D': return ARROW_LEFT;
 			case 'H': return HOME_KEY;
 			case 'F': return END_KEY;
+			/* rxvt sends Shift+arrows as CSI lowercase letters; Ctrl
+			 * uses the SS3 form (ESC O a-d) below.  It has no distinct
+			 * Ctrl+Shift+arrow -- that sends the same lowercase bytes as
+			 * plain Shift -- so only Shift is decoded here. */
+			case 'a': return SHIFT_ARROW_UP;
+			case 'b': return SHIFT_ARROW_DOWN;
+			case 'c': return SHIFT_ARROW_RIGHT;
+			case 'd': return SHIFT_ARROW_LEFT;
 			}
 		}
 	/* ESC O sequences */
@@ -216,6 +258,11 @@ static int parse_escape(int fd)
 		case 'Q': return KEY_F2;
 		case 'R': return KEY_F3;
 		case 'S': return KEY_F4;
+		/* rxvt sends Ctrl+arrows as SS3 lowercase letters. */
+		case 'a': return CTRL_ARROW_UP;
+		case 'b': return CTRL_ARROW_DOWN;
+		case 'c': return CTRL_ARROW_RIGHT;
+		case 'd': return CTRL_ARROW_LEFT;
 		}
 	}
 	return ESC;

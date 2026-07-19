@@ -1,0 +1,11 @@
+name: home-end-long-line
+filename: longline.txt
+dimensions: [10, 20]
+initial: |
+  abcdefghijklmnopqrstuvwxyz0123456789
+keys:
+  - End
+  - SPC
+  - "9"
+expected_saved: |
+  abcdefghijklmnopqrstuvwxyz0123456789 9
