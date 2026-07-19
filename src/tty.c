@@ -8,6 +8,8 @@ void disable_raw_mode(int fd)
 {
 	/* Don't even check the return value as it's too late. */
 	if (editor.rawmode) {
+		/* Back to the normal screen; restores the shell's scrollback. */
+		tty_write("\x1b[?1049l", 8);
 		tcsetattr(fd, TCSAFLUSH, &orig_termios);
 		editor.rawmode = 0;
 	}
@@ -16,9 +18,11 @@ void disable_raw_mode(int fd)
 /* Called at exit to avoid remaining in raw mode. */
 void editor_at_exit(void)
 {
-	/* Clear screen and reset cursor position before exiting. */
-	tty_write("\x1b[2J", 4);  /* Clear entire screen */
-	tty_write("\x1b[H", 3);   /* Move cursor to top-left */
+	/* Clear screen and home the cursor: a fallback for terminals
+	 * without alternate-screen support; on the rest disable_raw_mode()
+	 * restores the shell's content anyway. */
+	tty_write("\x1b[2J", 4);
+	tty_write("\x1b[H", 3);
 
 	disable_raw_mode(STDIN_FILENO);
 }
@@ -51,6 +55,12 @@ int enable_raw_mode(int fd)
 	/* put terminal in raw mode after flushing */
 	if (tcsetattr(fd, TCSAFLUSH, &raw) < 0) goto fatal;
 	editor.rawmode = 1;
+
+	/* Switch to the alternate screen, like other full-screen editors.
+	 * Besides preserving the shell's scrollback, this makes VTE-based
+	 * terminals (gnome-terminal, ...) forward shift-modified arrow
+	 * keys to the editor instead of scrolling the scrollback. */
+	tty_write("\x1b[?1049h", 8);
 	return 0;
 
 fatal:
@@ -416,8 +426,8 @@ void handle_sig_winch(int unused __attribute__((unused)))
  * re-enable raw mode and redraw when resumed with fg. */
 void editor_suspend(void)
 {
-	disable_raw_mode(STDIN_FILENO);
-	tty_write("\x1b[2J\x1b[H", 7); /* clear screen, cursor home */
+	tty_write("\x1b[2J\x1b[H", 7); /* fallback for non-alt-screen terminals */
+	disable_raw_mode(STDIN_FILENO); /* also leaves the alternate screen */
 	raise(SIGTSTP);
 	/* Execution resumes here when the shell sends SIGCONT (fg). */
 	enable_raw_mode(STDIN_FILENO);

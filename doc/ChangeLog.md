@@ -6,6 +6,12 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- kg now runs on the terminal's alternate screen, like other full-screen
+  editors: the shell's content and scrollback come back intact on exit and
+  suspend.  This is also what makes VTE-based terminals (gnome-terminal and
+  friends) deliver shift-modified arrow keys to the editor instead of
+  scrolling the scrollback.
+
 - C-x 2 and C-x 3 now split only the current window, like in GNU Emacs: C-x 2
   into an upper and a lower half, C-x 3 into a left and a right half.  Other
   windows are not disturbed, so stacked and side-by-side layouts mix freely.
