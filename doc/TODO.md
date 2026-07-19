@@ -147,12 +147,23 @@ ordered by value vs implementation effort.
 
 - [ ] **Regex search**, or at least a case-sensitivity toggle in
       isearch.  Right now isearch is literal-only and case-sensitive.
+      The default should match GNU Emacs, which I believe is insensitive.
 
 - [x] **Verify `M-d` kill-word forward and `M-DEL` kill-word backward**:
       Pair with `M-f`/`M-b` that already exist; add if missing.
 
 - [ ] **Toggle line numbers**: `M-x linum-mode` or similar.  Frequent
       ask, low cost.
+
+- [ ] *:*Reflow in Markdown lists**: Pressing M-q in a Markdown list of,
+      that does not have extra line breaks between items, cause the full
+      list to be reflowed instead of just the given item.  Note, my take
+      on indented lists are; that continuation lines should be indented
+      to the same depth as the text following the bullet/number on the
+      first line of the item.
+
+- [ ] **Reflow C/C++ comments**: tricky one, but highly useful when
+      doing quick fixes.  Similar in spirit as the Markdown list reflow.
 
 - [ ] **Minimal config file**: `~/.kgrc` (flat `key=value`, no Lisp)
       for things like `tab-width`, `indent-tabs-mode`, `make-backup-files`,
