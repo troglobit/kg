@@ -1,0 +1,19 @@
+name: isearch-reverse-no-straddle
+filename: utf8.txt
+backend: pexpect
+oracle_backend: tmux
+startup_delay: 1.0
+key_delay: 0.1
+initial: |
+  éabcabc
+keys:
+  - C-f
+  - C-f
+  - C-f
+  - C-f
+  - C-f
+  - C-r
+  - abc
+  - ENTER
+  - X
+oracle: emacs

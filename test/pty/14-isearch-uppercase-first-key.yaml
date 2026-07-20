@@ -1,0 +1,13 @@
+name: isearch-uppercase-first-key-is-case-sensitive
+filename: sample.txt
+initial: |
+  start
+  mixed
+keys:
+  - C-s
+  - M
+  - C-a
+  - X
+expected_saved: |
+  Xstart
+  mixed

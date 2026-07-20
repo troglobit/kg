@@ -1,0 +1,21 @@
+name: query-replace-smart-case
+filename: sample.txt
+backend: tmux
+initial: |
+  MixedCaseText
+  lowercaseonly
+keys:
+  - M-%
+  - mixed
+  - RET
+  - replaced
+  - RET
+  - y
+  - M-%
+  - LOWER
+  - RET
+  - replaced2
+  - RET
+expected_saved: |
+  replacedCaseText
+  lowercaseonly

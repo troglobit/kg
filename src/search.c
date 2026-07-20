@@ -12,25 +12,63 @@
 	} \
 } while (0)
 
-/* Rightmost occurrence of needle in s that starts strictly before `before`,
- * so a repeated reverse search steps to the previous match on the line. */
-static char *isearch_find_last_before(const char *s, const char *needle,
-				      int before, int qlen)
+/* Smart case: an all-lowercase query folds case, a query with any uppercase
+ * letter searches case-sensitively, like GNU Emacs. */
+static int query_has_upper(const char *q, int qlen)
 {
 	int i;
 
-	for (i = before - 1; i >= 0; i--) {
-		if (strncmp(s + i, needle, qlen) == 0)
-			return (char *)s + i;
+	for (i = 0; i < qlen; i++)
+		if (isupper((unsigned char)q[i]))
+			return 1;
+	return 0;
+}
+
+/* strstr, optionally folding case. */
+static char *case_strstr(const char *hay, const char *needle, int fold)
+{
+	if (!fold)
+		return strstr(hay, needle);
+	if (!*needle)
+		return (char *)hay;
+
+	for (; *hay; hay++) {
+		const char *h = hay, *n = needle;
+
+		while (*h && *n &&
+		       tolower((unsigned char)*h) == tolower((unsigned char)*n)) {
+			h++;
+			n++;
+		}
+		if (!*n)
+			return (char *)hay;
 	}
 	return NULL;
+}
+
+/* Rightmost occurrence of needle whose end falls at or before `limit`, so a
+ * reverse search lands on the match before point (not one straddling it) and
+ * repeats step backward, like GNU Emacs. */
+static char *isearch_find_last_before(const char *s, const char *needle,
+				      int limit, int qlen, int fold)
+{
+	char *best = NULL;
+	char *match = (char *)s;
+
+	while ((match = case_strstr(match, needle, fold)) != NULL) {
+		if (match - s + qlen > limit)
+			break;
+		best = match;
+		match++;
+	}
+	return best;
 }
 
 /* Scan the rows from (start_row, start_col) in `direction`, wrapping once
  * through the buffer, for `query`.  On a hit fills *match_row/_col/_len and
  * returns 1; returns 0 when nothing matches.  Columns index row->render. */
 static int isearch_find_match(int start_row, int start_col, int direction,
-			      const char *query, int qlen,
+			      const char *query, int qlen, int fold,
 			      int *match_row, int *match_col, int *match_len)
 {
 	int current, i;
@@ -49,9 +87,9 @@ static int isearch_find_match(int start_row, int start_col, int direction,
 		else if (col > row->rsize) col = row->rsize;
 
 		if (direction > 0)
-			match = strstr(row->render + col, query);
+			match = case_strstr(row->render + col, query, fold);
 		else
-			match = isearch_find_last_before(row->render, query, col, qlen);
+			match = isearch_find_last_before(row->render, query, col, qlen, fold);
 
 		if (match) {
 			*match_row = current;
@@ -201,6 +239,7 @@ void editor_find(int fd, int direction)
 		if (find_next) {
 			int current = start_row, col = start_col;
 			int match_row, match_col, match_len;
+			int fold = !query_has_upper(query, qlen);
 
 			/* Repeat from just past the last hit; a fresh query
 			 * (last_match_row == -1) restarts from point. */
@@ -213,7 +252,7 @@ void editor_find(int fd, int direction)
 			/* Highlight */
 			RESTORE_HL;
 
-			if (isearch_find_match(current, col, direction, query, qlen,
+			if (isearch_find_match(current, col, direction, query, qlen, fold,
 					       &match_row, &match_col, &match_len)) {
 				erow *row = &editor.row[match_row];
 
@@ -241,7 +280,7 @@ void editor_query_replace(int fd)
 	char replace[KILO_QUERY_LEN+1] = {0};
 	char *saved_hl = NULL;
 	int saved_hl_line = -1;
-	int slen, rlen;
+	int slen, rlen, fold;
 	int filerow, match_col;
 	int count = 0, replace_all = 0;
 
@@ -252,11 +291,12 @@ void editor_query_replace(int fd)
 
 	slen = strlen(search);
 	rlen = strlen(replace);
+	fold = !query_has_upper(search, slen);
 	filerow   = editor.rowoff + editor.cy;
 	match_col = editor.coloff + editor.cx;
 
 	while (filerow < editor.numrows) {
-		char *match = strstr(editor.row[filerow].chars + match_col, search);
+		char *match = case_strstr(editor.row[filerow].chars + match_col, search, fold);
 		int c;
 
 		if (!match) {
@@ -304,12 +344,18 @@ void editor_query_replace(int fd)
 
 		if (c == 'y' || c == ENTER) {
 			erow *row = &editor.row[filerow];
+			char matched[KILO_QUERY_LEN + 1];
 			int i;
 
-			/* Push two undo entries so C-_ fully reverses the replacement:
-			 * YANK_TEXT is popped first and deletes the inserted replacement;
-			 * KILL_TEXT is popped second and reinserts the original search text. */
-			undo_push(UNDO_KILL_TEXT, filerow, match_col, 0, search, slen);
+			/* Record the text actually matched, not the query: under
+			 * case folding they differ, and undo must restore what was
+			 * really there. */
+			memcpy(matched, row->chars + match_col, slen);
+			matched[slen] = '\0';
+
+			/* Undo in two steps: YANK_TEXT (popped first) deletes the
+			 * inserted replacement, then KILL_TEXT restores the original. */
+			undo_push(UNDO_KILL_TEXT, filerow, match_col, 0, matched, slen);
 			undo_push(UNDO_YANK_TEXT, filerow, match_col, 0, replace, rlen);
 
 			suppress_undo = 1;

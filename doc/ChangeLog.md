@@ -15,6 +15,10 @@ All relevant changes to the project are documented in this file.
   C-r now searches backward from point rather than always scanning
   forward from the top.  From Björn Dahlgren's fork.
 
+- Incremental search and query-replace fold case for an all-lowercase
+  query and match exactly once the query contains an uppercase letter,
+  like GNU Emacs.  From Björn Dahlgren's fork.
+
 - Files round-trip byte for byte.  A file without a final newline keeps
   it that way through a save, and a file ending in a newline shows a
   trailing empty line, like GNU Emacs; kg no longer forces a trailing

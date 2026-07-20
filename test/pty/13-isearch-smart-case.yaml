@@ -1,0 +1,19 @@
+name: isearch-smart-case
+filename: sample.txt
+backend: tmux
+initial: |
+  MixedCaseText
+  lowercaseonly
+keys:
+  - C-s
+  - mixed
+  - C-a
+  - X
+  - C-n
+  - C-s
+  - LOWER
+  - C-a
+  - Y
+expected_saved: |
+  XMixedCaseText
+  Ylowercaseonly
