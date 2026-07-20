@@ -6,6 +6,15 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- Incremental search behaves more like GNU Emacs.  The view holds still
+  while the match is on screen and only recentres once it scrolls off,
+  instead of yanking every hit to the top of the window.  A motion key
+  pressed mid-search (C-a, C-f, M-f, M-<, ...) ends the search and runs,
+  leaving point on the match — at its end searching forward, its start
+  searching back — and C-Space ends the search with the mark set there.
+  C-r now searches backward from point rather than always scanning
+  forward from the top.  From Björn Dahlgren's fork.
+
 - Files round-trip byte for byte.  A file without a final newline keeps
   it that way through a save, and a file ending in a newline shows a
   trailing empty line, like GNU Emacs; kg no longer forces a trailing

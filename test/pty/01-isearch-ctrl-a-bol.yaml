@@ -1,0 +1,16 @@
+name: isearch-ctrl-a-bol
+filename: sample.txt
+backend: pexpect
+oracle_backend: tmux
+startup_delay: 1.0
+key_delay: 0.1
+initial: |
+  abc
+  def
+  ghi
+keys:
+  - C-s
+  - ef
+  - C-a
+  - X
+oracle: emacs

@@ -1,0 +1,14 @@
+name: isearch-handoff-alt-gt
+filename: handoff.txt
+initial: |
+  abcdefghi
+  second line
+keys:
+  - C-s
+  - def
+  - M->
+  - X
+expected_saved: |-
+  abcdefghi
+  second line
+  X

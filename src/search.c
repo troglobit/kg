@@ -12,16 +12,155 @@
 	} \
 } while (0)
 
-void editor_find(int fd)
+/* Rightmost occurrence of needle in s that starts strictly before `before`,
+ * so a repeated reverse search steps to the previous match on the line. */
+static char *isearch_find_last_before(const char *s, const char *needle,
+				      int before, int qlen)
+{
+	int i;
+
+	for (i = before - 1; i >= 0; i--) {
+		if (strncmp(s + i, needle, qlen) == 0)
+			return (char *)s + i;
+	}
+	return NULL;
+}
+
+/* Scan the rows from (start_row, start_col) in `direction`, wrapping once
+ * through the buffer, for `query`.  On a hit fills *match_row/_col/_len and
+ * returns 1; returns 0 when nothing matches.  Columns index row->render. */
+static int isearch_find_match(int start_row, int start_col, int direction,
+			      const char *query, int qlen,
+			      int *match_row, int *match_col, int *match_len)
+{
+	int current, i;
+
+	if (editor.numrows == 0 || qlen == 0) return 0;
+	if (start_row < 0) start_row = 0;
+	else if (start_row >= editor.numrows) start_row = editor.numrows - 1;
+
+	current = start_row;
+	for (i = 0; i < editor.numrows; i++) {
+		erow *row = &editor.row[current];
+		int col = (i == 0) ? start_col : (direction > 0 ? 0 : row->rsize);
+		char *match;
+
+		if (col < 0) col = 0;
+		else if (col > row->rsize) col = row->rsize;
+
+		if (direction > 0)
+			match = strstr(row->render + col, query);
+		else
+			match = isearch_find_last_before(row->render, query, col, qlen);
+
+		if (match) {
+			*match_row = current;
+			*match_col = match - row->render;
+			*match_len = qlen;
+			return 1;
+		}
+
+		current += direction;
+		if (current < 0) current = editor.numrows - 1;
+		else if (current == editor.numrows) current = 0;
+	}
+	return 0;
+}
+
+/* A motion or set-mark command typed during incremental search ends the
+ * search and runs from the match, the way Emacs hands off to the command
+ * instead of beeping.  Returns 1 if c was such a key, 0 otherwise.  These
+ * motions mirror editor_process_keypress(); keep the two in step. */
+static int isearch_handoff_key(int c)
+{
+	switch (c) {
+	case KEY_NULL:            /* C-SPC: set mark, leave point at the match */
+		editor_set_mark();
+		return 1;
+	case CTRL_A:
+	case HOME_KEY:
+		editor_move_cursor(HOME_KEY);
+		break;
+	case CTRL_E:
+	case END_KEY:
+		editor_move_cursor(END_KEY);
+		break;
+	case CTRL_B:
+		editor_move_cursor(ARROW_LEFT);
+		break;
+	case CTRL_F:
+		editor_move_cursor(ARROW_RIGHT);
+		break;
+	case CTRL_N:
+		editor_move_cursor(ARROW_DOWN);
+		break;
+	case CTRL_P:
+		editor_move_cursor(ARROW_UP);
+		break;
+	case CTRL_D:
+		editor_del_forward_char();
+		break;
+	case CTRL_HOME:
+	case CTRL_PAGE_UP:
+	case ALT_LT:
+		editor_move_to_beginning();
+		break;
+	case CTRL_END:
+	case CTRL_PAGE_DOWN:
+	case ALT_GT:
+		editor_move_to_end();
+		break;
+	case ALT_B:
+	case CTRL_ARROW_LEFT:
+		editor_move_word_backward();
+		break;
+	case ALT_F:
+	case CTRL_ARROW_RIGHT:
+		editor_move_word_forward();
+		break;
+	case ALT_M:
+		editor_move_to_indentation();
+		break;
+	case ALT_A:
+		editor_move_sentence_backward();
+		break;
+	case ALT_E:
+		editor_move_sentence_forward();
+		break;
+	case ALT_LBRACE:
+	case CTRL_ARROW_UP:
+		editor_move_paragraph_backward();
+		break;
+	case ALT_RBRACE:
+	case CTRL_ARROW_DOWN:
+		editor_move_paragraph_forward();
+		break;
+	default:
+		return 0;
+	}
+	editor_set_status_message("");
+	return 1;
+}
+
+void editor_find(int fd, int direction)
 {
 	char query[KILO_QUERY_LEN+1] = {0};
 	int saved_cx = editor.cx, saved_cy = editor.cy;
 	int saved_coloff = editor.coloff, saved_rowoff = editor.rowoff;
-	int last_match = -1; /* Last line where a match was found. -1 for none. */
+	int start_row = editor.rowoff + editor.cy;
+	int start_col = 0;
+	int last_match_row = -1, last_match_col = -1;
 	int saved_hl_line = -1;  /* No saved HL */
 	int find_next = 0; /* if 1 search next, if -1 search prev. */
 	char *saved_hl = NULL;
 	int qlen = 0;
+
+	/* Anchor the search at point so a fresh query, and reverse search in
+	 * particular, starts where the cursor is rather than at the top.  The
+	 * scan indexes row->render, so anchor in render columns too. */
+	if (start_row >= 0 && start_row < editor.numrows)
+		start_col = chars_to_render_col(&editor.row[start_row],
+						editor.coloff + editor.cx);
 
 	while (1) {
 		int c;
@@ -32,7 +171,8 @@ void editor_find(int fd)
 		c = editor_read_key(fd);
 		if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
 			if (qlen != 0) query[--qlen] = '\0';
-			last_match = -1;
+			last_match_row = last_match_col = -1;
+			find_next = direction;
 		} else if (c == ESC || c == ENTER || c == CTRL_G) {
 			if (c == ESC) {
 				editor.cx = saved_cx; editor.cy = saved_cy;
@@ -42,59 +182,54 @@ void editor_find(int fd)
 			editor_set_status_message("");
 			return;
 		} else if (c == ARROW_RIGHT || c == ARROW_DOWN || c == CTRL_S) {
-			find_next = 1;
+			direction = find_next = 1;
 		} else if (c == ARROW_LEFT || c == ARROW_UP || c == CTRL_R) {
-			find_next = -1;
+			direction = find_next = -1;
 		} else if (isprint(c)) {
 			if (qlen < KILO_QUERY_LEN) {
 				query[qlen++] = c;
 				query[qlen] = '\0';
-				last_match = -1;
+				last_match_row = last_match_col = -1;
+				find_next = direction;
 			}
+		} else if (isearch_handoff_key(c)) {
+			RESTORE_HL;
+			return;
 		}
 
 		/* Search occurrence. */
-		if (last_match == -1) find_next = 1;
 		if (find_next) {
-			char *match = NULL;
-			int current = last_match;
-			int match_offset = 0;
-			int i;
+			int current = start_row, col = start_col;
+			int match_row, match_col, match_len;
 
-			for (i = 0; i < editor.numrows; i++) {
-				current += find_next;
-				if (current == -1) current = editor.numrows - 1;
-				else if (current == editor.numrows) current = 0;
-				match = strstr(editor.row[current].render, query);
-				if (match) {
-					match_offset = match - editor.row[current].render;
-					break;
-				}
+			/* Repeat from just past the last hit; a fresh query
+			 * (last_match_row == -1) restarts from point. */
+			if (last_match_row != -1) {
+				current = last_match_row;
+				col = last_match_col + (direction > 0 ? 1 : 0);
 			}
 			find_next = 0;
 
 			/* Highlight */
 			RESTORE_HL;
 
-			if (match) {
-				erow *row = &editor.row[current];
-				last_match = current;
+			if (isearch_find_match(current, col, direction, query, qlen,
+					       &match_row, &match_col, &match_len)) {
+				erow *row = &editor.row[match_row];
+
+				last_match_row = match_row;
+				last_match_col = match_col;
 				if (row->hl) {
-					saved_hl_line = current;
+					saved_hl_line = match_row;
 					saved_hl = malloc(row->rsize);
 					memcpy(saved_hl, row->hl, row->rsize);
-					memset(row->hl+match_offset, HL_MATCH, qlen);
+					memset(row->hl + match_col, HL_MATCH, match_len);
 				}
-				editor.cy = 0;
-				editor.cx = match_offset;
-				editor.rowoff = current;
-				editor.coloff = 0;
-				/* Scroll horizontally as needed. */
-				if (editor.cx > editor.screencols) {
-					int diff = editor.cx - editor.screencols;
-					editor.cx -= diff;
-					editor.coloff += diff;
-				}
+				/* Land point at the far end of the match in the
+				 * search direction: end when going forward, start
+				 * when going back, like Emacs isearch. */
+				editor_reveal_position_centered(match_row,
+				    match_col + (direction > 0 ? match_len : 0));
 			}
 		}
 	}

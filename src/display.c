@@ -63,7 +63,7 @@ static void ab_append_spaces(struct abuf *ab, int n) { ab_fill(ab, ' ', n); }
 /* Convert a `chars`-column index to its rendered (post-tab-expansion)
  * column on the same row, matching editor_update_row's expansion rule
  * (each TAB widens to the next 8-column stop). */
-static int chars_to_render_col(erow *row, int chars_col)
+int chars_to_render_col(erow *row, int chars_col)
 {
 	int j, idx = 0;
 

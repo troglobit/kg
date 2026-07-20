@@ -102,6 +102,37 @@ void editor_cursor_goto(int row, int col)
 	}
 }
 
+/* Reveal (row, col) the way incremental search wants it: if the target is
+ * already on screen leave the viewport alone, so the eye isn't yanked around
+ * on every keystroke; only when it falls outside the window do we recentre on
+ * it.  Cursor lands on the target either way.  col is a render column (into
+ * row->render), unlike editor_cursor_goto's chars offset. */
+void editor_reveal_position_centered(int row, int col)
+{
+	if (row < 0) row = 0;
+	if (col < 0) col = 0;
+
+	if (row < editor.rowoff || row >= editor.rowoff + editor.screenrows) {
+		int max_rowoff = editor.numrows - editor.screenrows;
+
+		editor.rowoff = row - editor.screenrows / 2;
+		if (max_rowoff < 0) max_rowoff = 0;
+		if (editor.rowoff > max_rowoff) editor.rowoff = max_rowoff;
+		if (editor.rowoff < 0) editor.rowoff = 0;
+	}
+	editor.cy = row - editor.rowoff;
+	if (editor.cy < 0) editor.cy = 0;
+	else if (editor.cy >= editor.screenrows) editor.cy = editor.screenrows - 1;
+
+	if (col < editor.coloff || col >= editor.coloff + editor.screencols) {
+		editor.coloff = col - editor.screencols / 2;
+		if (editor.coloff < 0) editor.coloff = 0;
+	}
+	editor.cx = col - editor.coloff;
+	if (editor.cx < 0) editor.cx = 0;
+	else if (editor.cx >= editor.screencols) editor.cx = editor.screencols - 1;
+}
+
 /* Update the rendered version and the syntax highlight of a row. */
 void editor_update_row(erow *row)
 {

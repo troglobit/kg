@@ -1,0 +1,15 @@
+name: isearch-handoff-set-mark
+filename: handoff.txt
+initial: ""
+keys:
+  - abc
+  - SPC
+  - def
+  - SPC
+  - ghi
+  - C-r
+  - def
+  - C-SPC
+  - M-f
+  - C-w
+expected_saved: "abc  ghi"

@@ -1,0 +1,11 @@
+name: isearch-handoff-ctrl-f
+filename: handoff.txt
+initial: |
+  abcdefghi
+keys:
+  - C-s
+  - def
+  - C-f
+  - X
+expected_saved: |
+  abcdefgXhi

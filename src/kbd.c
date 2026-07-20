@@ -382,11 +382,11 @@ void editor_process_keypress(int fd)
 	case CTRL_P:        /* Previous line */
 		while (n--) editor_move_cursor(ARROW_UP);
 		break;
-	case CTRL_S:        /* Incremental search */
-		editor_find(fd);
+	case CTRL_S:        /* Incremental search forward */
+		editor_find(fd, 1);
 		break;
-	case CTRL_R:        /* Incremental search */
-		editor_find(fd);
+	case CTRL_R:        /* Incremental search backward */
+		editor_find(fd, -1);
 		break;
 	case CTRL_Q: {
 		int key = editor_read_raw_byte(fd);

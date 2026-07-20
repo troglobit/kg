@@ -1,0 +1,11 @@
+name: isearch-handoff-alt-b
+filename: handoff.txt
+initial: |
+  abc def ghi
+keys:
+  - C-s
+  - def
+  - M-b
+  - X
+expected_saved: |
+  abc Xdef ghi

@@ -1,0 +1,16 @@
+name: isearch-utf8-reverse-anchor
+filename: utf8.txt
+backend: pexpect
+oracle_backend: tmux
+startup_delay: 1.0
+key_delay: 0.1
+initial: |
+  éx.x
+keys:
+  - C-f
+  - C-f
+  - C-r
+  - x
+  - ENTER
+  - X
+oracle: emacs

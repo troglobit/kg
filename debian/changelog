@@ -8,6 +8,9 @@ kg (1.2.0-1) unstable; urgency=low
     C-x } and C-x {, and C-x + to balance the window sizes
   * Ctrl+PgUp/PgDn move to beginning/end of buffer
   * F1 opens help, F2 saves, F10 quits
+  * Incremental search holds the view still for on-screen matches and
+    recentres only when off-screen; motion keys and C-Space during a
+    search hand off to the command, and C-r searches backward from point
   * Fix UTF-8 text rendering as garbage in highlighted buffers
 
  -- Joachim Wiberg <troglobit@gmail.com>  Sun, 12 Jul 2026 08:37:49 +0200

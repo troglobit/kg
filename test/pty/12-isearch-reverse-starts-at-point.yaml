@@ -1,0 +1,17 @@
+name: isearch-reverse-starts-at-point
+filename: reverse.txt
+backend: pexpect
+oracle_backend: tmux
+startup_delay: 1.0
+key_delay: 0.1
+initial: |
+  asd
+  asd
+  asd
+keys:
+  - M->
+  - C-r
+  - as
+  - ENTER
+  - X
+oracle: emacs

@@ -439,9 +439,11 @@ void editor_move_to_window_line(void);
 void editor_goto_line_direct(int line, int col);
 void editor_goto_line(int fd);
 void editor_cursor_goto(int row, int col);
+void editor_reveal_position_centered(int row, int col);
 void editor_snap_cx_to_row(void);
 int  editor_visual_col(erow *row, int chars_col);
 int  editor_chars_col_at_visual(erow *row, int target_vcol);
+int  chars_to_render_col(erow *row, int chars_col);
 
 /* buffer.c */
 void editor_update_row(erow *row);
@@ -517,7 +519,7 @@ void macro_stop(int trim);
 void macro_replay(int fd);
 
 /* search.c */
-void editor_find(int fd);
+void editor_find(int fd, int direction);
 void editor_query_replace(int fd);
 
 /* shell.c */

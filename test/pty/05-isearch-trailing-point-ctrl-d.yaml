@@ -1,0 +1,10 @@
+name: isearch-trailing-point-ctrl-d
+filename: trailing.txt
+initial: |
+  abcdefghi
+keys:
+  - C-s
+  - def
+  - C-d
+expected_saved: |
+  abcdefhi
