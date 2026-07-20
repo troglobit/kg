@@ -172,14 +172,16 @@ void editor_undo(void)
 		break;
 
 	case UNDO_JOIN_LINE:
-		/* Reverse: split the line */
-		if (op->row < editor.numrows && op->text) {
+		/* Reverse: split the line.  The joined-away row may have been
+		 * empty (op->text NULL, op->len 0 -- undo_push stores no payload
+		 * for a zero-length string), so re-insert it as "". */
+		if (op->row < editor.numrows) {
 			erow *row;
 			int col = op->col;
 
 			/* Insert new line after current; this realloc's editor.row,
 			 * so fetch the row pointer afterwards. */
-			editor_insert_row(op->row + 1, op->text, op->len);
+			editor_insert_row(op->row + 1, op->text ? op->text : "", op->len);
 			row = &editor.row[op->row];
 			if (col < 0) col = 0;
 			if (col > row->size) col = row->size;
