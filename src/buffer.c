@@ -198,9 +198,14 @@ char *editor_rows_to_string(erow *rows, int numrows, int *buflen)
 	int totlen = 0;
 	int j;
 
-	/* Compute count of bytes */
+	/* Join rows with a newline between them, none after the last: a file
+	 * ending in a newline carries a trailing empty row (see editor_open),
+	 * so the newline is emitted between it and the row above.  This lets a
+	 * file with, or without, a final newline round-trip byte for byte. */
 	for (j = 0; j < numrows; j++)
-		totlen += rows[j].size+1; /* +1 is for "\n" at end of every row */
+		totlen += rows[j].size;
+	if (numrows > 1)
+		totlen += numrows - 1;
 	*buflen = totlen;
 	totlen++; /* Also make space for nulterm */
 
@@ -208,8 +213,8 @@ char *editor_rows_to_string(erow *rows, int numrows, int *buflen)
 	for (j = 0; j < numrows; j++) {
 		memcpy(p, rows[j].chars, rows[j].size);
 		p += rows[j].size;
-		*p = '\n';
-		p++;
+		if (j != numrows - 1)
+			*p++ = '\n';
 	}
 	*p = '\0';
 	return buf;

@@ -38,13 +38,14 @@ static void test_rows_to_string(void)
 
 	s = editor_rows_to_string(editor.row, editor.numrows, &len);
 
-	CHECK(len == 18);   /* (5+1) * 3 */
-	CHECK(memcmp(s, "line1\nline2\nline3\n", 18) == 0);
+	/* Newlines join rows; none is appended after the last. */
+	CHECK(len == 17);   /* 5*3 + 2 joins */
+	CHECK(memcmp(s, "line1\nline2\nline3", 17) == 0);
 	free(s);
 	teardown();
 }
 
-/* Single empty row produces "\n". */
+/* A single empty row is the empty file image (no bytes). */
 static void test_rows_to_string_empty_row(void)
 {
 	char *s;
@@ -55,8 +56,8 @@ static void test_rows_to_string_empty_row(void)
 
 	s = editor_rows_to_string(editor.row, editor.numrows, &len);
 
-	CHECK(len == 1);
-	CHECK(s[0] == '\n');
+	CHECK(len == 0);
+	CHECK(s[0] == '\0');
 	free(s);
 	teardown();
 }

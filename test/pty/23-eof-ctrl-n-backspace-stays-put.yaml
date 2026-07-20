@@ -1,0 +1,8 @@
+name: eof-ctrl-n-backspace-stays-put
+filename: eof-down-backspace.txt
+initial: ""
+keys:
+  - xyz
+  - C-n
+  - C-?
+expected_saved: "xy"

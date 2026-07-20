@@ -6,6 +6,11 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- Files round-trip byte for byte.  A file without a final newline keeps
+  it that way through a save, and a file ending in a newline shows a
+  trailing empty line, like GNU Emacs; kg no longer forces a trailing
+  newline onto a file that had none.  From Björn Dahlgren's fork.
+
 - Lines past the end of the buffer traditionally carrying a leading "~", this
   can now be disabled at build-time, to make kg resemble GNU Emacs.  Build
   with `make KG_SHOW_TILDE=0` to disable.  From Björn Dahlgren's fork.

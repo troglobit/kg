@@ -1,0 +1,8 @@
+name: backspace-join-long-line-repeat
+filename: backspace-join-long-line-repeat.txt
+initial: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nb"
+keys:
+  - C-n
+  - C-?
+  - C-?
+expected_saved: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"

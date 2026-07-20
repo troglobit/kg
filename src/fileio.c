@@ -40,6 +40,7 @@ int editor_open(char *filename)
 	size_t fnlen = strlen(filename) + 1;
 	char *line = NULL;
 	FILE *fp;
+	int ended_with_newline = 0;
 
 	editor.dirty = 0;
 	free(editor.filename);
@@ -57,10 +58,17 @@ int editor_open(char *filename)
 	}
 
 	while ((linelen = getline(&line, &linecap, fp)) != -1) {
-		if (linelen && (line[linelen-1] == '\n' || line[linelen-1] == '\r'))
+		ended_with_newline = 0;
+		if (linelen && (line[linelen-1] == '\n' || line[linelen-1] == '\r')) {
 			line[--linelen] = '\0';
+			ended_with_newline = 1;
+		}
 		editor_insert_row(editor.numrows, line, linelen);
 	}
+	/* A file ending in a newline has a trailing empty line, like GNU
+	 * Emacs; represent it as an empty row so the newline round-trips. */
+	if (ended_with_newline)
+		editor_insert_row(editor.numrows, "", 0);
 	free(line);
 	fclose(fp);
 	editor.dirty = 0;

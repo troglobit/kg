@@ -1,0 +1,8 @@
+name: eof-ctrl-f-backspace-stays-put
+filename: eof-right-backspace.txt
+initial: ""
+keys:
+  - pqr
+  - C-f
+  - C-?
+expected_saved: "pq"

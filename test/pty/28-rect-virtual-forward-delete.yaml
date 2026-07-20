@@ -1,0 +1,12 @@
+name: rect-virtual-forward-delete
+filename: rect-virtual-forward-delete.txt
+initial: "abcdefghijk"
+keys:
+  - C-e
+  - C-x
+  - SPC
+  - C-f
+  - C-d
+  - C-g
+  - Z
+expected_saved: "abcdefghijkZ"

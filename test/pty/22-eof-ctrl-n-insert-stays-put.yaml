@@ -1,0 +1,8 @@
+name: eof-ctrl-n-insert-stays-put
+filename: eof-down-insert.txt
+initial: ""
+keys:
+  - abc
+  - C-n
+  - def
+expected_saved: "abcdef"

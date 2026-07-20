@@ -1,0 +1,23 @@
+name: home-end-keys
+filename: homeend.txt
+initial: |
+  hello world
+  foo bar baz
+  third line here
+keys:
+  - C-n
+  - End
+  - X
+  - C-p
+  - Home
+  - Y
+  - C-n
+  - C-Home
+  - Z
+  - C-End
+  - W
+expected_saved: |-
+  ZYhello world
+  foo bar bazX
+  third line here
+  W

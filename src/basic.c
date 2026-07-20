@@ -105,7 +105,8 @@ void editor_move_cursor(int key)
 				editor.coloff++;
 			else
 				editor.cx += 1;
-		} else if (row && filecol == row->size) {
+		} else if (row && filecol == row->size
+		           && filerow < editor.numrows - 1) {
 			editor.cx = 0;
 			editor.coloff = 0;
 			if (editor.cy == editor.screenrows - 1) {
@@ -123,7 +124,7 @@ void editor_move_cursor(int key)
 		}
 		break;
 	case ARROW_DOWN:
-		if (filerow < editor.numrows) {
+		if (filerow < editor.numrows - 1) {
 			if (editor.cy == editor.screenrows - 1) {
 				editor.rowoff++;
 			} else {

@@ -1,0 +1,14 @@
+name: forward-delete-after-mark-exchange
+filename: forward-delete-after-mark-exchange.txt
+initial: "a\nbbbb"
+keys:
+  - C-f
+  - C-SPC
+  - C-a
+  - C-d
+  - C-x
+  - C-x
+  - ESC
+  - C-h
+  - C-d
+expected_saved: "\nbbbb"

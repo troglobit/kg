@@ -1,0 +1,12 @@
+name: left-scroll-bol-previous-line
+filename: left-scroll-bol.txt
+initial: "\n\n\n\n\n\naaa"
+key_delay: 0.25
+keys:
+  - C-n
+  - C-l
+  - C-l
+  - C-b
+  - C-p
+  - Z
+expected_saved: "Z\n\n\n\n\n\naaa"
