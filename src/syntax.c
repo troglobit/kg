@@ -802,7 +802,10 @@ void editor_update_syntax(erow *row)
 	int i = 0; /* Current char offset */
 
 	row->hl = realloc(row->hl, row->rsize);
-	memset(row->hl, HL_NORMAL, row->rsize);
+	/* An empty row has rsize 0; realloc may hand back NULL, and
+	 * memset(NULL, ..., 0) is undefined even for a zero count. */
+	if (row->rsize)
+		memset(row->hl, HL_NORMAL, row->rsize);
 
 	if (editor.syntax == NULL) return; /* No syntax, everything is HL_NORMAL. */
 
