@@ -272,6 +272,7 @@ struct editor_config {
 	off_t disk_size;    /* size of `filename` when we last read/wrote it. */
 	int disk_changed;   /* Set by the auto-revert poll when disk differs. */
 	int auto_revert;    /* Per-buffer auto-revert toggle. */
+	int backed_up;      /* 1 once a foo~ backup was made this visit. */
 	int fill_column;    /* Column M-q reflows to; set with C-x f. */
 };
 
@@ -354,6 +355,7 @@ struct editor_buffer {
 	off_t disk_size;
 	int disk_changed;
 	int auto_revert;
+	int backed_up;
 	int fill_column;
 };
 
@@ -367,6 +369,7 @@ extern struct editor_buffer buflist[MAX_BUFFERS];
 extern int buf_current; /* index into buflist[] of the active buffer */
 extern int buf_count;   /* number of active buffers */
 extern int global_auto_revert; /* Default auto-revert flag for all buffers. */
+extern int make_backup_files;  /* Write a foo~ backup on first save of a visit. */
 
 extern struct editor_window winlist[MAX_WINDOWS];
 extern int win_current;     /* index into winlist[] of the active window */

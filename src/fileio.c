@@ -43,6 +43,7 @@ int editor_open(char *filename)
 	int ended_with_newline = 0;
 
 	editor.dirty = 0;
+	editor.backed_up = 0;
 	free(editor.filename);
 	editor.filename = malloc(fnlen);
 	memcpy(editor.filename, filename, fnlen);
@@ -82,18 +83,23 @@ int editor_open(char *filename)
  * it, flush it to disk, then rename it over the target -- so a reader
  * only ever sees the old file or the complete new one, and a failed or
  * short write can't truncate the original.  A symlinked path is resolved
- * so the real file is replaced with the link left pointing at it.
+ * so the real file is replaced with the link left pointing at it.  When
+ * `backup` is set, the file being replaced is first renamed to path~; that
+ * leaves the target briefly absent, so the strict old-or-new guarantee above
+ * holds only on the plain path.
  * Returns 0 on success, -1 on error with errno set.
  *
  * The rename gives the saved file a new inode, so hard links to the
  * original are not followed and setuid/setgid/sticky bits are dropped. */
-static int write_file_atomic(const char *path, const char *buf, int len)
+static int write_file_atomic(const char *path, const char *buf, int len, int backup)
 {
 	char real[PATH_MAX];
 	char tmp[PATH_MAX];
+	char bpath[PATH_MAX];
 	struct stat st;
 	const char *target = path;
 	int have_meta = 0;
+	int do_backup;
 	int tmpfd;
 	char *slash;
 	int off;
@@ -111,6 +117,7 @@ static int write_file_atomic(const char *path, const char *buf, int len)
 			have_meta = 1;
 		}
 	}
+	do_backup = backup && have_meta;
 
 	/* Temp file beside the target, on the same filesystem so the rename
 	 * is atomic. */
@@ -162,7 +169,21 @@ static int write_file_atomic(const char *path, const char *buf, int len)
 		tmpfd = -1;
 		goto fail;
 	}
+	/* When asked, preserve the file being replaced as path~ (Emacs-style
+	 * make-backup-files).  Renaming keeps the original's metadata on the
+	 * backup; if the final rename fails, put it back so the target is
+	 * never left missing. */
+	if (do_backup) {
+		if (snprintf(bpath, sizeof(bpath), "%s~", target) >= (int)sizeof(bpath)) {
+			errno = ENAMETOOLONG;
+			goto fail;
+		}
+		if (rename(target, bpath) == -1)
+			goto fail;
+	}
 	if (rename(tmp, target) == -1) {
+		if (do_backup)
+			rename(bpath, target);
 		tmpfd = -1;
 		goto fail;
 	}
@@ -231,7 +252,8 @@ int editor_save(int fd)
 	}
 
 	buf = editor_rows_to_string(editor.row, editor.numrows, &len);
-	if (write_file_atomic(editor.filename, buf, len) == -1) {
+	if (write_file_atomic(editor.filename, buf, len,
+	                      make_backup_files && !editor.backed_up) == -1) {
 		free(buf);
 		editor_set_status_message("Error writing %s: %s",
 		                          editor.filename, strerror(errno));
@@ -240,6 +262,7 @@ int editor_save(int fd)
 
 	free(buf);
 	editor.dirty = 0;
+	editor.backed_up = 1;
 	undo_mark_clean();  /* Mark this state as clean for undo tracking */
 	editor_snapshot_disk();
 	editor_set_status_message("Wrote %s (%d bytes)", editor.filename, len);
@@ -261,6 +284,7 @@ void editor_write_file(int fd)
 		return;
 	free(editor.filename);
 	editor.filename = newfilename;
+	editor.backed_up = 0;
 	editor_select_syntax_highlight(editor.filename);
 	editor_save(fd);
 }

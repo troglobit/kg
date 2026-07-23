@@ -530,6 +530,12 @@ Join the current line with the previous one, stripping leading whitespace
 from the current line and inserting a space at the join point.
 Equivalent to
 .Ic M-^ .
+.It make-backup-files
+Toggle whether the first save of a visit keeps the previous version of the
+file as a
+.Pa file~
+backup.
+On by default.
 .It not-modified
 Clear the modified flag without saving.
 .It revert-buffer
@@ -694,6 +700,10 @@ are handled gracefully.
 .Bl -tag -width Ds
 .It Pa /dev/tty
 Terminal device used for raw-mode I/O.
+.It Pa file~
+Backup of a file's previous contents, written on the first save of each
+visit unless disabled with
+.Ic M-x make-backup-files .
 .El
 .Sh SEE ALSO
 .Xr mg 1 ,

@@ -149,6 +149,15 @@ static void cmd_global_auto_revert_mode(int fd)
 	                          global_auto_revert ? "on" : "off");
 }
 
+/* Toggle whether the first save of a visit keeps the old file as foo~. */
+static void cmd_make_backup_files(int fd)
+{
+	(void)fd;
+	make_backup_files = !make_backup_files;
+	editor_set_status_message("Backup files are %s",
+	                          make_backup_files ? "on" : "off");
+}
+
 /* Remove trailing whitespace from every line in the buffer. */
 static void cmd_whitespace_cleanup(int fd)
 {
@@ -210,6 +219,7 @@ static const struct named_cmd cmdtable[] = {
 	{ "global-auto-revert-mode",  cmd_global_auto_revert_mode  },
 	{ "goto-line",                cmd_goto_line                },
 	{ "join-line",                cmd_join_line                },
+	{ "make-backup-files",        cmd_make_backup_files        },
 	{ "not-modified",             cmd_not_modified             },
 	{ "revert-buffer",            cmd_revert_buffer            },
 	{ "save-buffer",              cmd_save_buffer              },

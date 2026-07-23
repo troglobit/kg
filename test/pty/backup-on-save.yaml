@@ -1,0 +1,10 @@
+name: backup-on-save
+filename: note.txt
+initial: |
+  original
+keys:
+  - X
+expected_saved: |
+  Xoriginal
+expected_backup: |
+  original

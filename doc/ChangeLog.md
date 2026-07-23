@@ -6,6 +6,12 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- Saving keeps the previous version as a `foo~` backup, like GNU Emacs.
+  The first save of a session renames the file being replaced to `foo~`
+  before writing the new contents, so a fat-fingered edit or an accidental
+  deletion is one `mv foo~ foo` away.  Turn it off with M-x
+  make-backup-files.
+
 - Incremental search behaves more like GNU Emacs.  The view holds still
   while the match is on screen and only recentres once it scrolls off,
   instead of yanking every hit to the top of the window.  A motion key

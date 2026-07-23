@@ -13,6 +13,7 @@ kg (1.2.0-1) unstable; urgency=low
     search hand off to the command, and C-r searches backward from point
   * Incremental search and query-replace fold case unless the query has an
     uppercase letter
+  * Save keeps the previous version as a foo~ backup (M-x make-backup-files)
   * Fix UTF-8 text rendering as garbage in highlighted buffers
 
  -- Joachim Wiberg <troglobit@gmail.com>  Sun, 12 Jul 2026 08:37:49 +0200

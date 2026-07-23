@@ -1,0 +1,13 @@
+name: backup-once-per-visit
+filename: note.txt
+initial: |
+  original
+keys:
+  - X
+  - C-x
+  - C-s
+  - Y
+expected_saved: |
+  XYoriginal
+expected_backup: |
+  original

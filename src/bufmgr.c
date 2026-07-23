@@ -48,6 +48,7 @@ static void buf_save_to_slot(int idx)
 	b->disk_size = editor.disk_size;
 	b->disk_changed = editor.disk_changed;
 	b->auto_revert = editor.auto_revert;
+	b->backed_up = editor.backed_up;
 	b->fill_column = editor.fill_column;
 	b->active = 1;
 }
@@ -75,6 +76,7 @@ static void buf_restore_from_slot(int idx)
 	editor.disk_size = b->disk_size;
 	editor.disk_changed = b->disk_changed;
 	editor.auto_revert = b->auto_revert;
+	editor.backed_up = b->backed_up;
 	editor.fill_column = b->fill_column;
 	buf_current = idx;
 	/* Keep the active window pointing at the newly-restored buffer. */
@@ -272,6 +274,7 @@ static void buf_reset(void)
 	editor.disk_size = 0;
 	editor.disk_changed = 0;
 	editor.auto_revert = 0;
+	editor.backed_up = 0;
 	editor.fill_column = DEFAULT_FILL_COLUMN;
 	undo_init();
 }

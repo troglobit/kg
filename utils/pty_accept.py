@@ -37,6 +37,7 @@ class Case:
 	config_files: dict[str, str]
 	expected_saved: str | None
 	expected_saved_any: list[str] | None
+	expected_backup: str | None
 	oracle: str | None
 	expected_exit_code: int | None
 	xfail: bool
@@ -56,6 +57,7 @@ class RunResult:
 	exit_code: int | None
 	error: str | None
 	transcript: bytes
+	backup: bytes | None = None
 
 
 def ctrl_byte(ch: str) -> bytes:
@@ -282,6 +284,7 @@ def load_case(path: Path) -> Case:
 		config_files=config_files,
 		expected_saved=data.get("expected_saved"),
 		expected_saved_any=data.get("expected_saved_any"),
+		expected_backup=data.get("expected_backup"),
 		oracle=data.get("oracle"),
 		expected_exit_code=expected_exit_code,
 		xfail=bool(data.get("xfail", False)),
@@ -348,7 +351,9 @@ def run_editor_pexpect(argv: list[str], filename: str, initial: str, keys: list[
 		if exit_code is None and child.signalstatus is not None:
 			exit_code = 128 + child.signalstatus
 
-		return RunResult(file_path.read_bytes(), exit_code, None, log.getvalue())
+		bpath = Path(str(file_path) + "~")
+		backup = bpath.read_bytes() if bpath.exists() else None
+		return RunResult(file_path.read_bytes(), exit_code, None, log.getvalue(), backup=backup)
 
 
 def run_tmux_cmd(sock: str, *args: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -427,7 +432,9 @@ def run_editor_tmux(argv: list[str], filename: str, initial: str, keys: list[str
 				pass
 			run_tmux_cmd(sock, "kill-server", check=False)
 
-		return RunResult(file_path.read_bytes(), 0, None, transcript.getvalue().encode())
+		bpath = Path(str(file_path) + "~")
+		backup = bpath.read_bytes() if bpath.exists() else None
+		return RunResult(file_path.read_bytes(), 0, None, transcript.getvalue().encode(), backup=backup)
 
 
 def run_editor(argv: list[str], filename: str, initial: str, keys: list[str],
@@ -480,6 +487,13 @@ def evaluate_case(case: Case, kg_argv: list[str], features: set[str], timeout: f
 		passed = kg_run.saved == expected
 		details = None if passed else diff_text(expected, kg_run.saved,
 							"expected", "actual")
+
+	if passed and case.expected_backup is not None:
+		expected_bak = case.expected_backup.encode("utf-8")
+		if kg_run.backup != expected_bak:
+			passed = 0
+			details = diff_text(expected_bak, kg_run.backup or b"",
+					    "expected backup", "actual backup")
 
 	if passed and (case.expected_screen_contains or case.expected_screen_not_contains):
 		screen = decode_text(kg_run.transcript)
