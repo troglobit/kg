@@ -13,6 +13,7 @@ struct editor_buffer buflist[MAX_BUFFERS];
 int buf_current = 0;
 int buf_count   = 0;
 int global_auto_revert = 0;
+int require_final_newline = 0;
 
 /* Globals normally defined in winmgr.c */
 struct editor_window winlist[MAX_WINDOWS];

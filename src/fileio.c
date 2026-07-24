@@ -91,7 +91,7 @@ int editor_open(char *filename)
  *
  * The rename gives the saved file a new inode, so hard links to the
  * original are not followed and setuid/setgid/sticky bits are dropped. */
-static int write_file_atomic(const char *path, const char *buf, int len, int backup)
+int write_file_atomic(const char *path, const char *buf, int len, int backup)
 {
 	char real[PATH_MAX];
 	char tmp[PATH_MAX];
@@ -250,6 +250,12 @@ int editor_save(int fd)
 			return 1;
 		}
 	}
+
+	/* require-final-newline: give the buffer a trailing empty row so the
+	 * saved file ends in a newline, visibly, like GNU Emacs. */
+	if (require_final_newline && editor.numrows > 0 &&
+	    editor.row[editor.numrows - 1].size > 0)
+		editor_insert_row(editor.numrows, "", 0);
 
 	buf = editor_rows_to_string(editor.row, editor.numrows, &len);
 	if (write_file_atomic(editor.filename, buf, len,

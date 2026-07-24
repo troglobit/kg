@@ -39,6 +39,7 @@ int running = 1;
 int suppress_undo = 0;
 int global_auto_revert = 0;
 int make_backup_files = 1;
+int require_final_newline = 0;
 
 void init_editor(void)
 {

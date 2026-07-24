@@ -538,6 +538,12 @@ backup.
 On by default.
 .It not-modified
 Clear the modified flag without saving.
+.It require-final-newline
+Toggle whether saving ensures the file ends with a newline.
+When on, a buffer whose last line has text gains a trailing empty line
+.Pq visible, as in GNU Emacs
+so the saved file ends with a newline.
+Off by default, so a file without a final newline is preserved as-is.
 .It revert-buffer
 Re-read the current file from disk, discarding all unsaved changes.
 If the buffer is modified a confirmation prompt is shown.

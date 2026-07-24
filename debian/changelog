@@ -14,6 +14,7 @@ kg (1.2.0-1) unstable; urgency=low
   * Incremental search and query-replace fold case unless the query has an
     uppercase letter
   * Save keeps the previous version as a foo~ backup (M-x make-backup-files)
+  * M-x require-final-newline adds a trailing newline on save (off by default)
   * Fix UTF-8 text rendering as garbage in highlighted buffers
 
  -- Joachim Wiberg <troglobit@gmail.com>  Sun, 12 Jul 2026 08:37:49 +0200

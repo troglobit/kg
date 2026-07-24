@@ -20,6 +20,7 @@ struct editor_config editor;
 int running       = 1;
 int suppress_undo = 0;
 int global_auto_revert = 0;
+int require_final_newline = 0;
 
 struct editor_buffer buflist[MAX_BUFFERS];
 int buf_current = 0;

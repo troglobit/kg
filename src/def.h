@@ -370,6 +370,7 @@ extern int buf_current; /* index into buflist[] of the active buffer */
 extern int buf_count;   /* number of active buffers */
 extern int global_auto_revert; /* Default auto-revert flag for all buffers. */
 extern int make_backup_files;  /* Write a foo~ backup on first save of a visit. */
+extern int require_final_newline; /* Ensure the file ends with a newline on save. */
 
 extern struct editor_window winlist[MAX_WINDOWS];
 extern int win_current;     /* index into winlist[] of the active window */
@@ -501,6 +502,7 @@ void editor_set_status_message(const char *fmt, ...);
 /* fileio.c */
 int editor_open(char *filename);
 int editor_save(int fd);
+int write_file_atomic(const char *path, const char *buf, int len, int backup);
 void editor_write_file(int fd);
 void editor_insert_file(int fd);
 void editor_snapshot_disk(void);

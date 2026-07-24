@@ -1,0 +1,8 @@
+name: require-final-newline
+filename: note.txt
+initial: "abc"
+keys:
+  - M-x
+  - require-final-newline
+  - RET
+expected_saved: "abc\n"

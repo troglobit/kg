@@ -819,21 +819,30 @@ static void buf_open_file_ro(int fd, int readonly)
 void buf_open_file(int fd)     { buf_open_file_ro(fd, 0); }
 void buf_open_file_read_only(int fd) { buf_open_file_ro(fd, 1); }
 
-/* Write a buffer slot's rows directly to its file without switching to it.
- * Returns 0 on success, 1 on error (errno set). */
+/* Save a buffer slot to its file without switching to it, through the same
+ * atomic write and backup as editor_save so that C-x s and C-x C-s keep a
+ * file equally safe.  require-final-newline is applied to the bytes here:
+ * the slot's rows aren't the live buffer, so they can't be re-highlighted.
+ * Returns 0 on success, 1 on error. */
 static int write_slot(struct editor_buffer *b)
 {
-	char *buf;
-	int len, fd;
+	char *buf, *nl;
+	int len;
 
 	buf = editor_rows_to_string(b->row, b->numrows, &len);
-	fd = open(b->filename, O_RDWR|O_CREAT, 0644);
-	if (fd == -1) { free(buf); return 1; }
-	if (ftruncate(fd, len) == -1 || write(fd, buf, len) != len) {
-		close(fd); free(buf); return 1;
+	if (require_final_newline && len > 0 && buf[len-1] != '\n') {
+		nl = realloc(buf, len + 1);
+		if (!nl) { free(buf); return 1; }
+		buf = nl;
+		buf[len++] = '\n';
 	}
-	close(fd);
+	if (write_file_atomic(b->filename, buf, len,
+	                      make_backup_files && !b->backed_up) == -1) {
+		free(buf);
+		return 1;
+	}
 	free(buf);
+	b->backed_up = 1;
 	return 0;
 }
 
@@ -860,6 +869,8 @@ void buf_save_all(int fd)
 			b->dirty = 0;
 			if (i == buf_current) {
 				editor.dirty = 0;
+				editor.backed_up = b->backed_up;
+				editor_snapshot_disk();
 				undo_mark_clean();
 			}
 			editor_set_status_message("Wrote %s", b->filename);

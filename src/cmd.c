@@ -158,6 +158,15 @@ static void cmd_make_backup_files(int fd)
 	                          make_backup_files ? "on" : "off");
 }
 
+/* Toggle whether saving ensures the file ends with a newline. */
+static void cmd_require_final_newline(int fd)
+{
+	(void)fd;
+	require_final_newline = !require_final_newline;
+	editor_set_status_message("Require final newline is %s",
+	                          require_final_newline ? "on" : "off");
+}
+
 /* Remove trailing whitespace from every line in the buffer. */
 static void cmd_whitespace_cleanup(int fd)
 {
@@ -221,6 +230,7 @@ static const struct named_cmd cmdtable[] = {
 	{ "join-line",                cmd_join_line                },
 	{ "make-backup-files",        cmd_make_backup_files        },
 	{ "not-modified",             cmd_not_modified             },
+	{ "require-final-newline",    cmd_require_final_newline    },
 	{ "revert-buffer",            cmd_revert_buffer            },
 	{ "save-buffer",              cmd_save_buffer              },
 	{ "set-fill-column",          cmd_set_fill_column          },

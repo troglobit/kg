@@ -1,0 +1,14 @@
+name: save-all-backup-final-newline
+filename: prog.c
+initial: "int x;"
+keys:
+  - M-x
+  - require-final-newline
+  - RET
+  - C-e
+  - Z
+  - C-x
+  - s
+  - "y"
+expected_saved: "int x;Z\n"
+expected_backup: "int x;"

@@ -12,6 +12,11 @@ All relevant changes to the project are documented in this file.
   deletion is one `mv foo~ foo` away.  Turn it off with M-x
   make-backup-files.
 
+- M-x require-final-newline makes saving add a trailing newline to a file
+  that lacks one, giving the buffer the empty last line like GNU Emacs.
+  Off by default, so a file without a final newline still round-trips
+  untouched unless you ask for one.
+
 - Incremental search behaves more like GNU Emacs.  The view holds still
   while the match is on screen and only recentres once it scrolls off,
   instead of yanking every hit to the top of the window.  A motion key
