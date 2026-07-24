@@ -72,6 +72,10 @@ int editor_open(char *filename)
 		editor_insert_row(editor.numrows, "", 0);
 	free(line);
 	fclose(fp);
+	/* A file we can't write opens read-only, like GNU Emacs, so the mode
+	 * line shows %%.  Only ever adds read-only; an explicit -R stays. */
+	if (access(filename, W_OK) != 0)
+		editor.readonly = 1;
 	editor.dirty = 0;
 	undo_mark_clean();  /* Mark initial file state as clean */
 	editor_snapshot_disk();

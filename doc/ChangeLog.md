@@ -18,6 +18,10 @@ All relevant changes to the project are documented in this file.
   when it has unsaved changes, like GNU Emacs.  The read-only-mode command
   is from Björn Dahlgren's fork.
 
+- Opening a file without write permission now enters read-only mode,
+  like GNU Emacs, so a file you cannot save back is flagged up front
+  instead of only at save time.
+
 - Saving keeps the previous version as a `foo~` backup, like GNU Emacs.
   The first save of a session renames the file being replaced to `foo~`
   before writing the new contents, so a fat-fingered edit or an accidental

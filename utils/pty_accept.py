@@ -49,6 +49,7 @@ class Case:
 	dimensions: tuple[int, int]
 	expected_screen_contains: list[str] | None
 	expected_screen_not_contains: list[str] | None
+	file_mode: int | None
 
 
 @dataclass
@@ -273,6 +274,10 @@ def load_case(path: Path) -> Case:
 	):
 		raise ValueError(f"{path}: expected_screen_not_contains must be a list of strings")
 
+	file_mode = data.get("file_mode")
+	if file_mode is not None:
+		file_mode = int(str(file_mode), 8)
+
 	return Case(
 		name=data.get("name", path.stem),
 		path=path,
@@ -296,6 +301,7 @@ def load_case(path: Path) -> Case:
 		dimensions=(dimensions[0], dimensions[1]),
 		expected_screen_contains=screen_contains,
 		expected_screen_not_contains=screen_not_contains,
+		file_mode=file_mode,
 	)
 
 
@@ -309,11 +315,14 @@ def write_config_files(home: Path, config_files: dict[str, str]) -> None:
 def run_editor_pexpect(argv: list[str], filename: str, initial: str, keys: list[str],
 		       trailer_keys: list[str], startup_delay: float,
 		       key_delay: float, dimensions: tuple[int, int],
-		       timeout: float, config_files: dict[str, str]) -> RunResult:
+		       timeout: float, config_files: dict[str, str],
+		       file_mode: int | None = None) -> RunResult:
 	with tempfile.TemporaryDirectory(prefix="kg-pty-") as td:
 		file_path = Path(td) / filename
 		file_path.parent.mkdir(parents=True, exist_ok=True)
 		file_path.write_text(initial)
+		if file_mode is not None:
+			file_path.chmod(file_mode)
 		write_config_files(Path(td), config_files)
 
 		env = os.environ.copy()
@@ -363,7 +372,8 @@ def run_tmux_cmd(sock: str, *args: str, check: bool = True) -> subprocess.Comple
 def run_editor_tmux(argv: list[str], filename: str, initial: str, keys: list[str],
 		    trailer_keys: list[str], startup_delay: float,
 		    key_delay: float, dimensions: tuple[int, int],
-		    timeout: float, config_files: dict[str, str]) -> RunResult:
+		    timeout: float, config_files: dict[str, str],
+		    file_mode: int | None = None) -> RunResult:
 	if shutil.which("tmux") is None:
 		return RunResult(None, None, "tmux not found", b"")
 
@@ -371,6 +381,8 @@ def run_editor_tmux(argv: list[str], filename: str, initial: str, keys: list[str
 		file_path = Path(td) / filename
 		file_path.parent.mkdir(parents=True, exist_ok=True)
 		file_path.write_text(initial)
+		if file_mode is not None:
+			file_path.chmod(file_mode)
 
 		home = Path(td) / "home"
 		home.mkdir()
@@ -440,26 +452,29 @@ def run_editor_tmux(argv: list[str], filename: str, initial: str, keys: list[str
 def run_editor(argv: list[str], filename: str, initial: str, keys: list[str],
 	       trailer_keys: list[str], backend: str, startup_delay: float,
 	       key_delay: float, dimensions: tuple[int, int],
-	       timeout: float, config_files: dict[str, str]) -> RunResult:
+	       timeout: float, config_files: dict[str, str],
+	       file_mode: int | None = None) -> RunResult:
 	if backend == "tmux":
 		return run_editor_tmux(argv, filename, initial, keys, trailer_keys,
 				       startup_delay, key_delay, dimensions,
-				       timeout, config_files)
+				       timeout, config_files, file_mode)
 	return run_editor_pexpect(argv, filename, initial, keys, trailer_keys,
 				  startup_delay, key_delay, dimensions,
-				  timeout, config_files)
+				  timeout, config_files, file_mode)
 
 
 def evaluate_case(case: Case, kg_argv: list[str], features: set[str], timeout: float,
 		  startup_delay_add: float, key_delay_add: float) -> tuple[str, str | None]:
 	if case.requires_feature is not None and case.requires_feature not in features:
 		return ("SKIP", None)
+	if case.file_mode is not None and os.geteuid() == 0:
+		return ("SKIP", None)  # root bypasses mode bits, so write-protection can't be exercised
 	startup_delay = case.startup_delay + startup_delay_add
 	key_delay = case.key_delay + key_delay_add
 	kg_run = run_editor(kg_argv + case.editor_args, case.filename, case.initial, case.keys,
 			    case.trailer_keys, case.backend, startup_delay,
 			    key_delay, case.dimensions, timeout,
-			    case.config_files)
+			    case.config_files, case.file_mode)
 	if kg_run.error:
 		return ("XFAIL" if case.xfail else "ERROR",
 		        f"{case.name}: kg run error: {kg_run.error}")
@@ -469,7 +484,7 @@ def evaluate_case(case: Case, kg_argv: list[str], features: set[str], timeout: f
 		emacs_run = run_editor([EMACS, "-q", "-nw"], case.filename, case.initial,
 				       case.keys, case.trailer_keys, oracle_backend,
 				       startup_delay, key_delay, case.dimensions,
-				       timeout, {})
+				       timeout, {}, case.file_mode)
 		if emacs_run.error:
 			return ("ERROR", f"{case.name}: emacs run error: {emacs_run.error}")
 		passed = kg_run.saved == emacs_run.saved

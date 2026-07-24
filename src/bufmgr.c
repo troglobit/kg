@@ -813,7 +813,7 @@ static void buf_open_file_ro(int fd, int readonly)
 	buf_restore_from_slot(slot);
 	buf_count++;
 	editor_set_status_message("%s%s", editor.filename ? editor.filename : "[new]",
-		readonly ? " [read-only]" : "");
+		editor.readonly ? " [read-only]" : "");
 }
 
 void buf_open_file(int fd)     { buf_open_file_ro(fd, 0); }

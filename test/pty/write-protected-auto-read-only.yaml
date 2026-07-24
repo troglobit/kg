@@ -1,0 +1,12 @@
+name: write-protected-auto-read-only
+filename: protected.txt
+backend: tmux
+dimensions: [10, 80]
+file_mode: "0444"
+initial: hello
+keys:
+  - "X"
+expected_saved: hello
+expected_screen_contains:
+  - "-%%-"
+  - "Buffer is read-only"
