@@ -1,0 +1,14 @@
+name: mx-mutating-command-blocked-readonly
+filename: mx-block.txt
+initial: abc
+keys:
+  - M-x
+  - read-only-mode
+  - RET
+  - M-x
+  - transpose-chars
+  - RET
+  - M-x
+  - upcase-word
+  - RET
+expected_saved: abc

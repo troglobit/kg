@@ -1,0 +1,12 @@
+name: read-only-mode-keybinding
+filename: ro-keybind.txt
+initial: abc
+keys:
+  - C-e
+  - C-x
+  - C-q
+  - "X"
+  - C-x
+  - C-q
+  - "Y"
+expected_saved: abcY

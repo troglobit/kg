@@ -212,42 +212,49 @@ static void cmd_delete_trailing_space(int fd)
 
 typedef void (*cmdfn)(int fd);
 
+enum command_flags {
+	CMD_NONE = 0,
+	CMD_EDITS_BUFFER = 1 << 0,   /* mutates the buffer; blocked when read-only */
+};
+
 struct named_cmd {
 	const char *name;
 	cmdfn fn;
+	unsigned flags;
 };
 
 static const struct named_cmd cmdtable[] = {
-	{ "auto-revert-mode",         cmd_auto_revert_mode         },
-	{ "balance-windows",          cmd_balance_windows          },
-	{ "capitalize-word",          cmd_capitalize_word          },
-	{ "delete-trailing-space",    cmd_delete_trailing_space    },
-	{ "downcase-word",            cmd_downcase_word            },
-	{ "enlarge-window",           cmd_enlarge_window           },
-	{ "enlarge-window-horizontally", cmd_enlarge_window_h      },
-	{ "global-auto-revert-mode",  cmd_global_auto_revert_mode  },
-	{ "goto-line",                cmd_goto_line                },
-	{ "join-line",                cmd_join_line                },
-	{ "make-backup-files",        cmd_make_backup_files        },
-	{ "not-modified",             cmd_not_modified             },
-	{ "require-final-newline",    cmd_require_final_newline    },
-	{ "revert-buffer",            cmd_revert_buffer            },
-	{ "save-buffer",              cmd_save_buffer              },
-	{ "set-fill-column",          cmd_set_fill_column          },
-	{ "shell-command",            cmd_shell_command            },
-	{ "shell-command-on-region",  cmd_shell_command_on_region  },
-	{ "shrink-window",            cmd_shrink_window            },
-	{ "shrink-window-horizontally", cmd_shrink_window_h        },
-	{ "toggle-read-only",         cmd_toggle_read_only         },
-	{ "upcase-word",              cmd_upcase_word              },
-	{ "version",                  cmd_version                  },
-	{ "what-cursor-position",     cmd_what_cursor_position     },
-	{ "whitespace-cleanup",       cmd_whitespace_cleanup       },
-	{ "windmove-down",            cmd_windmove_down            },
-	{ "windmove-left",            cmd_windmove_left            },
-	{ "windmove-right",           cmd_windmove_right           },
-	{ "windmove-up",              cmd_windmove_up              },
-	{ NULL, NULL }
+	{ "auto-revert-mode",         cmd_auto_revert_mode,        CMD_NONE },
+	{ "balance-windows",          cmd_balance_windows,         CMD_NONE },
+	{ "capitalize-word",          cmd_capitalize_word,         CMD_EDITS_BUFFER },
+	{ "delete-trailing-space",    cmd_delete_trailing_space,   CMD_EDITS_BUFFER },
+	{ "downcase-word",            cmd_downcase_word,           CMD_EDITS_BUFFER },
+	{ "enlarge-window",           cmd_enlarge_window,          CMD_NONE },
+	{ "enlarge-window-horizontally", cmd_enlarge_window_h,     CMD_NONE },
+	{ "global-auto-revert-mode",  cmd_global_auto_revert_mode, CMD_NONE },
+	{ "goto-line",                cmd_goto_line,               CMD_NONE },
+	{ "join-line",                cmd_join_line,               CMD_EDITS_BUFFER },
+	{ "make-backup-files",        cmd_make_backup_files,       CMD_NONE },
+	{ "not-modified",             cmd_not_modified,            CMD_NONE },
+	{ "read-only-mode",           cmd_toggle_read_only,        CMD_NONE },
+	{ "require-final-newline",    cmd_require_final_newline,   CMD_NONE },
+	{ "revert-buffer",            cmd_revert_buffer,           CMD_NONE },
+	{ "save-buffer",              cmd_save_buffer,             CMD_NONE },
+	{ "set-fill-column",          cmd_set_fill_column,         CMD_NONE },
+	{ "shell-command",            cmd_shell_command,           CMD_EDITS_BUFFER },
+	{ "shell-command-on-region",  cmd_shell_command_on_region, CMD_EDITS_BUFFER },
+	{ "shrink-window",            cmd_shrink_window,           CMD_NONE },
+	{ "shrink-window-horizontally", cmd_shrink_window_h,       CMD_NONE },
+	{ "toggle-read-only",         cmd_toggle_read_only,        CMD_NONE },
+	{ "upcase-word",              cmd_upcase_word,             CMD_EDITS_BUFFER },
+	{ "version",                  cmd_version,                 CMD_NONE },
+	{ "what-cursor-position",     cmd_what_cursor_position,    CMD_NONE },
+	{ "whitespace-cleanup",       cmd_whitespace_cleanup,      CMD_EDITS_BUFFER },
+	{ "windmove-down",            cmd_windmove_down,           CMD_NONE },
+	{ "windmove-left",            cmd_windmove_left,           CMD_NONE },
+	{ "windmove-right",           cmd_windmove_right,          CMD_NONE },
+	{ "windmove-up",              cmd_windmove_up,             CMD_NONE },
+	{ NULL, NULL, CMD_NONE }
 };
 
 /* Prompt "M-x", filter by typing, Tab-complete, Left/Right cycle, Enter execute. */
@@ -319,9 +326,13 @@ void editor_named_command(int fd)
 		} else if (c == ENTER) {
 			editor.echo_cursor_col = 0;
 			editor_set_status_message("");
-			if (shown > 0 && sel >= 0 && sel < shown)
-				cmdtable[match_idx[sel]].fn(fd);
-			else
+			if (shown > 0 && sel >= 0 && sel < shown) {
+				const struct named_cmd *cmd = &cmdtable[match_idx[sel]];
+				if ((cmd->flags & CMD_EDITS_BUFFER) && editor.readonly)
+					editor_set_status_message("Buffer is read-only");
+				else
+					cmd->fn(fd);
+			} else
 				editor_set_status_message("No command: %s", name);
 			return;
 		} else if (c == TAB) {

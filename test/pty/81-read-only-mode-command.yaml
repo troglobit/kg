@@ -1,0 +1,9 @@
+name: read-only-mode-command
+filename: ro-mode.txt
+initial: hello
+keys:
+  - M-x
+  - read-only-mode
+  - RET
+  - "X"
+expected_saved: hello

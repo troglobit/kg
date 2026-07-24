@@ -538,6 +538,12 @@ backup.
 On by default.
 .It not-modified
 Clear the modified flag without saving.
+.It read-only-mode
+Toggle read-only mode on the current buffer, like
+.Ic C-x C-q .
+While a buffer is read-only, editing keys and buffer-modifying
+.Ic M-x
+commands are refused.
 .It require-final-newline
 Toggle whether saving ensures the file ends with a newline.
 When on, a buffer whose last line has text gains a trailing empty line
