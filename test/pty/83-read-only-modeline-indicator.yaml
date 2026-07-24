@@ -1,0 +1,11 @@
+name: read-only-modeline-indicator
+filename: ro-modeline.txt
+backend: tmux
+dimensions: [10, 80]
+initial: hello
+keys:
+  - C-x
+  - C-q
+expected_saved: hello
+expected_screen_contains:
+  - "-%%-"

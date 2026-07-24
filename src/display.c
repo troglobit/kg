@@ -324,6 +324,8 @@ static void draw_mode_line(struct abuf *ab, int ml_row, int win_x, int win_w,
 	const char *changed  = "";
 	int is_current = (is_active || bufidx == buf_current);
 	int dirty = is_current ? editor.dirty : b->dirty;
+	int readonly = is_current ? editor.readonly : b->readonly;
+	const char *flags;
 	char pos[8];
 
 	/* Show only the basename in the mode line (Emacs-style); the directory
@@ -347,8 +349,14 @@ static void draw_mode_line(struct abuf *ab, int ml_row, int win_x, int win_w,
 	ab_move_to(ab, ml_row, win_x);
 	ab_append(ab, is_active ? "\x1b[7m" : "\x1b[2m", 4); /* active: reverse; inactive: dim */
 
+	/* Read-only shows as %%/%* in the flag field, like GNU Emacs. */
+	if (readonly)
+		flags = dirty ? "-%*-" : "-%%-";
+	else
+		flags = dirty ? "-**-" : "----";
+
 	len = snprintf(status, sizeof(status), "%s  %s%s  %s (%d,%d)  (%s)",
-		dirty ? "-**-" : "----", bname, changed,
+		flags, bname, changed,
 		pos, cur_row, cur_col, modename);
 
 	if (len > win_w) len = win_w;

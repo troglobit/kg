@@ -14,7 +14,9 @@ All relevant changes to the project are documented in this file.
   M-x toggle-read-only.  A read-only buffer now refuses every
   buffer-modifying command, by keystroke or by M-x alike, enforced at the
   point of mutation so editing keys like M-u, M-^, and C-o can no longer
-  slip through.  The read-only-mode command is from Björn Dahlgren's fork.
+  slip through.  The mode line marks a read-only buffer with `%%`, or `%*`
+  when it has unsaved changes, like GNU Emacs.  The read-only-mode command
+  is from Björn Dahlgren's fork.
 
 - Saving keeps the previous version as a `foo~` backup, like GNU Emacs.
   The first save of a session renames the file being replaced to `foo~`

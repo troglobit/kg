@@ -544,6 +544,11 @@ Toggle read-only mode on the current buffer, like
 While a buffer is read-only, editing keys and buffer-modifying
 .Ic M-x
 commands are refused.
+The mode line shows read-only as
+.Sq %% ,
+or
+.Sq %*
+when the buffer has unsaved changes.
 .It require-final-newline
 Toggle whether saving ensures the file ends with a newline.
 When on, a buffer whose last line has text gains a trailing empty line
