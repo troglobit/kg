@@ -1,0 +1,14 @@
+name: sort-lines-no-mark
+filename: sort-nomark.txt
+initial: |
+  apple
+  banana
+  cherry
+keys:
+  - M-x
+  - sort-lines
+  - RET
+expected_saved: |
+  apple
+  banana
+  cherry

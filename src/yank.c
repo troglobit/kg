@@ -106,6 +106,91 @@ void editor_exchange_point_and_mark(void)
 	editor_set_status_message("Mark exchanged");
 }
 
+/* qsort comparator: byte-wise (case-sensitive) line order, like sort(1). */
+static int sort_lines_cmp(const void *a, const void *b)
+{
+	const erow *ra = a;
+	const erow *rb = b;
+
+	return strcmp(ra->chars, rb->chars);
+}
+
+/* Sort the lines the region spans into byte order, as one undo step (M-x
+ * sort-lines).  Needs an active mark; a line whose only coverage is point
+ * sitting at its column 0 is left out, like GNU Emacs. */
+void editor_sort_lines(void)
+{
+	int cur_row = editor.rowoff + editor.cy;
+	int cur_col = editor.coloff + editor.cx;
+	int start_row, end_row, end_col;
+	int nlines, orig_len, i;
+	char *orig;
+	erow *tmp;
+
+	if (editor_readonly_blocked())
+		return;
+	if (!editor.mark_set) {
+		editor_set_status_message("No mark set");
+		return;
+	}
+
+	if (editor.mark_row < cur_row ||
+	    (editor.mark_row == cur_row && editor.mark_col < cur_col)) {
+		start_row = editor.mark_row;
+		end_row   = cur_row;
+		end_col   = cur_col;
+	} else {
+		start_row = cur_row;
+		end_row   = editor.mark_row;
+		end_col   = editor.mark_col;
+	}
+	if (end_col == 0 && end_row > start_row)
+		end_row--;
+
+	/* A stale mark can point past a shrunken buffer; clamp so the row
+	 * range stays in bounds (a start past EOF then falls out via nlines). */
+	if (end_row >= editor.numrows)
+		end_row = editor.numrows - 1;
+
+	nlines = end_row - start_row + 1;
+	if (nlines < 2)
+		return;
+
+	orig = editor_rows_to_string(&editor.row[start_row], nlines, &orig_len);
+	if (!orig)
+		return;
+
+	tmp = malloc(nlines * sizeof(erow));
+	if (!tmp) {
+		free(orig);
+		editor_set_status_message("Out of memory");
+		return;
+	}
+	memcpy(tmp, &editor.row[start_row], nlines * sizeof(erow));
+	qsort(tmp, nlines, sizeof(erow), sort_lines_cmp);
+	/* Write the rows back in sorted order, fix each idx, then re-highlight
+	 * so multiline syntax state (block comments, fenced code) re-propagates
+	 * through the new order -- idx must be current before that runs. */
+	for (i = 0; i < nlines; i++) {
+		editor.row[start_row + i] = tmp[i];
+		editor.row[start_row + i].idx = start_row + i;
+		editor_update_row(&editor.row[start_row + i]);
+	}
+	free(tmp);
+
+	/* Restore the pre-sort rows as one step; numrows is unchanged, so this
+	 * reuses the rectangle-overwrite undo that snapshots a row range. */
+	undo_push(UNDO_RECT_OVERWRITE, start_row, 0, editor.numrows, orig, orig_len);
+	free(orig);
+
+	editor.mark_highlight = 0;
+	editor.rect_mode = 0;
+	editor.shift_select = 0;
+	editor_snap_cx_to_row();
+	editor.dirty = 1;
+	editor_set_status_message("Sorted %d lines", nlines);
+}
+
 /* Get text from region (between mark and point) */
 char *editor_get_region_text(int *out_len)
 {

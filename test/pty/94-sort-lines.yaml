@@ -1,0 +1,18 @@
+name: sort-lines-whole-buffer
+filename: sort-lines.txt
+initial: |
+  pear
+  apple
+  Apple
+  apple
+
+  10
+  2
+keys:
+  - M-<
+  - C-SPC
+  - M->
+  - M-x
+  - sort-lines
+  - RET
+expected_saved: "\n10\n2\nApple\napple\napple\npear\n"

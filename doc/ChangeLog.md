@@ -6,6 +6,10 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- M-x sort-lines sorts the lines the region covers into byte order -- like
+  sort(1) in the C locale, so case-sensitive and not numeric -- as a single
+  undo step.  From Björn Dahlgren's fork.
+
 - M-x read-only-mode toggles a buffer read-only, alongside C-x C-q and
   M-x toggle-read-only.  A read-only buffer now refuses every
   buffer-modifying command, by keystroke or by M-x alike, enforced at the

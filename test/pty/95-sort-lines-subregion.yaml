@@ -1,0 +1,25 @@
+name: sort-lines-subregion
+filename: sort-sub.txt
+initial: |
+  alpha
+  delta
+  charlie
+  beta
+  echo
+  foxtrot
+keys:
+  - C-n
+  - C-SPC
+  - C-n
+  - C-n
+  - C-n
+  - M-x
+  - sort-lines
+  - RET
+expected_saved: |
+  alpha
+  beta
+  charlie
+  delta
+  echo
+  foxtrot

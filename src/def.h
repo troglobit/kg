@@ -596,6 +596,7 @@ void rect_kill_ring_free(void);
 void editor_kill_region(void);
 void editor_copy_region(void);
 char *editor_get_region_text(int *out_len);
+void editor_sort_lines(void);
 void editor_yank(void);
 
 /* undo.c */

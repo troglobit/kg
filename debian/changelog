@@ -15,6 +15,7 @@ kg (1.2.0-1) unstable; urgency=low
     uppercase letter
   * Save keeps the previous version as a foo~ backup (M-x make-backup-files)
   * M-x require-final-newline adds a trailing newline on save (off by default)
+  * M-x sort-lines sorts the region's lines into byte order (one undo step)
   * M-x read-only-mode; a read-only buffer refuses every editing key and
     M-x command, enforced at the point of mutation
   * Fix UTF-8 text rendering as garbage in highlighted buffers

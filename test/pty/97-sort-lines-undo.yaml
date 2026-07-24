@@ -1,0 +1,18 @@
+name: sort-lines-undo
+filename: sort-undo.txt
+initial: |
+  banana
+  apple
+  cherry
+keys:
+  - M-<
+  - C-SPC
+  - M->
+  - M-x
+  - sort-lines
+  - RET
+  - C-_
+expected_saved: |
+  banana
+  apple
+  cherry

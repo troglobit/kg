@@ -208,6 +208,13 @@ static void cmd_delete_trailing_space(int fd)
 	                          removed, removed == 1 ? "" : "s");
 }
 
+/* Sort the region's lines (M-x sort-lines). */
+static void cmd_sort_lines(int fd)
+{
+	(void)fd;
+	editor_sort_lines();
+}
+
 /* ---- Command table ---- */
 
 typedef void (*cmdfn)(int fd);
@@ -245,6 +252,7 @@ static const struct named_cmd cmdtable[] = {
 	{ "shell-command-on-region",  cmd_shell_command_on_region, CMD_EDITS_BUFFER },
 	{ "shrink-window",            cmd_shrink_window,           CMD_NONE },
 	{ "shrink-window-horizontally", cmd_shrink_window_h,       CMD_NONE },
+	{ "sort-lines",               cmd_sort_lines,              CMD_EDITS_BUFFER },
 	{ "toggle-read-only",         cmd_toggle_read_only,        CMD_NONE },
 	{ "upcase-word",              cmd_upcase_word,             CMD_EDITS_BUFFER },
 	{ "version",                  cmd_version,                 CMD_NONE },

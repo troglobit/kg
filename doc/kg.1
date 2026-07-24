@@ -572,6 +572,10 @@ Pipe the region through a shell command and replace it with the command's
 standard output.
 Equivalent to
 .Ic M-\&| .
+.It sort-lines
+Sort the lines the region spans into byte order (case-sensitive, not
+numeric), as a single undo step.
+Needs an active mark.
 .It toggle-read-only
 Toggle read-only mode on the current buffer.
 Equivalent to
