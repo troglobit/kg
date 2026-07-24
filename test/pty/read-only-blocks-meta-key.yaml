@@ -1,0 +1,9 @@
+name: read-only-blocks-meta-key
+filename: ro-meta.txt
+initial: hello world
+keys:
+  - M-x
+  - read-only-mode
+  - RET
+  - M-u
+expected_saved: hello world

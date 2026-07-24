@@ -307,6 +307,9 @@ void editor_insert_file(int fd)
 	int filerow, filecol;
 	FILE *fp;
 
+	if (editor_readonly_blocked())
+		return;
+
 	editor_prompt_prefill_dir(filename, sizeof(filename));
 	if (editor_read_line_path(fd, "Insert file: ", filename, sizeof(filename)) < 0 || !filename[0])
 		return;

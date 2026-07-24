@@ -45,6 +45,9 @@ void editor_insert_char_auto_complete(int c)
 	int close_char;
 	int at_end;
 
+	if (editor_readonly_blocked())
+		return;
+
 	/* Check if we're at end of line or the next character is whitespace/symbol */
 	at_end = (!row || filecol >= row->size);
 	next_char_space = at_end || isspace(row->chars[filecol]) ||

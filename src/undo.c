@@ -97,6 +97,9 @@ void editor_undo(void)
 {
 	struct undo_op *op;
 
+	if (editor_readonly_blocked())
+		return;
+
 	if (!undostack.head) {
 		editor_set_status_message("Nothing to undo");
 		return;

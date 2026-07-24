@@ -1,0 +1,9 @@
+name: read-only-blocks-open-line
+filename: ro-ctrl.txt
+initial: hello
+keys:
+  - M-x
+  - read-only-mode
+  - RET
+  - C-o
+expected_saved: hello

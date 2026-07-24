@@ -284,6 +284,9 @@ void editor_query_replace(int fd)
 	int filerow, match_col;
 	int count = 0, replace_all = 0;
 
+	if (editor_readonly_blocked())
+		return;
+
 	if (editor_read_line(fd, "Query replace: ", search, sizeof(search)) < 0 || !search[0])
 		return;
 	if (editor_read_line(fd, "Replace with: ", replace, sizeof(replace)) < 0)

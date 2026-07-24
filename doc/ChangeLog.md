@@ -6,10 +6,11 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
-- M-x read-only-mode toggles a buffer read-only, alongside the existing
-  C-x C-q and M-x toggle-read-only.  Read-only now also refuses mutating
-  M-x commands (upcase-word, join-line, shell-command, and the like), not
-  just keystrokes.  From Björn Dahlgren's fork.
+- M-x read-only-mode toggles a buffer read-only, alongside C-x C-q and
+  M-x toggle-read-only.  A read-only buffer now refuses every
+  buffer-modifying command, by keystroke or by M-x alike, enforced at the
+  point of mutation so editing keys like M-u, M-^, and C-o can no longer
+  slip through.  The read-only-mode command is from Björn Dahlgren's fork.
 
 - Saving keeps the previous version as a `foo~` backup, like GNU Emacs.
   The first save of a session renames the file being replaced to `foo~`

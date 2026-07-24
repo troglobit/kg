@@ -100,6 +100,9 @@ void editor_kill_word_forward(void)
 	char *text;
 	erow *row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
 
+	if (editor_readonly_blocked())
+		return;
+
 	if (!row) return;
 
 	/* Skip separators OR word+separators, within the current line only
@@ -142,6 +145,9 @@ void editor_kill_word_backward(void)
 	int kill_len;
 	char *text;
 	erow *row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
+
+	if (editor_readonly_blocked())
+		return;
 
 	if (!row || filecol == 0) return;
 	if (filecol > row->size) { /* virtual space past EOL (rect mark) */
@@ -423,6 +429,9 @@ void editor_join_line(void)
 	const char *rest;
 	int rest_len;
 
+	if (editor_readonly_blocked())
+		return;
+
 	if (filerow <= 0 || filerow >= editor.numrows) return;
 
 	prev_row_idx = filerow - 1;
@@ -486,6 +495,9 @@ static void do_word_case(int mode)
 	int word_start, word_end, word_len, i;
 	char *orig;
 	erow *row;
+
+	if (editor_readonly_blocked())
+		return;
 
 	row = (filerow >= editor.numrows) ? NULL : &editor.row[filerow];
 	if (!row) return;
@@ -552,6 +564,9 @@ void editor_comment_dwim(void)
 	char *scs;
 	int scslen;
 	int row_start, row_end, r;
+
+	if (editor_readonly_blocked())
+		return;
 
 	if (!editor.syntax || !editor.syntax->singleline_comment_start[0]) {
 		editor_set_status_message("No comment syntax for this buffer");
@@ -652,6 +667,9 @@ void editor_reflow_paragraph(void)
 	int cur_len, cur_cap;
 	const char *p, *word_start;
 	int word_len, need;
+
+	if (editor_readonly_blocked())
+		return;
 
 	if (filerow >= editor.numrows || editor.row[filerow].size == 0)
 		return;

@@ -297,12 +297,29 @@ void editor_row_del_char(erow *row, int at)
 	editor.dirty++;
 }
 
+/* Read-only guard for user-initiated edits: returns 1, after showing a status
+ * message, when the current buffer is read-only.  Every buffer-mutating
+ * command bails at its entry with `if (editor_readonly_blocked()) return;`.
+ * Internal buffer population -- file load, revert, undo replay -- reaches the
+ * buffer through the low-level row primitives, which are never guarded, so it
+ * is unaffected. */
+int editor_readonly_blocked(void)
+{
+	if (!editor.readonly)
+		return 0;
+	editor_set_status_message("Buffer is read-only");
+	return 1;
+}
+
 /* Insert the specified char at the current prompt position. */
 void editor_insert_char(int c)
 {
 	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
 	int filerow = editor.rowoff + editor.cy;
 	int filecol = editor.coloff + editor.cx;
+
+	if (editor_readonly_blocked())
+		return;
 
 	/* If the row where the cursor is currently located does not exist in our
 	 * logical representation of the file, add enough empty rows as needed. */
@@ -362,6 +379,9 @@ void editor_insert_newline_raw(void)
  * newlines (no auto-indent).  Used by editor_yank and UNDO_KILL_TEXT. */
 void editor_insert_text_raw(const char *text, int len)
 {
+	/* Callers must ensure the buffer is writable: this delegates per
+	 * character to editor_insert_char, which is read-only-gated, so it must
+	 * not be used to populate a read-only buffer. */
 	int saved = suppress_undo;
 	int i;
 
@@ -388,6 +408,9 @@ void editor_insert_newline(void)
 	int filerow;
 	int filecol;
 	erow *row;
+
+	if (editor_readonly_blocked())
+		return;
 
 	if (editor.paste_mode) {
 		editor_insert_newline_raw();
@@ -459,6 +482,9 @@ void editor_open_line(void)
 	int rowoff = editor.rowoff;
 	int coloff = editor.coloff;
 
+	if (editor_readonly_blocked())
+		return;
+
 	editor_insert_newline();
 
 	editor.cy     = cy;
@@ -473,6 +499,9 @@ void editor_del_char(void)
 	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
 	int filerow = editor.rowoff + editor.cy;
 	int filecol = editor.coloff + editor.cx;
+
+	if (editor_readonly_blocked())
+		return;
 
 	if (!row || (filecol == 0 && filerow == 0)) return;
 	if (filecol > row->size) return; /* virtual space past EOL (rect mark): no-op, not a clamp */
@@ -516,6 +545,9 @@ void editor_del_forward_char(void)
 	int filerow = editor.rowoff + editor.cy;
 	int filecol = editor.coloff + editor.cx;
 
+	if (editor_readonly_blocked())
+		return;
+
 	if (!row) return;
 	if (filecol > row->size) return; /* virtual space past EOL (rect mark): no-op, not a clamp */
 
@@ -543,6 +575,9 @@ void editor_kill_line(void)
 	erow *row = (editor.rowoff + editor.cy >= editor.numrows) ? NULL : &editor.row[editor.rowoff + editor.cy];
 	int filerow = editor.rowoff + editor.cy;
 	int filecol = editor.coloff + editor.cx;
+
+	if (editor_readonly_blocked())
+		return;
 
 	if (!row) return;
 	if (filecol > row->size) return; /* virtual space past EOL (rect mark): no-op, not a clamp */

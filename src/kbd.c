@@ -276,21 +276,12 @@ void editor_process_keypress(int fd)
 		return;
 	}
 
-	/* Read-only mode: Enter opens the item at point; editing is blocked. */
-	if (editor.readonly) {
-		if (c == ENTER) {
-			buf_ibuffer_select();
-			return;
-		}
-		if (c == BACKSPACE   || c == DEL_KEY     || c == CTRL_D ||
-		    c == CTRL_K      || c == CTRL_W      || c == CTRL_Y ||
-		    c == CTRL_Q      ||
-		    c == SHIFT_DELETE|| c == SHIFT_INSERT||
-		    c == CTRL_UNDERSCORE || c == TAB ||
-		    (c >= 32 && c < 127)) {
-			editor_set_status_message("Buffer is read-only");
-			return;
-		}
+	/* In a read-only buffer such as the *Buffer List*, Enter opens the item
+	 * at point.  Editing itself is refused by the mutation commands, which
+	 * bail via editor_readonly_blocked(). */
+	if (editor.readonly && c == ENTER) {
+		buf_ibuffer_select();
+		return;
 	}
 
 	/* Reset cycle states if the previous key wasn't the cycling command. */
@@ -389,7 +380,11 @@ void editor_process_keypress(int fd)
 		editor_find(fd, -1);
 		break;
 	case CTRL_Q: {
-		int key = editor_read_raw_byte(fd);
+		int key;
+
+		if (editor_readonly_blocked())
+			break;
+		key = editor_read_raw_byte(fd);
 		if (running)
 			editor_insert_char(key);
 		break;
@@ -413,6 +408,8 @@ void editor_process_keypress(int fd)
 		return;
 	case CTRL_Y:        /* Yank (paste) */
 	case SHIFT_INSERT:  /* CUA paste */
+		if (editor_readonly_blocked())
+			break;
 		if (n > 1 && killring.text && killring.len > 0) {
 			/* Batch N yanks under one undo: UNDO_YANK_TEXT reverses by
 			 * deleting len chars forward, so the record must carry the

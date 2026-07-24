@@ -189,6 +189,9 @@ static void region_kill_or_delete(int save)
 	char *text;
 	int len, i;
 
+	if (editor_readonly_blocked())
+		return;
+
 	if (!editor.mark_set) {
 		editor_set_status_message("No mark set");
 		return;
@@ -266,6 +269,9 @@ void editor_copy_region(void)
  * saving, otherwise just delete the character ahead. */
 void editor_delete_region_or_char(void)
 {
+	if (editor_readonly_blocked())
+		return;
+
 	if (editor.mark_set && editor.mark_highlight) {
 		if (editor.rect_mode)
 			editor_delete_rect();
@@ -282,6 +288,9 @@ void editor_yank(void)
 	int filerow = editor.rowoff + editor.cy;
 	int filecol = editor.coloff + editor.cx;
 	char *text = kill_ring_get();
+
+	if (editor_readonly_blocked())
+		return;
 
 	if (!text) {
 		editor_set_status_message("Kill ring is empty");

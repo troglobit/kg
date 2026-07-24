@@ -192,10 +192,8 @@ void editor_shell_command(int fd)
 	char *out;
 	int   out_len = 0;
 
-	if (editor.readonly) {
-		editor_set_status_message("Buffer is read-only");
+	if (editor_readonly_blocked())
 		return;
-	}
 	if (editor_read_line(fd, "Shell command: ", cmd, sizeof(cmd)) < 0 || !cmd[0])
 		return;
 
@@ -217,10 +215,8 @@ void editor_shell_command_on_region(int fd)
 	char *region, *out;
 	int region_len = 0, out_len = 0;
 
-	if (editor.readonly) {
-		editor_set_status_message("Buffer is read-only");
+	if (editor_readonly_blocked())
 		return;
-	}
 	if (!editor.mark_set) {
 		editor_set_status_message("No mark set");
 		return;
