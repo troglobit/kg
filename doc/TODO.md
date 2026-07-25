@@ -197,6 +197,13 @@ ordered by value vs implementation effort.
 - [ ] Send alt screen sequences if TERM=xterm: "\033[?1049h" and "\033[?1049l"
 - [ ] Add support for modes.  E.g., c-mode with bindings for
       compile/make which opens a compile buffer in a window below
+- [ ] **visual-line-mode**: Wrap long lines at the window edge for display
+      without inserting newlines, and make C-a/C-e/C-n/C-p operate on the
+      visual screen line rather than the logical line.
+- [ ] **File- and directory-local variables**: Honour a `-*- ... -*-`
+      first line and a `Local Variables:` trailer to set per-file options
+      such as `buffer-read-only`, `tab-width`, or the major mode.  A
+      sizable parser feeding a couple of settings; low priority.
 - [ ] **Proper UTF-8 handling**.  `editor.cx` and `mark_col` are byte
       indices, so the cursor can sit inside a multi-byte glyph and
       Right/Left advances one byte at a time through box-drawing or
