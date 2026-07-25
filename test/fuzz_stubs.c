@@ -120,7 +120,7 @@ void win_term_resize(void) { }
 
 /* ---- search.c ---- */
 
-void editor_find(int fd) { (void)fd; }
+void editor_find(int fd, int direction) { (void)fd; (void)direction; }
 void editor_query_replace(int fd) { (void)fd; }
 
 /* ---- cmd.c ---- */
