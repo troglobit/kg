@@ -1,7 +1,7 @@
 kg (1.2.0-1) unstable; urgency=low
 
   * Point-editing commands from GNU Emacs: C-t, M-h, M-z, M-\, M-SPC,
-    and M-<digit> as a numeric prefix alongside C-u
+    and M-digit as a numeric prefix alongside C-u
   * Editable minibuffer answer with the usual Emacs keys; C-q inserts
     the next keystroke literally
   * Per-buffer fill column, set with C-x f

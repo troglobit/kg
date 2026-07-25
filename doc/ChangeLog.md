@@ -8,7 +8,7 @@ All relevant changes to the project are documented in this file.
 
 - Point-editing commands from GNU Emacs: C-t transpose-chars, M-h
   mark-paragraph, M-z zap-to-char, M-\ delete-horizontal-space, M-SPC
-  just-one-space, and M-<digit> as a numeric prefix alongside C-u.  Each
+  just-one-space, and M-digit as a numeric prefix alongside C-u.  Each
   editing command is also available as an M-x alias.  From Björn
   Dahlgren's fork.
 
