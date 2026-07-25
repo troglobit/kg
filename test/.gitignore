@@ -1,4 +1,5 @@
 fuzz_corpus/
+output/
 fuzz_keypress
 test_autocomplete
 test_basic
