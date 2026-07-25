@@ -2,7 +2,7 @@
 
 All relevant changes to the project are documented in this file.
 
-## [UNRELEASED][]
+## [v1.2.0][] - 2026-07-25
 
 ### Changes
 
@@ -11,6 +11,11 @@ All relevant changes to the project are documented in this file.
   just-one-space, and M-<digit> as a numeric prefix alongside C-u.  Each
   editing command is also available as an M-x alias.  From Björn
   Dahlgren's fork.
+
+- Per-buffer fill column, set with C-x f (set-fill-column).  M-q reflow was
+  fixed at 72 columns; the width is now a per-buffer setting, defaulting to
+  72 and seeded with the current value when C-x f prompts, and it rides
+  along with the buffer across switches like auto-revert does.
 
 - The minibuffer answer can be edited with the usual Emacs keys -- C-a/C-e,
   C-b/C-f, C-d, C-k, Home/End and the arrows -- and C-q inserts the next
@@ -43,6 +48,12 @@ All relevant changes to the project are documented in this file.
 - Opening a file without write permission now enters read-only mode,
   like GNU Emacs, so a file you cannot save back is flagged up front
   instead of only at save time.
+
+- Saving is atomic.  The new contents go to a temporary file beside the
+  target, which is fsync'd and renamed over it, so an interrupted or failed
+  write can no longer truncate the file -- a reader sees either the old file
+  or the complete new one.  The file's mode and owner are preserved, and a
+  symlinked target is replaced in place.  From Björn Dahlgren's fork.
 
 - Saving keeps the previous version as a `foo~` backup, like GNU Emacs.
   The first save of a session renames the file being replaced to `foo~`
@@ -95,7 +106,7 @@ All relevant changes to the project are documented in this file.
   first unshifted key drops the region, and an explicit C-Space mark stays
   sticky.  Word motion (M-f, C-right, and the shifted variant) now lands at
   the end of the word, like in GNU Emacs and Mg, instead of at the start of
-  the next one.
+  the next one, and crosses line boundaries the way backward-word already did.
 
   As with the CUA clipboard keys in v1.1, some terminals grab these combos for
   themselves: Terminator resizes its panes with Ctrl+Shift+arrows and moves
@@ -121,12 +132,31 @@ All relevant changes to the project are documented in this file.
 - F1 opens the built-in help (like C-h), F2 saves (C-x C-s), and F10 quits
   (C-x C-c), rounding out the function-key row alongside the F3/F4 macro keys.
 
+- Home and End are now recognised from VT220 and rxvt terminals, which send
+  the numbered forms (ESC[1~/ESC[4~ and ESC[7~/ESC[8~) rather than the
+  usual sequences.  From Björn Dahlgren's fork.
+
 ### Fixes
 
 - UTF-8 text no longer renders as inverted garbage in buffers with a language
   mode: the highlighter classified every multibyte character as non-printable.
   Most visible as broken box-drawing characters when reopening the built-in
   help (C-h C-h).
+
+- M-; (comment-dwim) on a region no longer comments its last line when the
+  region ends at that line's column 0, matching Emacs' comment-region: a
+  region from the start of line N to the start of line N+2 now comments only
+  N and N+1.  From Björn Dahlgren's fork.
+
+- Undo of a line join restores an empty line again.  Backspacing at the
+  start of a blank line and then undoing used to drop the blank line, because
+  the undo record carried no text for the zero-length line.
+
+- A batch of crash and memory-safety fixes surfaced by the new keypress fuzz
+  harness: out-of-bounds cursor and edit handling when point sat past a short
+  line or the buffer shrank underneath it, a SIGWINCH handler that ran unsafe
+  work (malloc, write) mid-signal and could corrupt the heap during a resize,
+  and a memset() on the NULL highlight buffer of an empty row.
 
 ## [v1.1.0][] - 2026-05-26
 
@@ -306,7 +336,7 @@ bindings, based on [kilo][] by Salvatore Sanfilippo.
 - Built-in key binding reference (C-h)
 - Man page ([kg.1][]) and `make install` / `make uninstall` support
 
-[UNRELEASED]: https://github.com/troglobit/kg/compare/v1.1.0...HEAD
+[UNRELEASED]: https://github.com/troglobit/kg/compare/v1.2.0...HEAD
 [v1.2.0]:     https://github.com/troglobit/kg/compare/v1.1.0...v1.2.0
 [v1.1.0]:     https://github.com/troglobit/kg/compare/v1.0.0...v1.1.0
 [v1.0.1]:     https://github.com/troglobit/kg/compare/v1.0.0...v1.0.1

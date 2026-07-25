@@ -1,26 +1,45 @@
 kg (1.2.0-1) unstable; urgency=low
 
-  * Shift-select by word and paragraph with Ctrl+Shift and the arrow keys
+  * Point-editing commands from GNU Emacs: C-t, M-h, M-z, M-\, M-SPC,
+    and M-<digit> as a numeric prefix alongside C-u
+  * Editable minibuffer answer with the usual Emacs keys; C-q inserts
+    the next keystroke literally
+  * Per-buffer fill column, set with C-x f
+  * ido-style picker highlights the selection in reverse video and elides
+    over-long candidate names
+  * Killing the last buffer (C-x k) drops to an empty *scratch* buffer
+  * C-x C-c offers to save each modified buffer before quitting
+  * Shift-select by word and paragraph with Ctrl+Shift and the arrow keys;
+    M-f and C-Right land at end of word and cross line boundaries
   * C-x 2 and C-x 3 split only the current window, like GNU Emacs;
     C-x 0 gives the closed window's space to its neighbors
   * Move between windows with Meta and the arrow keys (windmove)
   * Resize windows with Meta, Shift and the arrow keys; also C-x ^,
     C-x } and C-x {, and C-x + to balance the window sizes
-  * Ctrl+PgUp/PgDn move to beginning/end of buffer
-  * F1 opens help, F2 saves, F10 quits
+  * Ctrl+PgUp/PgDn move to beginning/end of buffer; F1 opens help,
+    F2 saves, F10 quits; Home/End recognised on VT220 and rxvt terminals
   * Incremental search holds the view still for on-screen matches and
     recentres only when off-screen; motion keys and C-Space during a
     search hand off to the command, and C-r searches backward from point
   * Incremental search and query-replace fold case unless the query has an
     uppercase letter
+  * Save atomically via a temporary file and rename, preserving mode and
+    owner and replacing a symlinked target in place
   * Save keeps the previous version as a foo~ backup (M-x make-backup-files)
-  * M-x require-final-newline adds a trailing newline on save (off by default)
+  * M-x require-final-newline adds a trailing newline on save (off by
+    default); files otherwise round-trip byte for byte
   * M-x sort-lines sorts the region's lines into byte order (one undo step)
   * M-x read-only-mode; a read-only buffer refuses every editing key and
-    M-x command, enforced at the point of mutation
-  * Fix UTF-8 text rendering as garbage in highlighted buffers
+    M-x command, enforced at the point of mutation; write-protected files
+    open read-only
+  * Run on the terminal's alternate screen, restoring scrollback on exit
+  * Optionally leave lines past end-of-buffer blank (build KG_SHOW_TILDE=0)
+  * Fixes: UTF-8 text rendering as garbage in highlighted buffers;
+    comment-dwim commenting a region's trailing line at column 0; undo of a
+    line join losing a blank line; crash and memory-safety issues found by
+    the new keypress fuzzer
 
- -- Joachim Wiberg <troglobit@gmail.com>  Sun, 12 Jul 2026 08:37:49 +0200
+ -- Joachim Wiberg <troglobit@gmail.com>  Sat, 25 Jul 2026 19:07:11 +0200
 
 kg (1.1.0-1) unstable; urgency=low
 
