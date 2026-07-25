@@ -1,0 +1,17 @@
+name: picker-long-name-ellipsis
+filename: START_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_END.txt
+backend: tmux
+dimensions: [10, 100]
+initial: hi
+keys:
+  - C-x
+  - C-f
+trailer_keys:
+  - C-g
+  - C-x
+  - C-c
+expected_saved: hi
+expected_screen_contains:
+  - "START_"
+  - "_END.txt"
+  - "…"

@@ -480,58 +480,96 @@ static void push_open_files_back(struct path_entry *entries, int n)
  * The window of visible entries is sized so `sel` is always present
  * even when the full list overflows the terminal width; trimmed sides
  * get "… | " / " | …" markers. */
+/* Copy `name` into `out`, capped to `maxw` columns; when it doesn't fit,
+ * elide the middle with "…".  Widths are byte counts, which the echo
+ * renderer treats as columns. */
+static void picker_fit(char *out, int outsz, const char *name, int maxw)
+{
+	int len = (int)strlen(name);
+	int head, tail;
+
+	if (maxw < 1) maxw = 1;
+	if (len <= maxw) {
+		snprintf(out, outsz, "%s", name);
+		return;
+	}
+	if (maxw < 4) {
+		snprintf(out, outsz, "…");
+		return;
+	}
+	/* Split the width left after the 3-byte "…" between the two ends,
+	 * backing each cut off a UTF-8 continuation byte so no glyph is sliced. */
+	head = (maxw - 3) / 2;
+	tail = maxw - 3 - head;
+	while (head > 0 && utf8_is_cont((unsigned char)name[head]))
+		head--;
+	while (tail > 0 && utf8_is_cont((unsigned char)name[len - tail]))
+		tail--;
+	snprintf(out, outsz, "%.*s…%s", head, name, name + len - tail);
+}
+
 void editor_picker_render(char *msg, int msg_size, int *off,
                           const char *const *names, int n, int n_total, int sel)
 {
-	int budget, used, win_start, win_end, i;
+	char cell[512];
+	int avail, reserve, used, win_start, win_end, i, w;
 
 	if (n <= 0) {
 		editor_msg_appendf(msg, msg_size, off, "[no match]");
 		return;
 	}
-	if (sel < 0)     sel = 0;
-	if (sel >= n)    sel = n - 1;
+	if (sel < 0)  sel = 0;
+	if (sel >= n) sel = n - 1;
 
-	/* Leave room for the framing markers: "{" + "}" + worst-case
-	 * "… | " (4 cols) + " | …" (4 cols) = 10. */
-	budget = win_total_cols - *off - 10;
-	if (budget < 0) budget = 0;
-	used      = 0;
+	/* Soft pad for the edge "…" markers ("… " and " …", 4 bytes each) and,
+	 * when the list is truncated, the "  (+N more)" tail; the echo area
+	 * hard-caps at the screen width regardless. */
+	reserve = 8;
+	if (n_total > n) reserve += 14;
+	avail = win_total_cols - *off - reserve;
+	if (avail < 8) avail = 8;
+
+	/* Pack a window around the selection: the selected name always shows
+	 * (elided to fit when it alone is too wide), then whole neighbours
+	 * until the row fills, forward first then backward. */
+	used      = (int)strlen(names[sel]);
+	if (used > avail) used = avail;
 	win_start = sel;
-	win_end   = sel;
-	for (i = sel; i < n; i++) {
-		int w = (int)strlen(names[i]) + (i > sel ? 3 : 0);   /* " | " */
-		if (i > sel && used + w > budget) break;
-		used   += w;
+	win_end   = sel + 1;
+	for (i = sel + 1; i < n; i++) {
+		w = 1 + (int)strlen(names[i]);
+		if (used + w > avail) break;
+		used += w;
 		win_end = i + 1;
 	}
 	for (i = sel - 1; i >= 0; i--) {
-		int w = (int)strlen(names[i]) + 3;
-		if (used + w > budget) break;
+		w = 1 + (int)strlen(names[i]);
+		if (used + w > avail) break;
+		used += w;
 		win_start = i;
-		used     += w;
 	}
 
-	editor_msg_appendf(msg, msg_size, off, "{");
 	if (win_start > 0)
-		editor_msg_appendf(msg, msg_size, off, "… | ");
+		editor_msg_appendf(msg, msg_size, off, "… ");
 	for (i = win_start; i < win_end; i++) {
-		if (i > win_start) editor_msg_appendf(msg, msg_size, off, " | ");
-		if (i == sel)
-			editor_msg_appendf(msg, msg_size, off, "\x1b[1m%s\x1b[22m", names[i]);
-		else
+		if (i > win_start)
+			editor_msg_appendf(msg, msg_size, off, " ");
+		if (i == sel) {
+			picker_fit(cell, sizeof(cell), names[i], avail);
+			editor_msg_appendf(msg, msg_size, off, "\x1b[7m%s\x1b[27m", cell);
+		} else {
 			editor_msg_appendf(msg, msg_size, off, "%s", names[i]);
+		}
 	}
 	if (win_end < n)
-		editor_msg_appendf(msg, msg_size, off, " | …");
-	editor_msg_appendf(msg, msg_size, off, "}");
+		editor_msg_appendf(msg, msg_size, off, " …");
 	if (n_total > n)
 		editor_msg_appendf(msg, msg_size, off, "  (+%d more)", n_total - n);
 }
 
 /* Prompt for a path with ido-style completion.  Matching directory
- * entries are rendered as a "{name1 | name2 | …}" pick-list to the
- * right of the typed text, with the selected entry shown in bold.
+ * entries are rendered as a space-separated pick-list to the right of
+ * the typed text, with the selected entry in reverse video.
  * Left/Right cycle the selection.  Enter on a directory descends into
  * it; Enter on a file completes the path and returns.  Tab still
  * extends to the longest common prefix.  Backspace at the trailing

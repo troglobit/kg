@@ -6,6 +6,11 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- The M-x, buffer, and file pickers highlight the selected candidate in
+  reverse video instead of braces and bold, and a candidate too long for
+  the line keeps its start and end visible with an elided middle -- so
+  arrowing through long, similar names no longer looks stuck.
+
 - Killing the last buffer with C-x k drops to an empty *scratch* buffer
   instead of quitting kg, like GNU Emacs.
 
