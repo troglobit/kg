@@ -112,6 +112,11 @@ will be mis-detected as sentence ends.
 .It M-l Ta Downcase word forward from point
 .It M-c Ta Capitalize word forward from point
 .It M-\&; Ta Toggle line comment
+.It C-t Ta Transpose the two characters around point
+.It M-h Ta Mark the paragraph around point
+.It M-z Ta Zap: kill up to and including a typed character
+.It M-\e Ta Delete all whitespace around point
+.It M-SPC Ta Collapse whitespace around point to one space
 .El
 .Pp
 .Ic C-k
@@ -513,6 +518,10 @@ unsaved edits is never silently overwritten.
 Capitalize the word forward from point (first letter upper, rest lower).
 Equivalent to
 .Ic M-c .
+.It delete-horizontal-space
+Delete all spaces and tabs around point.
+Equivalent to
+.Ic M-\e .
 .It delete-trailing-space
 Remove trailing whitespace from the current line only.
 Reversible with
@@ -535,12 +544,20 @@ Join the current line with the previous one, stripping leading whitespace
 from the current line and inserting a space at the join point.
 Equivalent to
 .Ic M-^ .
+.It just-one-space
+Collapse the spaces and tabs around point to a single space.
+Equivalent to
+.Ic M-SPC .
 .It make-backup-files
 Toggle whether the first save of a visit keeps the previous version of the
 file as a
 .Pa file~
 backup.
 On by default.
+.It mark-paragraph
+Set the mark at the paragraph's start and put point at its end.
+Equivalent to
+.Ic M-h .
 .It not-modified
 Clear the modified flag without saving.
 .It read-only-mode
@@ -591,6 +608,10 @@ Needs an active mark.
 Toggle read-only mode on the current buffer.
 Equivalent to
 .Ic C-x C-q .
+.It transpose-chars
+Transpose the two characters around point.
+Equivalent to
+.Ic C-t .
 .It upcase-word
 Convert the word forward from point to upper case.
 Equivalent to
@@ -603,6 +624,11 @@ Show current line, column, and percentage through the buffer.
 Remove trailing whitespace from every line in the buffer.
 Each modified line is independently reversible with
 .Ic C-_ .
+.It zap-to-char
+Kill from point up to and including the next occurrence of a prompted
+character.
+Equivalent to
+.Ic M-z .
 .El
 .Sh BUFFERS
 .Nm

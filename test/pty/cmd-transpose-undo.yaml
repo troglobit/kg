@@ -1,0 +1,6 @@
+name: cmd-transpose-undo
+filename: tu.txt
+backend: tmux
+initial: teh
+keys: [C-e, C-t, C-_]
+expected_saved: teh

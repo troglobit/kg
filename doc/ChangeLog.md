@@ -6,6 +6,12 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- Point-editing commands from GNU Emacs: C-t transpose-chars, M-h
+  mark-paragraph, M-z zap-to-char, M-\ delete-horizontal-space, M-SPC
+  just-one-space, and M-<digit> as a numeric prefix alongside C-u.  Each
+  editing command is also available as an M-x alias.  From Björn
+  Dahlgren's fork.
+
 - The minibuffer answer can be edited with the usual Emacs keys -- C-a/C-e,
   C-b/C-f, C-d, C-k, Home/End and the arrows -- and C-q inserts the next
   keystroke literally.  From Björn Dahlgren's fork.

@@ -1,0 +1,6 @@
+name: cmd-mark-paragraph
+filename: mp.txt
+backend: tmux
+initial: one two three
+keys: [M-h, C-w]
+expected_saved: ""

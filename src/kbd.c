@@ -13,12 +13,21 @@
  * is committed in editor.prefix_arg, waiting to be picked up. */
 static int handle_universal_arg(int c)
 {
+	int metadigit = (c >= ALT_0 && c <= ALT_9);
+
 	if (!editor.prefix_pending) {
 		if (c == CTRL_U) {
 			editor.prefix_pending   = 1;
 			editor.prefix_arg       = 4;
 			editor.prefix_no_digits = 1;
 			editor_set_status_message("C-u");
+			return 1;
+		}
+		if (metadigit) {          /* M-<digit> starts a numeric argument */
+			editor.prefix_pending   = 1;
+			editor.prefix_arg       = c - ALT_0;
+			editor.prefix_no_digits = 0;
+			editor_set_status_message("C-u %d", editor.prefix_arg);
 			return 1;
 		}
 		return 0;
@@ -31,8 +40,8 @@ static int handle_universal_arg(int c)
 		editor_set_status_message("C-u %d", editor.prefix_arg);
 		return 1;
 	}
-	if (c >= '0' && c <= '9') {
-		int digit = c - '0';
+	if ((c >= '0' && c <= '9') || metadigit) {
+		int digit = metadigit ? c - ALT_0 : c - '0';
 		if (editor.prefix_no_digits) {
 			editor.prefix_arg       = digit;
 			editor.prefix_no_digits = 0;
@@ -370,6 +379,9 @@ void editor_process_keypress(int fd)
 	case CTRL_O:        /* Open line */
 		while (n--) editor_open_line();
 		break;
+	case CTRL_T:        /* Transpose chars */
+		while (n--) editor_transpose_chars();
+		break;
 	case CTRL_N:        /* Next line */
 		while (n--) editor_move_cursor(ARROW_DOWN);
 		break;
@@ -514,6 +526,18 @@ void editor_process_keypress(int fd)
 	case CTRL_ARROW_DOWN:
 	case ALT_RBRACE:
 		while (n--) editor_move_paragraph_forward();
+		break;
+	case ALT_H:         /* M-h: mark the paragraph */
+		editor_mark_paragraph();
+		break;
+	case ALT_Z:         /* M-z: zap to char */
+		editor_zap_to_char(fd);
+		break;
+	case ALT_BACKSLASH: /* M-\: delete horizontal space */
+		editor_delete_horizontal_space();
+		break;
+	case ALT_SPACE:     /* M-SPC: just one space */
+		editor_just_one_space();
 		break;
 	case ALT_M:         /* M-m: back-to-indentation */
 		editor_move_to_indentation();

@@ -27,6 +27,9 @@ struct kill_ring killring;
 
 /* No-op stubs for display and kill-ring functions not under test */
 void editor_set_status_message(const char *fmt, ...) { (void)fmt; }
+void editor_set_mark_silent(void) {}
+void editor_refresh_screen(void) {}
+int  editor_read_key(int fd) { (void)fd; return 0; }
 void kill_ring_set(char *text, int len)    { (void)text; (void)len; }
 void kill_ring_append(char *text, int len) { (void)text; (void)len; }
 char *kill_ring_get(void) { return NULL; }

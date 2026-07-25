@@ -174,6 +174,8 @@ def tmux_key_name(token: str) -> tuple[str, str]:
 		return ("key", "Space")
 	if upper in ("C-SPC", "C-SPACE", "C-@"):
 		return ("key", "C-Space")
+	if upper in ("M-SPC", "M-SPACE"):
+		return ("key", "M-Space")
 
 	if upper == "HOME":
 		return ("key", "Home")

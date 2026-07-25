@@ -109,6 +109,7 @@ enum KEY_ACTION {
 	CTRL_Q = 17,        /* Ctrl-q */
 	CTRL_R = 18,        /* Ctrl-r */
 	CTRL_S = 19,        /* Ctrl-s */
+	CTRL_T = 20,        /* Ctrl-t */
 	CTRL_U = 21,        /* Ctrl-u */
 	CTRL_V = 22,        /* Ctrl-v */
 	CTRL_W = 23,        /* Ctrl-w */
@@ -185,6 +186,20 @@ enum KEY_ACTION {
 	ALT_A,         /* M-a backward sentence */
 	ALT_E,         /* M-e forward sentence */
 	ALT_R,         /* M-r move-to-window-line */
+	ALT_H,         /* M-h mark-paragraph */
+	ALT_Z,         /* M-z zap-to-char */
+	ALT_BACKSLASH, /* M-\ delete-horizontal-space */
+	ALT_SPACE,     /* M-SPC just-one-space */
+	ALT_0,         /* M-0..M-9 numeric prefix -- keep contiguous */
+	ALT_1,
+	ALT_2,
+	ALT_3,
+	ALT_4,
+	ALT_5,
+	ALT_6,
+	ALT_7,
+	ALT_8,
+	ALT_9,
 	CTRL_PAGE_UP,  /* Ctrl+PgUp: beginning of buffer */
 	CTRL_PAGE_DOWN,/* Ctrl+PgDn: end of buffer */
 	KEY_F1,        /* F1: help */
@@ -559,6 +574,11 @@ void editor_process_pending_resize(void);
 void editor_move_word_forward(void);
 void editor_move_word_backward(void);
 void editor_move_paragraph_forward(void);
+void editor_mark_paragraph(void);
+void editor_transpose_chars(void);
+void editor_delete_horizontal_space(void);
+void editor_just_one_space(void);
+void editor_zap_to_char(int fd);
 void editor_move_paragraph_backward(void);
 void editor_move_sentence_forward(void);
 void editor_move_sentence_backward(void);

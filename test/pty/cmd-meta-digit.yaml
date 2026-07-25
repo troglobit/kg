@@ -1,0 +1,6 @@
+name: cmd-meta-digit
+filename: md.txt
+backend: tmux
+initial: z
+keys: ["M-3", a]
+expected_saved: aaaz

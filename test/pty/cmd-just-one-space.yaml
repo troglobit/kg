@@ -1,0 +1,6 @@
+name: cmd-just-one-space
+filename: js.txt
+backend: tmux
+initial: "a    b"
+keys: [C-f, "M-SPC"]
+expected_saved: "a b"

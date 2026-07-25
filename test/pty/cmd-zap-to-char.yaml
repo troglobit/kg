@@ -1,0 +1,6 @@
+name: cmd-zap-to-char
+filename: z.txt
+backend: tmux
+initial: abcXdef
+keys: [M-z, X]
+expected_saved: def

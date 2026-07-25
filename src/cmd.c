@@ -215,6 +215,12 @@ static void cmd_sort_lines(int fd)
 	editor_sort_lines();
 }
 
+static void cmd_transpose_chars(int fd)         { (void)fd; editor_transpose_chars(); }
+static void cmd_mark_paragraph(int fd)          { (void)fd; editor_mark_paragraph(); }
+static void cmd_delete_horizontal_space(int fd) { (void)fd; editor_delete_horizontal_space(); }
+static void cmd_just_one_space(int fd)          { (void)fd; editor_just_one_space(); }
+static void cmd_zap_to_char(int fd)             { editor_zap_to_char(fd); }
+
 /* ---- Command table ---- */
 
 typedef void (*cmdfn)(int fd);
@@ -234,6 +240,7 @@ static const struct named_cmd cmdtable[] = {
 	{ "auto-revert-mode",         cmd_auto_revert_mode,        CMD_NONE },
 	{ "balance-windows",          cmd_balance_windows,         CMD_NONE },
 	{ "capitalize-word",          cmd_capitalize_word,         CMD_EDITS_BUFFER },
+	{ "delete-horizontal-space",  cmd_delete_horizontal_space, CMD_EDITS_BUFFER },
 	{ "delete-trailing-space",    cmd_delete_trailing_space,   CMD_EDITS_BUFFER },
 	{ "downcase-word",            cmd_downcase_word,           CMD_EDITS_BUFFER },
 	{ "enlarge-window",           cmd_enlarge_window,          CMD_NONE },
@@ -241,7 +248,9 @@ static const struct named_cmd cmdtable[] = {
 	{ "global-auto-revert-mode",  cmd_global_auto_revert_mode, CMD_NONE },
 	{ "goto-line",                cmd_goto_line,               CMD_NONE },
 	{ "join-line",                cmd_join_line,               CMD_EDITS_BUFFER },
+	{ "just-one-space",           cmd_just_one_space,          CMD_EDITS_BUFFER },
 	{ "make-backup-files",        cmd_make_backup_files,       CMD_NONE },
+	{ "mark-paragraph",           cmd_mark_paragraph,          CMD_NONE },
 	{ "not-modified",             cmd_not_modified,            CMD_NONE },
 	{ "read-only-mode",           cmd_toggle_read_only,        CMD_NONE },
 	{ "require-final-newline",    cmd_require_final_newline,   CMD_NONE },
@@ -254,6 +263,7 @@ static const struct named_cmd cmdtable[] = {
 	{ "shrink-window-horizontally", cmd_shrink_window_h,       CMD_NONE },
 	{ "sort-lines",               cmd_sort_lines,              CMD_EDITS_BUFFER },
 	{ "toggle-read-only",         cmd_toggle_read_only,        CMD_NONE },
+	{ "transpose-chars",          cmd_transpose_chars,         CMD_EDITS_BUFFER },
 	{ "upcase-word",              cmd_upcase_word,             CMD_EDITS_BUFFER },
 	{ "version",                  cmd_version,                 CMD_NONE },
 	{ "what-cursor-position",     cmd_what_cursor_position,    CMD_NONE },
@@ -262,6 +272,7 @@ static const struct named_cmd cmdtable[] = {
 	{ "windmove-left",            cmd_windmove_left,           CMD_NONE },
 	{ "windmove-right",           cmd_windmove_right,          CMD_NONE },
 	{ "windmove-up",              cmd_windmove_up,             CMD_NONE },
+	{ "zap-to-char",              cmd_zap_to_char,             CMD_EDITS_BUFFER },
 	{ NULL, NULL, CMD_NONE }
 };
 

@@ -1,0 +1,6 @@
+name: cmd-transpose-chars
+filename: t.txt
+backend: tmux
+initial: teh
+keys: [C-e, C-t]
+expected_saved: the

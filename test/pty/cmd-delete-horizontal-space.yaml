@@ -1,0 +1,6 @@
+name: cmd-delete-horizontal-space
+filename: dh.txt
+backend: tmux
+initial: "a    b"
+keys: [C-f, "M-\\"]
+expected_saved: ab

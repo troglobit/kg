@@ -292,6 +292,151 @@ void editor_move_paragraph_forward(void)
 	editor.coloff = 0;
 }
 
+/* M-h: mark the paragraph around point -- mark at its start, point at its
+ * end, like GNU Emacs. */
+void editor_mark_paragraph(void)
+{
+	editor_move_paragraph_backward();
+	editor_set_mark_silent();
+	editor_move_paragraph_forward();
+	editor.mark_highlight = 1;
+}
+
+/* C-t: transpose the two characters around point and step forward, like
+ * GNU Emacs; at the end of a line the two preceding characters swap. */
+void editor_transpose_chars(void)
+{
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
+	erow *row;
+	char *orig, tmp;
+	int orig_len;
+
+	if (editor_readonly_blocked())
+		return;
+	if (filerow >= editor.numrows)
+		return;
+	row = &editor.row[filerow];
+	if (row->size < 2)
+		return;
+	if (filecol >= row->size)
+		filecol = row->size - 1;
+	if (filecol < 1)
+		return;
+
+	orig = editor_rows_to_string(row, 1, &orig_len);
+	if (!orig)
+		return;
+	tmp = row->chars[filecol - 1];
+	row->chars[filecol - 1] = row->chars[filecol];
+	row->chars[filecol] = tmp;
+	editor_update_row(row);
+	undo_push(UNDO_RECT_OVERWRITE, filerow, 0, editor.numrows, orig, orig_len);
+	free(orig);
+
+	editor_cursor_goto(filerow, filecol + 1);
+	editor.dirty++;
+}
+
+/* Span of spaces and tabs straddling `col` on `row`, returned in start/end. */
+static void whitespace_span(erow *row, int col, int *start, int *end)
+{
+	int s = col, e = col;
+
+	while (s > 0 && (row->chars[s - 1] == ' ' || row->chars[s - 1] == '\t'))
+		s--;
+	while (e < row->size && (row->chars[e] == ' ' || row->chars[e] == '\t'))
+		e++;
+	*start = s;
+	*end   = e;
+}
+
+/* Squeeze the whitespace around point: with keep_one leave a single space
+ * (M-SPC), otherwise remove it entirely (M-\). */
+static void squeeze_whitespace(int keep_one)
+{
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
+	erow *row;
+	char *orig;
+	int orig_len, start, end, i;
+
+	if (editor_readonly_blocked())
+		return;
+	if (filerow >= editor.numrows)
+		return;
+	row = &editor.row[filerow];
+	whitespace_span(row, filecol, &start, &end);
+	if (end == start && !keep_one)
+		return;
+
+	orig = editor_rows_to_string(row, 1, &orig_len);
+	if (!orig)
+		return;
+	for (i = end - start; i > 0; i--)
+		editor_row_del_char(row, start);
+	if (keep_one)
+		editor_row_insert_char(row, start, ' ');
+	undo_push(UNDO_RECT_OVERWRITE, filerow, 0, editor.numrows, orig, orig_len);
+	free(orig);
+
+	editor_cursor_goto(filerow, start + (keep_one ? 1 : 0));
+}
+
+/* M-\: delete every space and tab around point. */
+void editor_delete_horizontal_space(void) { squeeze_whitespace(0); }
+
+/* M-SPC: collapse the spaces and tabs around point to a single space. */
+void editor_just_one_space(void) { squeeze_whitespace(1); }
+
+/* M-z: kill from point up to and including the next occurrence of a
+ * prompted character on the current line, like GNU Emacs. */
+void editor_zap_to_char(int fd)
+{
+	int filerow = editor.rowoff + editor.cy;
+	int filecol = editor.coloff + editor.cx;
+	erow *row;
+	char *killed;
+	int c, i, target = -1, n;
+
+	if (editor_readonly_blocked())
+		return;
+	editor_set_status_message("Zap to char: ");
+	editor_refresh_screen();
+	c = editor_read_key(fd);
+	if (c == ESC || c == CTRL_G || c >= 256) {
+		editor_set_status_message("");
+		return;
+	}
+	if (filerow >= editor.numrows)
+		return;
+	row = &editor.row[filerow];
+	for (i = filecol; i < row->size; i++) {
+		if (row->chars[i] == c) {
+			target = i;
+			break;
+		}
+	}
+	if (target < 0) {
+		editor_set_status_message("'%c' not found", c);
+		return;
+	}
+	n = target - filecol + 1;
+	killed = malloc(n + 1);
+	if (!killed)
+		return;
+	memcpy(killed, row->chars + filecol, n);
+	killed[n] = '\0';
+	kill_ring_set(killed, n);
+	undo_push(UNDO_KILL_TEXT, filerow, filecol, 0, killed, n);
+	suppress_undo = 1;
+	for (i = 0; i < n; i++)
+		editor_del_forward_char();
+	suppress_undo = 0;
+	free(killed);
+	editor_set_status_message("Zapped");
+}
+
 /* Sentence boundary helpers.  A sentence ends at '.', '?', or '!' that is
  * followed in the source text by whitespace (including newline / EOF). */
 static int is_sentence_end(char c)

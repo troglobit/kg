@@ -114,7 +114,7 @@ ordered by value vs implementation effort.
       (e.g. C-u 8 C-f moves forward 8 chars).  Moderate plumbing work
       but unlocks power-user workflows.
 
-- [ ] **M-z zap-to-char**: Kill from point up to and including a
+- [x] **M-z zap-to-char**: Kill from point up to and including a
       prompted character.
 
 - [ ] **M-y yank-pop**: After C-y, cycle backwards through the kill ring
@@ -125,12 +125,12 @@ ordered by value vs implementation effort.
 - [ ] **Multi-entry kill ring**: Prerequisite for M-y yank-pop.  Keep
       the ring bounded (8–16 entries) to avoid unbounded memory growth.
 
-- [ ] **M-\\ delete-horizontal-space** and **M-SPC just-one-space**:
+- [x] **M-\\ delete-horizontal-space** and **M-SPC just-one-space**:
       Delete all whitespace around point, or collapse it to a single
       space.  Also add `delete-horizontal-space` and `just-one-space`
       as M-x commands.
 
-- [ ] **C-t transpose-chars**: Swap the character before point with the
+- [x] **C-t transpose-chars**: Swap the character before point with the
       one at point.  Indispensable for fixing the most common typing errors.
       Also add `transpose-chars` as an M-x command.
 
