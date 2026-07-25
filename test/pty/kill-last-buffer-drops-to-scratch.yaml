@@ -1,0 +1,14 @@
+name: kill-last-buffer-drops-to-scratch
+filename: only.txt
+backend: tmux
+dimensions: [10, 80]
+initial: hello world
+keys:
+  - C-x
+  - k
+trailer_keys:
+  - C-x
+  - C-c
+expected_saved: hello world
+expected_screen_contains:
+  - "*scratch*"

@@ -6,6 +6,9 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- Killing the last buffer with C-x k drops to an empty *scratch* buffer
+  instead of quitting kg, like GNU Emacs.
+
 - M-x sort-lines sorts the lines the region covers into byte order -- like
   sort(1) in the C locale, so case-sensitive and not numeric -- as a single
   undo step.  From Björn Dahlgren's fork.

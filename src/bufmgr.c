@@ -279,6 +279,20 @@ static void buf_reset(void)
 	undo_init();
 }
 
+/* Create a fresh, empty *scratch* buffer in `slot` and make it the only
+ * buffer.  Used at startup when no files are given, and when killing the
+ * last buffer would otherwise leave kg with nothing to show. */
+static void buf_new_scratch(int slot)
+{
+	buf_reset();
+	editor.filename = strdup("*scratch*");
+	editor.syntax = &text_syntax;
+	buf_save_to_slot(slot);
+	buflist[slot].active = 1;
+	buf_count = 1;
+	buf_restore_from_slot(slot);
+}
+
 /* Render a unique display name for buflist[idx] into `out`.  If no other
  * active buffer shares its basename the bare basename is used; otherwise
  * the immediate parent directory is prepended ("dir/foo"), matching
@@ -639,13 +653,7 @@ void buf_load_args(int nfiles, char **filenames, int readonly)
 
 	if (nfiles == 0) {
 		/* No files given: open an empty *scratch* buffer. */
-		buf_reset();
-		editor.filename = strdup("*scratch*");
-		editor.syntax = &text_syntax;
-		buf_save_to_slot(0);
-		buflist[0].active = 1;
-		buf_count = 1;
-		buf_restore_from_slot(0);
+		buf_new_scratch(0);
 		return;
 	}
 
@@ -910,7 +918,10 @@ void buf_kill(int fd)
 	buf_count--;
 
 	if (buf_count == 0) {
-		running = 0;
+		/* Killing the last buffer drops to an empty *scratch*, like GNU
+		 * Emacs; quitting kg is C-x C-c. */
+		buf_new_scratch(buf_current);
+		editor_set_status_message("*scratch*");
 		return;
 	}
 
