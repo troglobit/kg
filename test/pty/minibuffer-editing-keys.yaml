@@ -1,0 +1,15 @@
+name: minibuffer-editing-keys
+filename: mb.txt
+backend: tmux
+initial: cat
+keys:
+  - M-%
+  - cat
+  - RET
+  - doXg
+  - C-b
+  - C-b
+  - C-d
+  - RET
+  - "!"
+expected_saved: dog

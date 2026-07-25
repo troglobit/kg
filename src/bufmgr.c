@@ -346,10 +346,10 @@ static int prompt_done(int rc)
 }
 
 /* Park the cursor at the typed position on the echo area and refresh. */
-static void prompt_refresh(const char *prompt, int plen, const char *buf, int len)
+static void prompt_refresh(const char *prompt, int plen, const char *buf, int pos)
 {
 	editor_set_status_message("%s%s", prompt, buf);
-	editor.echo_cursor_col = plen + len + 1;
+	editor.echo_cursor_col = plen + pos + 1;
 	editor_refresh_screen();
 }
 
@@ -398,21 +398,70 @@ void editor_prompt_prefill_dir(char *buf, int bufsize)
 int editor_read_line(int fd, const char *prompt, char *buf, int bufsize)
 {
 	int plen = (int)strlen(prompt);
-	int len = 0, c;
+	int len = 0, pos = 0, c;
 
 	buf[0] = '\0';
 	while (1) {
-		prompt_refresh(prompt, plen, buf, len);
+		prompt_refresh(prompt, plen, buf, pos);
 		c = editor_read_key(fd);
-		if (c == DEL_KEY || c == CTRL_H || c == BACKSPACE) {
-			if (len > 0) buf[--len] = '\0';
-		} else if (c == ESC || c == CTRL_G) {
+		switch (c) {
+		case ESC:
+		case CTRL_G:
 			return prompt_done(-1);
-		} else if (c == ENTER) {
+		case ENTER:
 			return prompt_done(0);
-		} else if (isprint(c) && len < bufsize - 1) {
-			buf[len++] = c;
+		case CTRL_A:
+		case HOME_KEY:
+			pos = 0;
+			break;
+		case CTRL_E:
+		case END_KEY:
+			pos = len;
+			break;
+		case CTRL_B:
+		case ARROW_LEFT:
+			if (pos > 0) pos--;
+			break;
+		case CTRL_F:
+		case ARROW_RIGHT:
+			if (pos < len) pos++;
+			break;
+		case CTRL_H:
+		case BACKSPACE:
+			if (pos > 0) {
+				memmove(buf + pos - 1, buf + pos, len - pos + 1);
+				pos--;
+				len--;
+			}
+			break;
+		case CTRL_D:
+		case DEL_KEY:
+			if (pos < len) {
+				memmove(buf + pos, buf + pos + 1, len - pos);
+				len--;
+			}
+			break;
+		case CTRL_K:
+			len = pos;
 			buf[len] = '\0';
+			break;
+		case CTRL_Q:
+			/* Quoted insert: take the next key literally, control byte
+			 * or not, so a Tab or Esc can be typed into the answer. */
+			c = editor_read_key(fd);
+			if (c >= 0 && c < 256 && len < bufsize - 1) {
+				memmove(buf + pos + 1, buf + pos, len - pos + 1);
+				buf[pos++] = (char)c;
+				len++;
+			}
+			break;
+		default:
+			if (c < 256 && isprint(c) && len < bufsize - 1) {
+				memmove(buf + pos + 1, buf + pos, len - pos + 1);
+				buf[pos++] = (char)c;
+				len++;
+			}
+			break;
 		}
 	}
 }

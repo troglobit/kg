@@ -1,0 +1,13 @@
+name: minibuffer-quoted-insert
+filename: mq.txt
+backend: tmux
+initial: a
+keys:
+  - M-%
+  - a
+  - RET
+  - C-q
+  - C-i
+  - RET
+  - "!"
+expected_saved: "\t"

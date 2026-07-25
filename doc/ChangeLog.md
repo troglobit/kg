@@ -6,6 +6,10 @@ All relevant changes to the project are documented in this file.
 
 ### Changes
 
+- The minibuffer answer can be edited with the usual Emacs keys -- C-a/C-e,
+  C-b/C-f, C-d, C-k, Home/End and the arrows -- and C-q inserts the next
+  keystroke literally.  From Björn Dahlgren's fork.
+
 - The M-x, buffer, and file pickers highlight the selected candidate in
   reverse video instead of braces and bold, and a candidate too long for
   the line keeps its start and end visible with an elided middle -- so
