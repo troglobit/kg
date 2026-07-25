@@ -1,0 +1,15 @@
+name: quit-offers-save-then-exit
+filename: quitprompt.txt
+backend: tmux
+dimensions: [10, 80]
+initial: hello
+keys:
+  - "X"
+  - C-x
+  - C-c
+trailer_keys:
+  - "n"
+  - "y"
+expected_saved: hello
+expected_screen_contains:
+  - "quitprompt.txt? (y/n)"

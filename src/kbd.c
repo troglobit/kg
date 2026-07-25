@@ -87,20 +87,23 @@ static void editor_quit(int fd)
 {
 	int i, ndirty = 0;
 
-	/* Count modified real-file buffers (exclude *special* ones). */
-	if (editor.dirty && !is_special_buffer(editor.filename))
-		ndirty++;
+	/* Offer to save each modified buffer, like GNU Emacs; C-g at a
+	 * save prompt cancels the quit. */
+	if (buf_save_all(fd))
+		return;
+
+	/* Count what the user left unsaved.  buf_save_all flushed the current
+	 * buffer into its slot, so every slot's dirty flag is authoritative. */
 	for (i = 0; i < MAX_BUFFERS; i++) {
-		if (!buflist[i].active || i == buf_current) continue;
-		if (!buflist[i].dirty) continue;
+		if (!buflist[i].active || !buflist[i].dirty) continue;
 		if (is_special_buffer(buflist[i].filename)) continue;
 		ndirty++;
 	}
 	if (ndirty) {
 		int answer;
 		editor_set_status_message(
-			ndirty == 1 ? "Modified buffer, really quit? (y/n) "
-			            : "%d modified buffers, really quit? (y/n) ",
+			ndirty == 1 ? "One modified buffer remains, exit anyway? (y/n) "
+			            : "%d modified buffers remain, exit anyway? (y/n) ",
 			ndirty);
 		editor_refresh_screen();
 		answer = editor_read_key(fd);

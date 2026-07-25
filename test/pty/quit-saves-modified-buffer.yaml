@@ -1,0 +1,12 @@
+name: quit-saves-modified-buffer
+filename: quitsave.txt
+backend: tmux
+dimensions: [10, 80]
+initial: hello
+keys:
+  - "X"
+  - C-x
+  - C-c
+  - "y"
+trailer_keys: []
+expected_saved: Xhello

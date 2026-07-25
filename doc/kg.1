@@ -359,6 +359,11 @@ The buffer is marked unmodified when undo returns to the last-saved state.
 .It C-x C-c / F10 Ta Quit
 .El
 .Pp
+Quitting with
+.Ic C-x C-c
+offers to save each modified buffer in turn, then asks for confirmation
+only if any are left unsaved, like GNU Emacs.
+.Pp
 The filename prompts for
 .Ic C-x C-f ,
 .Ic C-x C-r ,

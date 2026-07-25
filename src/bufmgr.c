@@ -854,8 +854,9 @@ static int write_slot(struct editor_buffer *b)
 	return 0;
 }
 
-/* Save all modified non-special buffers, prompting for each (C-x s). */
-void buf_save_all(int fd)
+/* Save all modified non-special buffers, prompting for each (C-x s).
+ * Returns 1 if the user aborted the pass with C-g, else 0. */
+int buf_save_all(int fd)
 {
 	int i;
 
@@ -871,6 +872,10 @@ void buf_save_all(int fd)
 		editor_set_status_message("Save %s? (y/n) ", b->filename);
 		editor_refresh_screen();
 		answer = editor_read_key(fd);
+		if (answer == CTRL_G) {        /* C-g aborts the whole pass */
+			editor_set_status_message("Quit");
+			return 1;
+		}
 		if (answer != 'y' && answer != 'Y') continue;
 
 		if (write_slot(b) == 0) {
@@ -887,6 +892,7 @@ void buf_save_all(int fd)
 				b->filename, strerror(errno));
 		}
 	}
+	return 0;
 }
 
 /* Kill (close) the current buffer, prompting if modified. */

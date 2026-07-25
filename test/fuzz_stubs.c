@@ -89,7 +89,7 @@ int editor_read_line(int fd, const char *prompt, char *buf, int bufsize)
 	return -1;
 }
 
-void buf_save_all(int fd) { (void)fd; }
+int buf_save_all(int fd) { (void)fd; return 0; }
 void buf_open_file(int fd) { (void)fd; }
 void buf_open_file_read_only(int fd) { (void)fd; }
 void buf_select_interactive(int fd) { (void)fd; }

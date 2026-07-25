@@ -1,0 +1,12 @@
+name: quit-cg-aborts
+filename: cgabort.txt
+backend: tmux
+dimensions: [10, 80]
+initial: hello
+keys:
+  - "X"
+  - C-x
+  - C-c
+  - C-g
+  - "Y"
+expected_saved: XYhello

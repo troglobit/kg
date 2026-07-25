@@ -408,7 +408,7 @@ void buf_select_interactive(int fd);
 void buf_open_file(int fd);
 void buf_open_file_read_only(int fd);
 void buf_kill(int fd);
-void buf_save_all(int fd);
+int buf_save_all(int fd);
 void buf_open_list(void);
 void buf_open_help(void);
 void buf_ibuffer_select(void);

@@ -9,6 +9,10 @@ All relevant changes to the project are documented in this file.
 - Killing the last buffer with C-x k drops to an empty *scratch* buffer
   instead of quitting kg, like GNU Emacs.
 
+- Quitting with C-x C-c offers to save each modified buffer first, like
+  GNU Emacs, and asks to confirm the exit only if any are left unsaved --
+  rather than discarding every unsaved change at once.
+
 - M-x sort-lines sorts the lines the region covers into byte order -- like
   sort(1) in the C locale, so case-sensitive and not numeric -- as a single
   undo step.  From Björn Dahlgren's fork.
