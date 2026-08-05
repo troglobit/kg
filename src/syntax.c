@@ -66,7 +66,7 @@ char *PYTHON_HL_keywords[] = {
 
 /* Shell */
 char *SHELL_HL_extensions[] = {
-	".sh", ".bash", ".zsh", ".ksh", ".csh", ".tcsh",
+	".sh", ".bash", ".zsh", ".ksh", ".csh", ".cshrc", ".tcsh",
 	".profile", ".bashrc", ".bash_profile", ".bash_login",
 	".zshrc", ".zshenv", ".zlogin", ".zprofile",
 	NULL};
@@ -75,6 +75,11 @@ char *SHELL_HL_keywords[] = {
 	/* Shell Keywords */
 	"if", "then", "else", "elif", "fi", "case", "esac", "for", "while",
 	"until", "do", "done", "select", "function", "in", "time", "coproc",
+
+	/* C shell keywords */
+	"setenv", "unsetenv", "alias", "unalias", "endif", "endsw",
+	"foreach", "end", "break", "continue", "goto", "onintr",
+	"on", "switch", "label", "default", "fallthrough",
 
 	/* Common commands */
 	"alias|", "bg|", "bind|", "break|", "builtin|", "caller|", "cd|",
@@ -526,6 +531,160 @@ char *MAKE_HL_extensions[] = {"Makefile", "makefile", "GNUmakefile", ".mk", ".ma
 char *MD_HL_extensions[] = {".md", ".markdown", ".mkd", NULL};
 char *MD_HL_keywords[]   = {NULL};
 
+/* Verilog (IEEE 1364) */
+char *VERILOG_HL_extensions[] = {".v", NULL};
+char *VERILOG_HL_keywords[] = {
+	/* Verilog-2001 keywords */
+	"always", "and", "assign", "automatic", "begin", "buf", "bufif0",
+	"bufif1", "case", "casex", "casez", "cell", "cmos", "config",
+	"deassign", "default", "defparam", "design", "disable", "edge",
+	"else", "end", "endcase", "endconfig", "endfunction", "endgenerate",
+	"endmodule", "endprimitive", "endspecify", "endtable", "endtask",
+	"event", "for", "force", "forever", "fork", "function", "generate",
+	"genvar", "highz0", "highz1", "if", "ifnone", "incdir", "include",
+	"initial", "inout", "input", "instance", "join", "large",
+	"liblist", "library", "localparam", "macromodule", "medium", "module",
+	"nand", "negedge", "nmos", "nor", "noshowcancelled", "not", "notif0",
+	"notif1", "or", "output", "parameter", "pmos", "posedge", "primitive",
+	"pull0", "pull1", "pulldown", "pullup", "pulsestyle_onevent",
+	"pulsestyle_ondetect", "rcmos", "release", "repeat", "rnmos", "rpmos",
+	"rtran", "rtranif0", "rtranif1", "scalared", "showcancelled", "small",
+	"specify", "specparam", "strong0", "strong1", "table", "task", "tran",
+	"tranif0", "tranif1", "use", "vectored", "wait", "weak0", "weak1",
+	"while", "xnor", "xor",
+
+	/* Verilog types (net and data types) */
+	"integer|", "real|", "realtime|", "reg|", "signed|", "supply0|",
+	"supply1|", "time|", "tri|", "tri0|", "tri1|", "triand|", "trior|",
+	"trireg|", "unsigned|", "wand|", "wire|", "wor|", NULL};
+
+/* SystemVerilog (IEEE 1800) */
+char *SV_HL_extensions[] = {".sv", ".svh", NULL};
+char *SV_HL_keywords[] = {
+	/* Verilog-2001 keywords (inherited) */
+	"always", "and", "assign", "automatic", "begin", "buf", "bufif0",
+	"bufif1", "case", "casex", "casez", "cell", "cmos", "config",
+	"deassign", "default", "defparam", "design", "disable", "edge",
+	"else", "end", "endcase", "endconfig", "endfunction", "endgenerate",
+	"endmodule", "endprimitive", "endspecify", "endtable", "endtask",
+	"event", "for", "force", "forever", "fork", "function", "generate",
+	"genvar", "highz0", "highz1", "if", "ifnone", "incdir", "include",
+	"initial", "inout", "input", "instance", "join", "large",
+	"liblist", "library", "localparam", "macromodule", "medium", "module",
+	"nand", "negedge", "nmos", "nor", "noshowcancelled", "not", "notif0",
+	"notif1", "or", "output", "parameter", "pmos", "posedge", "primitive",
+	"pull0", "pull1", "pulldown", "pullup", "pulsestyle_onevent",
+	"pulsestyle_ondetect", "rcmos", "release", "repeat", "rnmos", "rpmos",
+	"rtran", "rtranif0", "rtranif1", "scalared", "showcancelled", "small",
+	"specify", "specparam", "strong0", "strong1", "table", "task", "tran",
+	"tranif0", "tranif1", "use", "vectored", "wait", "weak0", "weak1",
+	"while", "xnor", "xor",
+
+	/* SystemVerilog (IEEE 1800) keywords */
+	"accept_on", "alias", "always_comb", "always_ff", "always_latch",
+	"assert", "assume", "before", "bind", "bins", "binsof", "break",
+	"checker", "class", "clocking", "const", "constraint", "context",
+	"continue", "cover", "covergroup", "coverpoint", "cross", "dist",
+	"do", "endchecker", "endclass", "endclocking", "endgroup",
+	"endinterface", "endpackage", "endprogram", "endproperty",
+	"endsequence", "enum", "eventually", "expect", "export", "extends",
+	"extern", "final", "first_match", "foreach", "forkjoin", "global",
+	"iff", "ignore_bins", "illegal_bins", "implements", "implies",
+	"import", "inside", "interconnect", "interface", "intersect",
+	"join_any", "join_none", "let", "matches", "modport", "nettype",
+	"new", "nexttime", "null", "package", "packed", "priority", "program",
+	"property", "protected", "pure", "rand", "randc", "randcase",
+	"randsequence", "reject_on", "restrict", "return", "s_always",
+	"s_eventually", "s_nexttime", "s_until", "s_until_with", "sequence",
+	"soft", "solve", "static", "struct", "super", "sync_accept_on",
+	"sync_reject_on", "tagged", "this", "throughout", "timeprecision",
+	"timeunit", "type", "typedef", "union", "unique", "unique0", "until",
+	"until_with", "untyped", "var", "virtual", "wait_order", "wildcard",
+	"with", "within",
+
+	/* SystemVerilog types (net and data types) */
+	"bit|", "byte|", "chandle|", "int|", "integer|", "logic|", "longint|",
+	"real|", "realtime|", "reg|", "shortint|", "shortreal|", "signed|",
+	"string|", "supply0|", "supply1|", "time|", "tri|", "tri0|", "tri1|",
+	"triand|", "trior|", "trireg|", "unsigned|", "void|", "wand|",
+	"wire|", "wor|", NULL};
+
+/* Perl */
+char *PERL_HL_extensions[] = {".pl", ".pm", ".t", ".psgi", NULL};
+char *PERL_HL_keywords[] = {
+	/* Perl Keywords */
+	"and", "cmp", "continue", "default", "defined", "die", "do", "else",
+	"elsif", "eq", "eval", "exists", "exit", "for", "foreach", "ge",
+	"given", "goto", "gt", "if", "last", "le", "lock", "lt", "my",
+	"ne", "next", "no", "not", "or", "our", "package", "pos", "print",
+	"printf", "qw", "qx", "qq", "qr", "return", "say", "sort", "state",
+	"sub", "switch", "tie", "tied", "unless", "until", "when", "while",
+	"xor", "y", "tr", "s", "m", "q",
+
+	/* Perl Special Variables */
+	"$_|", "$@|", "$!|", "$&|", "$'|", "$`|", "$1|", "$2|", "$3|",
+	"$a|", "$b|", "@_|", "%_|", "$ARGV|", "$PID|", "$SIG|", "$ENV|",
+
+	/* Perl Built-ins */
+	"abs|", "accept|", "alarm|", "bless|", "caller|", "chdir|", "chmod|",
+	"chomp|", "chop|", "chown|", "chr|", "close|", "closedir|", "connect|",
+	"cos|", "crypt|", "dbmclose|", "dbmopen|", "dump|", "each|", "endgrent|",
+	"endhostent|", "endnetent|", "endprotoent|", "endpwent|", "endservent|",
+	"eof|", "fileno|", "flock|", "fork|", "formline|", "getc|", "getgrent|",
+	"getgrgid|", "getgrnam|", "gethostbyaddr|", "gethostbyname|",
+	"gethostent|", "getlogin|", "getnetbyaddr|", "getnetbyname|",
+	"getnetent|", "getpeername|", "getpgrp|", "getppid|", "getpriority|",
+	"getprotobyname|", "getprotobynumber|", "getprotoent|", "getpwent|",
+	"getpwnam|", "getpwuid|", "getservbyname|", "getservbyport|",
+	"getservent|", "getsockname|", "getsockopt|", "glob|", "gmtime|",
+	"hex|", "import|", "index|int|", "ioctl|", "join|", "kill|",
+	"lc|", "lcfirst|", "length|", "link|", "listen|", "localtime|",
+	"log|", "lstat|", "map|", "mkdir|", "msgctl|", "msgget|", "msgrcv|",
+	"msgsnd|", "oct|", "open|", "opendir|", "ord|", "pack|", "pipe|",
+	"pop|", "pos|", "push|", "quotemeta|", "rand|", "read|", "readdir|",
+	"readline|", "readlink|", "recv|", "redo|", "ref|", "rename|",
+	"require|", "reset|", "reverse|rindex|rmdir|", "scalar|", "seek|",
+	"seekdir|", "select|", "semctl|", "semget|", "semop|", "send|",
+	"setgrent|", "sethostent|", "setnetent|", "setpgrp|", "setpriority|",
+	"setprotoent|", "setpwent|", "setservent|", "setsockopt|", "shift|",
+	"shmctl|", "shmget|", "shmread|", "shmwrite|", "shutdown|", "sin|",
+	"sleep|", "socket|", "socketpair|", "split|", "sprintf|", "sqrt|",
+	"srand|", "stat|", "study|", "substr|", "symlink|", "syscall|",
+	"sysopen|", "sysread|", "system|", "syswrite|", "tell|", "telldir|",
+	"tie|", "tied|", "time|", "times|", "truncate|", "uc|", "ucfirst|",
+	"umask|", "undef|", "unlink|", "unpack|", "unshift|", "untie|",
+	"use|", "utime|", "values|", "vec|", "wait|", "waitpid|", "warn|",
+	"write|", NULL};
+
+/* Tcl */
+char *TCL_HL_extensions[] = {".tcl", ".tk", ".itcl", ".itk", ".tm", NULL};
+char *TCL_HL_keywords[] = {
+	/* Tcl Keywords */
+	"after", "append", "array", "binary", "break", "catch", "cd", "chan",
+	"clock", "close", "concat", "continue", "dict", "encoding", "eof",
+	"error", "eval", "exec", "exit", "expr", "fblocked", "fconfigure",
+	"fcopy", "file", "fileevent", "flush", "for", "foreach", "format",
+	"gets", "glob", "global", "history", "if", "incr", "info", "interp",
+	"join", "lappend", "lassign", "lindex", "linsert", "list", "llength",
+	"lmap", "load", "lrange", "lrepeat", "lreplace", "lreverse", "lsearch",
+	"lset", "lsort", "namespace", "open", "package", "pid", "proc",
+	"puts", "pwd", "read", "regexp", "regsub", "rename", "return",
+	"scan", "seek", "set", "socket", "source", "split", "string",
+	"subst", "switch", "tailcall", "tell", "throw", "trace", "try",
+	"unload", "unset", "update", "uplevel", "upvar", "variable",
+	"vwait", "while", "yield", "zlib",
+
+	/* Tcl Types */
+	"boolean|", "double|", "int|", "wideint|",
+
+	/* Tcl Commands */
+	"auto_execok|", "auto_import|", "auto_load|", "auto_mkindex|",
+	"auto_reset|", "bgerror|", "binary|", "coroutine|", "encoding|",
+	"fblocked|", "fconfigure|", "fcopy|", "file|", "fileevent|",
+	"get_error|", "http|", "msgcat|", "opt_parse|", "parray|",
+	"platform|", "re_syntax|", "safe|", "string|", "tcltest|",
+	"tclvars|", "tm|", "trace|", "try|", "zlib|", NULL};
+
 /* Here we define an array of syntax highlights by extensions, keywords,
  * comments delimiters and flags. */
 struct editor_syntax HLDB[] = {
@@ -549,6 +708,10 @@ struct editor_syntax HLDB[] = {
 	{ "Svelte",     SVELTE_HL_extensions,  SVELTE_HL_keywords,  "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
 	{ "Makefile",   MAKE_HL_extensions,    NULL,                "","","",       SHL_MAKEFILE },
 	{ "Markdown",   MD_HL_extensions,      MD_HL_keywords,      "","","",       SHL_MARKDOWN },
+	{ "Verilog",    VERILOG_HL_extensions, VERILOG_HL_keywords, "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "SystemVerilog", SV_HL_extensions, SV_HL_keywords,       "//","/*","*/", HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Perl",       PERL_HL_extensions,    PERL_HL_keywords,    "#","","",      HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
+	{ "Tcl",        TCL_HL_extensions,     TCL_HL_keywords,     "#","","",      HL_HIGHLIGHT_STRINGS | HL_HIGHLIGHT_NUMBERS },
 };
 
 #define HLDB_ENTRIES (sizeof(HLDB)/sizeof(HLDB[0]))
