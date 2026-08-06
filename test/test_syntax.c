@@ -346,6 +346,262 @@ static void test_md_unmatched_bold(void)
 	teardown();
 }
 
+/* ---- Verilog syntax tests (HLDB[20]) ---- */
+
+/* "module foo;" → "module" is HL_KEYWORD1. */
+static void test_verilog_module(void)
+{
+	setup(&HLDB[20]);
+	CHECK(strcmp(HLDB[20].name, "Verilog") == 0);
+	editor_insert_row(0, "module foo;", 11);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[4] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[5] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "wire x;" → "wire" is HL_KEYWORD2 (type). */
+static void test_verilog_wire_type(void)
+{
+	setup(&HLDB[20]);
+	editor_insert_row(0, "wire x;", 7);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD2);
+	teardown();
+}
+
+/* "always @(posedge clk)" → "always" and "posedge" are HL_KEYWORD1. */
+static void test_verilog_always(void)
+{
+	setup(&HLDB[20]);
+	editor_insert_row(0, "always @(posedge clk)", 21);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[4] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[5] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "// comment" → entire line is HL_COMMENT. */
+static void test_verilog_comment(void)
+{
+	int i;
+
+	setup(&HLDB[20]);
+	editor_insert_row(0, "// comment", 10);
+
+	for (i = 0; i < 10; i++)
+		CHECK(editor.row[0].hl[i] == HL_COMMENT);
+	teardown();
+}
+
+/* ---- SystemVerilog syntax tests (HLDB[21]) ---- */
+
+/* "module foo;" → "module" is HL_KEYWORD1. */
+static void test_sv_module(void)
+{
+	setup(&HLDB[21]);
+	CHECK(strcmp(HLDB[21].name, "SystemVerilog") == 0);
+	editor_insert_row(0, "module foo;", 11);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[4] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[5] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "logic [7:0] x;" → "logic" is HL_KEYWORD2 (type). */
+static void test_sv_logic_type(void)
+{
+	setup(&HLDB[21]);
+	editor_insert_row(0, "logic [7:0] x;", 14);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[4] == HL_KEYWORD2);
+	teardown();
+}
+
+/* "always_ff @(posedge clk)" → "always_ff" and "posedge" are HL_KEYWORD1. */
+static void test_sv_always_ff(void)
+{
+	setup(&HLDB[21]);
+	editor_insert_row(0, "always_ff @(posedge clk)", 24);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[4] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[5] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[6] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[7] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[8] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "class foo extends bar;" → "class" is HL_KEYWORD1. */
+static void test_sv_class(void)
+{
+	setup(&HLDB[21]);
+	editor_insert_row(0, "class foo extends bar;", 22);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[4] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "string s;" → "string" is HL_KEYWORD2 (type). */
+static void test_sv_string_type(void)
+{
+	setup(&HLDB[21]);
+	editor_insert_row(0, "string s;", 9);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[4] == HL_KEYWORD2);
+	CHECK(editor.row[0].hl[5] == HL_KEYWORD2);
+	teardown();
+}
+
+/* "// comment" → entire line is HL_COMMENT. */
+static void test_sv_comment(void)
+{
+	int i;
+
+	setup(&HLDB[21]);
+	editor_insert_row(0, "// comment", 10);
+
+	for (i = 0; i < 10; i++)
+		CHECK(editor.row[0].hl[i] == HL_COMMENT);
+	teardown();
+}
+
+/* ---- Perl syntax tests (HLDB[22]) ---- */
+
+/* "my $x = 1;" → "my" is HL_KEYWORD1. */
+static void test_perl_my(void)
+{
+	setup(&HLDB[22]);
+	CHECK(strcmp(HLDB[22].name, "Perl") == 0);
+	editor_insert_row(0, "my $x = 1;", 10);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "sub foo {" → "sub" is HL_KEYWORD1. */
+static void test_perl_sub(void)
+{
+	setup(&HLDB[22]);
+	editor_insert_row(0, "sub foo {", 9);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "# comment" → entire line is HL_COMMENT. */
+static void test_perl_comment(void)
+{
+	int i;
+
+	setup(&HLDB[22]);
+	editor_insert_row(0, "# comment", 9);
+
+	for (i = 0; i < 9; i++)
+		CHECK(editor.row[0].hl[i] == HL_COMMENT);
+	teardown();
+}
+
+/* "print "hello";" → "print" is HL_KEYWORD1. */
+static void test_perl_print(void)
+{
+	setup(&HLDB[22]);
+	editor_insert_row(0, "print \"hello\";", 14);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[4] == HL_KEYWORD1);
+	teardown();
+}
+
+/* ---- Tcl syntax tests (HLDB[23]) ---- */
+
+/* "proc foo {} {" → "proc" is HL_KEYWORD1. */
+static void test_tcl_proc(void)
+{
+	setup(&HLDB[23]);
+	CHECK(strcmp(HLDB[23].name, "Tcl") == 0);
+	editor_insert_row(0, "proc foo {} {", 13);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[3] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "set x 10" → "set" is HL_KEYWORD1. */
+static void test_tcl_set(void)
+{
+	setup(&HLDB[23]);
+	editor_insert_row(0, "set x 10", 8);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[2] == HL_KEYWORD1);
+	teardown();
+}
+
+/* "# comment" → entire line is HL_COMMENT. */
+static void test_tcl_comment(void)
+{
+	int i;
+
+	setup(&HLDB[23]);
+	editor_insert_row(0, "# comment", 9);
+
+	for (i = 0; i < 9; i++)
+		CHECK(editor.row[0].hl[i] == HL_COMMENT);
+	teardown();
+}
+
+/* "if {$x > 0} {" → "if" is HL_KEYWORD1. */
+static void test_tcl_if(void)
+{
+	setup(&HLDB[23]);
+	editor_insert_row(0, "if {$x > 0} {", 13);
+
+	CHECK(editor.row[0].hl[0] == HL_KEYWORD1);
+	CHECK(editor.row[0].hl[1] == HL_KEYWORD1);
+	teardown();
+}
+
 /* ---- Main ---- */
 
 int main(void)
@@ -374,5 +630,23 @@ int main(void)
 	RUN(test_md_fenced_code_fence);
 	RUN(test_md_setext_underline);
 	RUN(test_md_unmatched_bold);
+	RUN(test_verilog_module);
+	RUN(test_verilog_wire_type);
+	RUN(test_verilog_always);
+	RUN(test_verilog_comment);
+	RUN(test_sv_module);
+	RUN(test_sv_logic_type);
+	RUN(test_sv_always_ff);
+	RUN(test_sv_class);
+	RUN(test_sv_string_type);
+	RUN(test_sv_comment);
+	RUN(test_perl_my);
+	RUN(test_perl_sub);
+	RUN(test_perl_comment);
+	RUN(test_perl_print);
+	RUN(test_tcl_proc);
+	RUN(test_tcl_set);
+	RUN(test_tcl_comment);
+	RUN(test_tcl_if);
 	return test_summary();
 }

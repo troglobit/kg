@@ -2,6 +2,12 @@
 
 All relevant changes to the project are documented in this file.
 
+## [v1.2.1][] - 2026-MM-DD
+
+### Changes
+
+- Syntax highlighting added for Verilog/SystemVerilog, Perl, and Tcl;
+
 ## [v1.2.0][] - 2026-07-25
 
 ### Changes
